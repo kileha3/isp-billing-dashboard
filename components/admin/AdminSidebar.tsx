@@ -1,0 +1,153 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import {
+  LayoutDashboard,
+  Router,
+  Package,
+  Ticket,
+  CreditCard,
+  Activity,
+  Settings,
+  Wifi,
+  Building2,
+  Users,
+  Palette,
+  Network,
+} from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+
+const navMain = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Routers", href: "/dashboard/routers", icon: Router },
+  { label: "Packages", href: "/dashboard/packages", icon: Package },
+  { label: "Vouchers", href: "/dashboard/vouchers", icon: Ticket },
+  { label: "Transactions", href: "/dashboard/transactions", icon: CreditCard },
+  { label: "Sessions", href: "/dashboard/sessions", icon: Activity },
+];
+
+// Shown only to tenant admins/operators (not super admin)
+const navTenantConfig = [
+  { label: "Portal Design", href: "/dashboard/portal", icon: Palette },
+];
+
+// Shown only to super admin
+const navAdmin = [
+  { label: "Tenants", href: "/dashboard/tenants", icon: Building2 },
+  { label: "Users", href: "/dashboard/users", icon: Users },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+];
+
+export function AdminSidebar() {
+  const pathname = usePathname();
+  const { user, isRole } = useAuth();
+
+  function isActive(href: string) {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname.startsWith(href);
+  }
+
+  return (
+    <Sidebar>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href="/dashboard">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                  <Wifi className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <div className="flex flex-col gap-0.5 leading-none">
+                  <span className="font-semibold text-sidebar-foreground">NetBill</span>
+                  <span className="text-xs text-sidebar-foreground/60 truncate max-w-[120px]">
+                    {user?.tenantId ? "ISP Dashboard" : "Super Admin"}
+                  </span>
+                </div>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Management</SidebarGroupLabel>
+          <SidebarMenu>
+            {navMain.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                  <Link href={item.href}>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {!isRole("super_admin") && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Configuration</SidebarGroupLabel>
+            <SidebarMenu>
+              {navTenantConfig.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
+
+        {isRole("super_admin") && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarMenu>
+              {navAdmin.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="px-2 py-1.5">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.name}</p>
+              <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
+              <span className="mt-1 inline-block rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary capitalize">
+                {user?.role?.replace("_", " ")}
+              </span>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}

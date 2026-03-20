@@ -1,0 +1,171 @@
+name: Application Deployment
+
+on:
+  push:
+    branches: [main]
+
+env:
+  CONTAINER_COUNT: 1
+  CONTAINER_PRIFIX: isp
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DOCKER_REPO: ghcr.io/${{ github.actor }}/${{vars.APPLICATION_NAME}}
+
+    steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Parse Environment Variables
+        id: parse-env
+        run: |
+          cat <<EOF > .env
+          ${{ secrets.ENV_VARIABLES }}
+          EOF
+          SERVICE_PORT=$(awk -F '=' '/^PORT=/ {print $2}' .env)
+          echo "SERVICE_PORT=$SERVICE_PORT" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Building
+        run: npm run build
+
+      - name: Docker Login
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_ACCESS_TOKEN }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build --no-cache -t ${{ env.DOCKER_REPO }}:latest .
+          docker push ${{ env.DOCKER_REPO }}:latest
+
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+
+      - name: Generate Deployment Files
+        run: |
+          cat <<EOF > envs
+          ${{ secrets.ENV_VARIABLES }}
+          EOF
+          cat <<EOF > docker-compose.yml
+          services:
+            ${{ vars.APPLICATION_NAME }}-proxy:
+              image: nginx:alpine
+              ports:
+                - "${SERVICE_PORT}:${SERVICE_PORT}"
+              volumes:
+                - ./nginx.conf:/etc/nginx/conf.d/default.conf
+              networks:
+                - ${{vars.APPLICATION_NAME}}
+              depends_on:
+                - ${{vars.APPLICATION_NAME}}
+              restart: always
+            ${{vars.APPLICATION_NAME}}:
+              image: ${{ env.DOCKER_REPO }}:latest
+              env_file: .env.local
+              networks:
+                - ${{ vars.APPLICATION_NAME }}
+              deploy:
+                replicas: ${{ env.CONTAINER_COUNT }}
+              restart: always
+          networks:
+            ${{ vars.APPLICATION_NAME }}:
+              driver: bridge
+          EOF
+
+          cat <<EOF > nginx.conf
+          server {
+            listen ${SERVICE_PORT};
+            location / {
+              proxy_pass http://${{ vars.APPLICATION_NAME }}:${SERVICE_PORT};
+              proxy_set_header Host \$host;
+              proxy_set_header X-Real-IP \$remote_addr;
+              proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto \$scheme;
+            }
+          }
+          EOF
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-files
+          path: |
+            docker-compose.yml
+            nginx.conf
+            envs
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DOCKER_REPO: ghcr.io/${{ github.actor }}/${{vars.APPLICATION_NAME}}
+    strategy:
+      matrix:
+        host: ["isp.easypay.co.tz"]
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-files
+
+      - name: Create remote directory if doesn't exist
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ matrix.host }}
+          username: ${{ vars.SSH_USERNAME }} 
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: mkdir -p /var/www/${{ vars.APPLICATION_NAME }}
+
+      - name: Copy File to Server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ matrix.host }}
+          username: ${{ vars.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          source: "docker-compose.yml,nginx.conf,envs"
+          target: "/var/www/${{ vars.APPLICATION_NAME }}"
+
+      - name: Deploy to ${{ matrix.host }}
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ matrix.host }}
+          username: ${{ vars.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd /var/www/${{vars.APPLICATION_NAME}}
+
+            mv envs .env.local
+
+            # Set up container 
+            docker login -u "${{ github.actor }}" -p "${{ secrets.GHCR_ACCESS_TOKEN }} ghcr.io"
+
+            # Stop all matching containers
+            docker ps -a --filter "name=^${{env.CONTAINER_PRIFIX}}-${{ vars.APPLICATION_NAME }}" --format "{{.ID}}" | xargs -r docker stop
+
+            # Remove all matching containers
+            docker ps -a --filter "name=^${{env.CONTAINER_PRIFIX}}-${{ vars.APPLICATION_NAME }}" --format "{{.ID}}" | xargs -r docker rm
+
+            docker compose down 
+            docker compose pull
+            docker compose -p ${{env.CONTAINER_PRIFIX}} up -d --build --force-recreate
+
+            # Cleanup temporary volumes, images and containers
+            docker system prune -a --volumes -f

@@ -1,0 +1,662 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { apiClient } from "@/lib/api";
+import { DataTable } from "@/components/admin/DataTable";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, ExternalLink } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import type { RouterDevice, Tenant } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { usePageTitle } from "@/hooks/use-page-title";
+
+const MOCK_ROUTERS: RouterDevice[] = [
+  { _id: "1", name: "Main Gateway", location: "Nairobi CBD", ipAddress: "192.168.1.1", status: "online", model: "hAP ac2", tenantId: "t1", wgPublicKey: "abc123pub", wgAddress: "10.0.0.1/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { _id: "2", name: "Westlands Hub", location: "Westlands", ipAddress: "192.168.2.1", status: "online", model: "RB4011", tenantId: "t1", wgPublicKey: "def456pub", wgAddress: "10.0.0.2/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { _id: "3", name: "Kasarani Node", location: "Kasarani", ipAddress: "192.168.3.1", status: "offline", model: "hAP ac3", tenantId: "t2", wgPublicKey: "ghi789pub", wgAddress: "10.0.0.3/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+const MOCK_TENANTS: Tenant[] = [
+  { _id: "t1", name: "FastNet ISP", subdomain: "fastnet", branding: { logo: "", primaryColor: "#3B82F6", secondaryColor: "#1E40AF", businessName: "FastNet" }, support: { phone: "", email: "", whatsapp: "", showOnPortal: false }, portalSettings: { displayMode: "both", welcomeMessage: "", termsUrl: "", showPoweredBy: true }, settings: { currency: "KES", timezone: "Africa/Nairobi" }, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { _id: "t2", name: "QuickConnect Ltd", subdomain: "quickconnect", branding: { logo: "", primaryColor: "#10B981", secondaryColor: "#065F46", businessName: "QuickConnect" }, support: { phone: "", email: "", whatsapp: "", showOnPortal: false }, portalSettings: { displayMode: "both", welcomeMessage: "", termsUrl: "", showPoweredBy: true }, settings: { currency: "KES", timezone: "Africa/Nairobi" }, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+interface RouterInfo {
+  model: string;
+  type: string;
+  routerOsVersion: string;
+  vpnIp: string;
+  interfaces: string[];
+}
+
+const MOCK_ROUTER_INFO: RouterInfo = {
+  model: "hAP ac2",
+  type: "WiFi Router",
+  routerOsVersion: "7.13.2",
+  vpnIp: "10.0.0.1",
+  interfaces: ["ether1-WAN", "ether2-LAN", "wlan1-2GHz", "wlan2-5GHz", "bridge-local"],
+};
+
+type WizardStep = "basic" | "vpn_script" | "interfaces" | "hotspot_script" | "done";
+
+interface WizardState {
+  step: WizardStep;
+  router: RouterDevice | null;
+  vpnScript: string;
+  routerInfo: RouterInfo | null;
+  selectedInterface: string;
+  hotspotScript: string;
+  pollingStatus: "waiting" | "connected" | "timeout";
+}
+
+const STEP_LABELS: Record<WizardStep, string> = {
+  basic: "Details",
+  vpn_script: "VPN Setup",
+  interfaces: "Interface",
+  hotspot_script: "Hotspot",
+  done: "Complete",
+};
+
+const STEPS: WizardStep[] = ["basic", "vpn_script", "interfaces", "hotspot_script", "done"];
+
+const basicSchema = z.object({
+  name: z.string().min(1, "Router name is required"),
+  location: z.string().min(1, "Location is required"),
+  tenantId: z.string().optional(),
+});
+
+function StepIndicator({ current, steps }: { current: WizardStep; steps: WizardStep[] }) {
+  const currentIdx = steps.indexOf(current);
+  return (
+    <div className="flex items-center gap-0 mb-6">
+      {steps.slice(0, -1).map((step, i) => (
+        <div key={step} className="flex items-center gap-0 flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${i < currentIdx ? "bg-primary text-primary-foreground" : i === currentIdx ? "bg-primary text-primary-foreground ring-2 ring-primary/30" : "bg-muted text-muted-foreground"}`}>
+              {i < currentIdx ? <Check className="h-3 w-3" /> : i + 1}
+            </div>
+            <span className={`text-xs truncate hidden sm:block ${i === currentIdx ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+              {STEP_LABELS[step]}
+            </span>
+          </div>
+          {i < steps.length - 2 && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 mx-1" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CopyableScript({ content, label }: { content: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy() {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      {label && <p className="text-sm text-muted-foreground">{label}</p>}
+      <div className="relative">
+        <pre className="rounded-md bg-[hsl(220,13%,9%)] text-[hsl(210,17%,82%)] p-4 text-xs font-mono overflow-auto max-h-52 leading-relaxed whitespace-pre-wrap">{content}</pre>
+        <Button
+          variant="outline"
+          size="sm"
+          className="absolute top-2 right-2 h-7 px-2 text-xs bg-background/80 backdrop-blur-sm"
+          onClick={handleCopy}
+        >
+          {copied ? <><Check className="h-3 w-3 mr-1" />Copied</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function generateVpnScript(router: RouterDevice, serverIp = "YOUR_SERVER_IP"): string {
+  return `/interface wireguard
+add name=wg-netbill listen-port=${router.wgListenPort} private-key="<WILL_BE_SET_AUTOMATICALLY>"
+
+/interface wireguard peers
+add interface=wg-netbill \\
+    public-key="${router.wgPublicKey}" \\
+    allowed-address=0.0.0.0/0 \\
+    endpoint-address=${serverIp} \\
+    endpoint-port=${router.wgListenPort} \\
+    persistent-keepalive=25s
+
+/ip address
+add address=${router.wgAddress} interface=wg-netbill
+
+/ip route
+add dst-address=0.0.0.0/0 gateway=wg-netbill
+
+# Save and apply — VPN will connect automatically`;
+}
+
+function generateHotspotScript(router: RouterDevice, iface: string, serverUrl: string): string {
+  const routerId = router._id;
+  return `/ip hotspot
+add name=hotspot1 interface=${iface} address-pool=hs-pool-1 \\
+    profile=hsprof1
+
+/ip hotspot profile
+add name=hsprof1 hotspot-address=192.168.88.1 \\
+    html-directory=hotspot \\
+    http-cookie-lifetime=1d \\
+    login-by=http-chap,http-pap \\
+    rate-limit="" \\
+    use-radius=no
+
+/ip hotspot walled-garden ip
+add dst-host=${new URL(serverUrl).hostname} action=accept
+
+# Set redirect URL in hotspot profile:
+# Hotspot > Server Profiles > hsprof1 > Login Page
+# Set "Login Page URL" to:
+#   ${serverUrl}/pay?router=${routerId}
+
+/ip pool
+add name=hs-pool-1 ranges=192.168.88.10-192.168.88.254
+
+/ip dhcp-server
+add interface=${iface} address-pool=hs-pool-1 name=dhcp1
+
+/ip dhcp-server network
+add address=192.168.88.0/24 gateway=192.168.88.1 dns-server=8.8.8.8
+
+# Apply and test connection`;
+}
+
+export default function RoutersPage() {
+  usePageTitle("Routers");
+  const { toast } = useToast();
+  const { isRole, user } = useAuth();
+  const isSuperAdmin = isRole("super_admin");
+
+  const [routers, setRouters] = useState<RouterDevice[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showWizard, setShowWizard] = useState(false);
+  // For re-setup from list actions
+  const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
+
+  const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "" });
+  const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof typeof basicForm, string>>>({});
+  const [submittingBasic, setSubmittingBasic] = useState(false);
+
+  const [wizard, setWizard] = useState<WizardState>({
+    step: "basic",
+    router: null,
+    vpnScript: "",
+    routerInfo: null,
+    selectedInterface: "",
+    hotspotScript: "",
+    pollingStatus: "waiting",
+  });
+
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await apiClient.routers.list();
+      setRouters(data.routers ?? data);
+    } catch {
+      setRouters(MOCK_ROUTERS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadTenants = useCallback(async () => {
+    if (!isSuperAdmin) return;
+    try {
+      const data = await apiClient.tenants.list();
+      setTenants(data.tenants ?? data);
+    } catch {
+      setTenants(MOCK_TENANTS);
+    }
+  }, [isSuperAdmin]);
+
+  useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
+
+  useEffect(() => {
+    return () => { if (pollingInterval) clearInterval(pollingInterval); };
+  }, [pollingInterval]);
+
+  function openWizard(existingRouter?: RouterDevice) {
+    if (pollingInterval) { clearInterval(pollingInterval); setPollingInterval(null); }
+    if (existingRouter) {
+      // Re-setup wizard: skip "basic" step and show VPN script directly
+      setSetupTarget(existingRouter);
+      const script = generateVpnScript(existingRouter);
+      setWizard({
+        step: "vpn_script",
+        router: existingRouter,
+        vpnScript: script,
+        routerInfo: null,
+        selectedInterface: "",
+        hotspotScript: "",
+        pollingStatus: "waiting",
+      });
+      startPolling(existingRouter._id);
+    } else {
+      setSetupTarget(null);
+      setBasicForm({ name: "", location: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
+      setBasicErrors({});
+      setWizard({ step: "basic", router: null, vpnScript: "", routerInfo: null, selectedInterface: "", hotspotScript: "", pollingStatus: "waiting" });
+    }
+    setShowWizard(true);
+  }
+
+  function closeWizard() {
+    if (pollingInterval) { clearInterval(pollingInterval); setPollingInterval(null); }
+    setShowWizard(false);
+    setSetupTarget(null);
+    load();
+  }
+
+  function validateBasic() {
+    const result = basicSchema.safeParse(basicForm);
+    if (!result.success) {
+      const errs: Partial<Record<keyof typeof basicForm, string>> = {};
+      result.error.errors.forEach(e => {
+        const field = e.path[0] as keyof typeof basicForm;
+        errs[field] = e.message;
+      });
+      setBasicErrors(errs);
+      return false;
+    }
+    setBasicErrors({});
+    return true;
+  }
+
+  async function handleSaveBasic() {
+    if (!validateBasic()) return;
+    setSubmittingBasic(true);
+    try {
+      const payload = { name: basicForm.name, location: basicForm.location, tenantId: basicForm.tenantId || user?.tenantId };
+      const data = await apiClient.routers.create(payload);
+      const newRouter = data.router ?? MOCK_ROUTERS[0];
+      const script = generateVpnScript(newRouter);
+      setWizard(w => ({ ...w, step: "vpn_script", router: newRouter, vpnScript: script }));
+      startPolling(newRouter._id);
+    } catch {
+      const mockRouter: RouterDevice = {
+        _id: `r_${Date.now()}`, name: basicForm.name, location: basicForm.location, status: "pending" as never,
+        model: "Unknown", tenantId: basicForm.tenantId || "t1", wgPublicKey: "MOCK_PUBLIC_KEY_" + Math.random().toString(36).slice(2, 10),
+        wgAddress: "10.0.0.10/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      };
+      const script = generateVpnScript(mockRouter);
+      setWizard(w => ({ ...w, step: "vpn_script", router: mockRouter, vpnScript: script }));
+      startPolling(mockRouter._id);
+    } finally {
+      setSubmittingBasic(false);
+    }
+  }
+
+  function startPolling(routerId: string) {
+    const interval = setInterval(async () => {
+      try {
+        const data = await apiClient.routers.list();
+        const list = data.routers ?? data;
+        const r = list.find((rt: RouterDevice) => rt._id === routerId);
+        if (r?.status === "online") {
+          clearInterval(interval);
+          setPollingInterval(null);
+          let info: RouterInfo = MOCK_ROUTER_INFO;
+          try {
+            const infoData = await apiClient.routers.getInfo(routerId);
+            info = infoData;
+          } catch {
+            info = MOCK_ROUTER_INFO;
+          }
+          setWizard(w => ({ ...w, pollingStatus: "connected", routerInfo: info }));
+        }
+      } catch { /* keep polling */ }
+    }, 5000);
+    setPollingInterval(interval);
+    setTimeout(() => {
+      clearInterval(interval);
+      setPollingInterval(null);
+      setWizard(w => {
+        if (w.pollingStatus === "waiting") return { ...w, pollingStatus: "timeout" };
+        return w;
+      });
+    }, 120000);
+  }
+
+  function handleProceedToInterfaces() {
+    setWizard(w => ({ ...w, step: "interfaces" }));
+  }
+
+  function handleSelectInterface(iface: string) {
+    const serverUrl = typeof window !== "undefined" ? window.location.origin : "https://your-domain.com";
+    const script = wizard.router ? generateHotspotScript(wizard.router, iface, serverUrl) : "";
+    setWizard(w => ({ ...w, selectedInterface: iface, hotspotScript: script, step: "hotspot_script" }));
+  }
+
+  async function handleDelete(router: RouterDevice) {
+    if (!confirm(`Delete router "${router.name}"?`)) return;
+    try {
+      await apiClient.routers.delete(router._id);
+      toast({ title: "Router deleted" });
+      load();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete router.", variant: "destructive" });
+    }
+  }
+
+  function getTenantName(tenantId: string) {
+    return tenants.find(t => t._id === tenantId)?.name ?? tenantId;
+  }
+
+  const columns = [
+    { key: "name", label: "Name" },
+    { key: "location", label: "Location" },
+    {
+      key: "model", label: "Device Info",
+      render: (v: unknown, row: unknown) => {
+        const r = row as RouterDevice;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{String(v) || "—"}</span>
+            <code className="text-xs font-mono text-muted-foreground">{r.wgAddress}</code>
+          </div>
+        );
+      }
+    },
+    ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
+    { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
+    {
+      key: "_id",
+      label: "",
+      render: (_v: unknown, row: unknown) => {
+        const r = row as RouterDevice;
+        const isOnline = r.status === "online";
+        const url = r.ipAddress ? `http://${r.ipAddress}` : null;
+        return (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  disabled={!isOnline || !url}
+                  onClick={() => url && window.open(url, "_blank", "noopener,noreferrer")}
+                  className={[
+                    "flex items-center justify-center h-7 w-7 rounded-md transition-colors",
+                    isOnline && url
+                      ? "text-emerald-600 hover:bg-emerald-50 cursor-pointer"
+                      : "text-muted-foreground/30 cursor-not-allowed",
+                  ].join(" ")}
+                  aria-label={isOnline ? `Open ${r.name} admin panel` : "Router offline"}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                {isOnline && url ? `Open admin panel (${r.ipAddress})` : "Router is offline"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+    },
+  ];
+
+  const wizardStep = wizard.step;
+  const wizardTitle = setupTarget ? `Re-install Billing — ${setupTarget.name}` : "Add Router";
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Routers</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage MikroTik routers and VPN peers</p>
+        </div>
+        <Button onClick={() => openWizard()}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Router
+        </Button>
+      </div>
+
+      <DataTable
+        data={(statusFilter === "all" ? routers : routers.filter(r => r.status === statusFilter)) as unknown as Record<string, unknown>[]}
+        columns={columns as never}
+        loading={loading}
+        searchable
+        searchKeys={["name", "location"] as never}
+        searchPlaceholder="routers"
+        emptyMessage="No routers yet. Add your first MikroTik router."
+        pageSize={10}
+        filterSlot={
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-10 w-44 bg-background">
+              <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="online">Online</SelectItem>
+              <SelectItem value="offline">Offline</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+        actions={(row) => {
+          const r = row as unknown as RouterDevice;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openWizard(r)}>
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  Setup Wizard
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(r)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        }}
+      />
+
+      {/* Add/Re-install Router Wizard */}
+      <Dialog open={showWizard} onOpenChange={(open) => { if (!open) closeWizard(); }}>
+        <DialogContent className="w-full max-w-lg sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{wizardTitle}</DialogTitle>
+          </DialogHeader>
+
+          <StepIndicator current={wizardStep} steps={STEPS} />
+
+          {/* Step 1 — Basic Info (only for new routers) */}
+          {wizardStep === "basic" && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">Enter the router name and location. WireGuard keys will be generated automatically after saving.</p>
+              <div className="flex flex-col gap-1.5">
+                <Label>Router Name <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="e.g. Main Gateway"
+                  value={basicForm.name}
+                  onChange={(e) => { setBasicForm(f => ({ ...f, name: e.target.value })); setBasicErrors(er => ({ ...er, name: undefined })); }}
+                  autoFocus
+                />
+                {basicErrors.name && <p className="text-xs text-destructive">{basicErrors.name}</p>}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Location <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="e.g. Nairobi CBD, Westlands"
+                  value={basicForm.location}
+                  onChange={(e) => { setBasicForm(f => ({ ...f, location: e.target.value })); setBasicErrors(er => ({ ...er, location: undefined })); }}
+                />
+                {basicErrors.location && <p className="text-xs text-destructive">{basicErrors.location}</p>}
+              </div>
+              {isSuperAdmin && (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Tenant</Label>
+                  <Select value={basicForm.tenantId} onValueChange={(v) => setBasicForm(f => ({ ...f, tenantId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select tenant" /></SelectTrigger>
+                    <SelectContent>
+                      {tenants.map(t => <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={closeWizard}>Cancel</Button>
+                <Button onClick={handleSaveBasic} disabled={submittingBasic}>
+                  {submittingBasic ? "Creating…" : "Save & Continue"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2 — VPN Script */}
+          {wizardStep === "vpn_script" && wizard.router && (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start gap-3 rounded-lg border border-border p-3 bg-muted/30">
+                <Info className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Paste this script into your MikroTik router terminal. It will establish a WireGuard VPN connection back to the NetBill server. Once connected, the status below will update automatically.
+                </p>
+              </div>
+              <CopyableScript content={wizard.vpnScript} />
+              <div className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${wizard.pollingStatus === "connected" ? "border-emerald-500/30 bg-emerald-500/5" : wizard.pollingStatus === "timeout" ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
+                {wizard.pollingStatus === "waiting" && (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Waiting for connection…</p>
+                      <p className="text-xs text-muted-foreground">Checking every 5 seconds</p>
+                    </div>
+                  </>
+                )}
+                {wizard.pollingStatus === "connected" && wizard.routerInfo && (
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="flex items-center gap-2">
+                      <Wifi className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <p className="text-sm font-semibold text-emerald-600">Router Connected</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                      <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
+                      <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.routerOsVersion}</span>
+                      <span className="text-muted-foreground">VPN IP</span><code className="font-mono font-medium">{wizard.routerInfo.vpnIp}</code>
+                    </div>
+                  </div>
+                )}
+                {wizard.pollingStatus === "timeout" && (
+                  <>
+                    <div className="h-4 w-4 shrink-0 rounded-full bg-destructive/20" />
+                    <div>
+                      <p className="text-sm font-medium text-destructive">Connection timeout</p>
+                      <p className="text-xs text-muted-foreground">Check script was applied correctly and try again</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setWizard(w => ({ ...w, pollingStatus: "connected", routerInfo: MOCK_ROUTER_INFO }))}
+                >
+                  Skip (demo)
+                </Button>
+                <Button onClick={handleProceedToInterfaces} disabled={wizard.pollingStatus === "waiting" && wizard.routerInfo === null}>
+                  Next: Select Interface
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3 — Interface Selection */}
+          {wizardStep === "interfaces" && wizard.routerInfo && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                Select the network interface where the captive portal (hotspot) will be active. This is typically the LAN or bridge interface facing your customers.
+              </p>
+              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
+                {wizard.routerInfo.interfaces.map(iface => (
+                  <button
+                    key={iface}
+                    onClick={() => handleSelectInterface(iface)}
+                    className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                      <code className="text-sm font-mono font-medium">{iface}</code>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {iface.includes("wlan") ? "Wireless" : iface.includes("bridge") ? "Bridge" : iface.includes("ether") ? "Ethernet" : "Interface"}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "vpn_script" }))}>Back</Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4 — Hotspot Script */}
+          {wizardStep === "hotspot_script" && (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start gap-3 rounded-lg border border-border p-3 bg-muted/30">
+                <Info className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Paste this hotspot configuration script into your MikroTik terminal. It sets up the captive portal on interface{" "}
+                  <code className="font-mono text-xs bg-muted px-1 rounded">{wizard.selectedInterface}</code> and redirects customers to your payment page.
+                </p>
+              </div>
+              <CopyableScript content={wizard.hotspotScript} />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "interfaces" }))}>Back</Button>
+                <Button onClick={() => setWizard(w => ({ ...w, step: "done" }))}>
+                  <Check className="h-4 w-4 mr-1.5" />Finish Setup
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5 — Done */}
+          {wizardStep === "done" && (
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
+                <Check className="h-8 w-8 text-emerald-600" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold">Router Setup Complete</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <span className="font-medium">{wizard.router?.name}</span> is configured and ready to serve customers.
+                </p>
+              </div>
+              {wizard.routerInfo && (
+                <div className="w-full rounded-lg border border-border p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                  <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
+                  <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.routerOsVersion}</span>
+                  <span className="text-muted-foreground">VPN IP</span><code className="font-mono font-medium">{wizard.routerInfo.vpnIp}</code>
+                  <span className="text-muted-foreground">Interface</span><code className="font-mono font-medium">{wizard.selectedInterface}</code>
+                </div>
+              )}
+              <Button onClick={closeWizard} className="w-full">Done</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
