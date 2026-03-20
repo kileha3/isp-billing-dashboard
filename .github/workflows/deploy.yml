@@ -6,7 +6,7 @@ on:
 
 env:
   CONTAINER_COUNT: 1
-  CONTAINER_PRIFIX: isp
+  CONTAINER_PREFIX: isp
 
 jobs:
   build:
@@ -130,7 +130,7 @@ jobs:
           username: ${{ vars.SSH_USERNAME }} 
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          script: mkdir -p /var/www/${{ vars.APPLICATION_NAME }}
+          script: mkdir -p /var/www/${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}
 
       - name: Copy File to Server
         uses: appleboy/scp-action@v0.1.4
@@ -140,7 +140,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "docker-compose.yml,nginx.conf,envs"
-          target: "/var/www/${{ vars.APPLICATION_NAME }}"
+          target: "/var/www/${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}"
 
       - name: Deploy to ${{ matrix.host }}
         uses: appleboy/ssh-action@v1.2.2
@@ -150,7 +150,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd /var/www/${{vars.APPLICATION_NAME}}
+            cd /var/www/${{env.CONTAINER_PREFIX}}-${{vars.APPLICATION_NAME}}
 
             mv envs .env.local
 
@@ -158,14 +158,14 @@ jobs:
             docker login -u "${{ github.actor }}" -p "${{ secrets.GHCR_ACCESS_TOKEN }} ghcr.io"
 
             # Stop all matching containers
-            docker ps -a --filter "name=^${{env.CONTAINER_PRIFIX}}-${{ vars.APPLICATION_NAME }}" --format "{{.ID}}" | xargs -r docker stop
+            docker ps -a --filter "name=^${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}" --format "{{.ID}}" | xargs -r docker stop
 
             # Remove all matching containers
-            docker ps -a --filter "name=^${{env.CONTAINER_PRIFIX}}-${{ vars.APPLICATION_NAME }}" --format "{{.ID}}" | xargs -r docker rm
+            docker ps -a --filter "name=^${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}" --format "{{.ID}}" | xargs -r docker rm
 
             docker compose down 
             docker compose pull
-            docker compose -p ${{env.CONTAINER_PRIFIX}} up -d --build --force-recreate
+            docker compose -p ${{env.CONTAINER_PREFIX}} up -d --build --force-recreate
 
             # Cleanup temporary volumes, images and containers
             docker system prune -a --volumes -f
