@@ -15,11 +15,6 @@ jobs:
       DOCKER_REPO: ghcr.io/${{ github.actor }}/${{vars.APPLICATION_NAME}}
 
     steps:
-      - name: Clean up workspace
-        run: |
-          rm -rf ./* || true
-          rm -rf ./.??* || true
-
       - name: Checkout Code
         uses: actions/checkout@v3
 
@@ -78,7 +73,7 @@ jobs:
               container_name: ${CONTAINER_PREFIX}-app
               env_file: .env.local
               networks:
-                - ${{ vars.APPLICATION_NAME }}
+                - app-net
               restart: always
           networks:
             app-net:
