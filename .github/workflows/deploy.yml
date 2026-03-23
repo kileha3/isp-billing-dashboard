@@ -60,25 +60,28 @@ jobs:
           EOF
           cat <<EOF > docker-compose.yml
           services:
-            ${{ vars.APPLICATION_NAME }}-proxy:
+            ${CONTAINER_PREFIX}-proxy:
               image: nginx:alpine
+              counter_name:${CONTAINER_PREFIX}-proxy
               ports:
                 - "${SERVICE_PORT}:${SERVICE_PORT}"
               volumes:
                 - ./nginx.conf:/etc/nginx/conf.d/default.conf
               networks:
-                - ${{vars.APPLICATION_NAME}}
+                - app-net
               depends_on:
-                - ${{vars.APPLICATION_NAME}}
+                - ${CONTAINER_PREFIX}-app
               restart: always
-            ${{vars.APPLICATION_NAME}}:
+
+            ${CONTAINER_PREFIX}-app:
               image: ${{ env.DOCKER_REPO }}:latest
+              container_name: ${CONTAINER_PREFIX}-app
               env_file: .env.local
               networks:
                 - ${{ vars.APPLICATION_NAME }}
               restart: always
           networks:
-            ${{ vars.APPLICATION_NAME }}:
+            app-net:
               driver: bridge
           EOF
 
@@ -86,7 +89,7 @@ jobs:
           server {
             listen ${SERVICE_PORT};
             location / {
-              proxy_pass http://${{ vars.APPLICATION_NAME }}:${SERVICE_PORT};
+              proxy_pass http://${CONTAINER_PREFIX}-app:${SERVICE_PORT};
               proxy_set_header Host \$host;
               proxy_set_header X-Real-IP \$remote_addr;
               proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -162,7 +165,7 @@ jobs:
 
             docker compose down 
             docker compose pull
-            docker compose -p ${{env.CONTAINER_PREFIX}} up -d --build --force-recreate
+            docker compose -p ${{env.CONTAINER_PREFIX}} up -d --force-recreate
 
             # Cleanup temporary volumes, images and containers
             docker system prune -a --volumes -f
