@@ -5,8 +5,7 @@ on:
     branches: [main]
 
 env:
-  CONTAINER_COUNT: 1
-  CONTAINER_PREFIX: isp
+  CONTAINER_PREFIX: isp-dashboard
 
 jobs:
   build:
@@ -77,8 +76,6 @@ jobs:
               env_file: .env.local
               networks:
                 - ${{ vars.APPLICATION_NAME }}
-              deploy:
-                replicas: ${{ env.CONTAINER_COUNT }}
               restart: always
           networks:
             ${{ vars.APPLICATION_NAME }}:
