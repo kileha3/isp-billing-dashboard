@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { DataTable } from "@/components/admin/DataTable";
-import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,31 +21,19 @@ import type { User, Tenant } from "@/lib/types";
 const userSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["super_admin", "tenant_admin", "operator"]),
 });
 
-const MOCK_USERS: User[] = [
-  { _id: "u1", name: "Super Admin", email: "lkileha@gmail.com", role: "super_admin", createdAt: new Date().toISOString() },
-  { _id: "u2", name: "FastNet Admin", email: "admin@fastnet.com", role: "tenant_admin", tenantId: "t1", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
-  { _id: "u3", name: "John Operator", email: "john@fastnet.com", role: "operator", tenantId: "t1", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
-  { _id: "u4", name: "QuickConnect Admin", email: "admin@quickconnect.co.ke", role: "tenant_admin", tenantId: "t2", createdAt: new Date(Date.now() - 86400000 * 8).toISOString() },
-];
-
-const MOCK_TENANTS: Tenant[] = [
-  { _id: "t1", name: "FastNet ISP", subdomain: "fastnet", branding: { logo: "", primaryColor: "#3B82F6", secondaryColor: "#1E40AF", businessName: "FastNet" }, support: { phone: "", email: "", whatsapp: "", showOnPortal: false }, portalSettings: { displayMode: "both", welcomeMessage: "", termsUrl: "", showPoweredBy: true }, settings: { currency: "KES", timezone: "Africa/Nairobi" }, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "t2", name: "QuickConnect Ltd", subdomain: "quickconnect", branding: { logo: "", primaryColor: "#10B981", secondaryColor: "#065F46", businessName: "QuickConnect" }, support: { phone: "", email: "", whatsapp: "", showOnPortal: false }, portalSettings: { displayMode: "both", welcomeMessage: "", termsUrl: "", showPoweredBy: true }, settings: { currency: "KES", timezone: "Africa/Nairobi" }, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
 
 type UserForm = {
   name: string;
+  id: string;
   email: string;
-  password: string;
   role: "super_admin" | "tenant_admin" | "operator";
-  tenantId: string;
+  tenantId?: string;
 };
 
-const DEFAULT_FORM: UserForm = { name: "", email: "", password: "", role: "tenant_admin", tenantId: "" };
+const DEFAULT_FORM: UserForm = { name: "", email: "", role: "tenant_admin", tenantId: "", id: "" };
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin: "bg-primary/10 text-primary",
@@ -66,6 +53,7 @@ export default function UsersPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState<UserForm>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [me, setMe] = useState<User>();
 
   useEffect(() => {
     if (!isRole("super_admin")) router.push("/dashboard");
@@ -73,17 +61,18 @@ export default function UsersPage() {
 
   const load = useCallback(async () => {
     try {
-      const [usersData, tenantsData] = await Promise.allSettled([
+      const [usersData, tenantsData, meData] = await Promise.allSettled([
         apiClient.users.list(),
         apiClient.tenants.list(),
+        apiClient.auth.me()
       ]);
-      if (usersData.status === "fulfilled") setUsers(usersData.value.users ?? usersData.value);
-      else setUsers(MOCK_USERS);
-      if (tenantsData.status === "fulfilled") setTenants(tenantsData.value.tenants ?? tenantsData.value);
-      else setTenants(MOCK_TENANTS);
+      if (usersData.status === "fulfilled") setUsers(usersData.value);
+      if (tenantsData.status === "fulfilled") setTenants(tenantsData.value.data);
+      if (meData.status === "fulfilled") setMe(meData.value);
+      else setTenants([]);
     } catch {
-      setUsers(MOCK_USERS);
-      setTenants(MOCK_TENANTS);
+      setUsers([]);
+      setTenants([]);
     } finally {
       setLoading(false);
     }
@@ -91,16 +80,16 @@ export default function UsersPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function handleCreate() {
+  async function handleUpdate() {
     setSubmitting(true);
     try {
-      await apiClient.users.create(form);
-      toast({ title: "User created", description: `${form.name} has been added.` });
+      await apiClient.users.update(form.id, { ...form, id: undefined });
+      toast({ title: "User updated", description: `${form.name} has been updated.` });
       setShowDialog(false);
       setForm(DEFAULT_FORM);
       load();
     } catch {
-      toast({ title: "Error", description: "Failed to create user.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to update user.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -146,14 +135,14 @@ export default function UsersPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage platform users and their roles</p>
         </div>
-        <Button onClick={() => setShowDialog(true)}>
+        {/* <Button onClick={() => setShowDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add User
-        </Button>
+        </Button> */}
       </div>
 
       <DataTable
-        data={(roleFilter === "all" ? users : users.filter(u => u.role === roleFilter)) as unknown as Record<string, unknown>[]}
+        data={((roleFilter === "all" ? users : users.filter(u => u.role === roleFilter)).filter(u => u._id !== me?.id)) as unknown as Record<string, unknown>[]}
         columns={columns as never}
         loading={loading}
         searchable
@@ -185,7 +174,10 @@ export default function UsersPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  setForm({ name: u.name, email: u.email, tenantId: u.tenantId, role: u.role, id: u._id })
+                  setShowDialog(true);
+                }}>
                   <Pencil className="mr-2 h-4 w-4" />Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem>
@@ -204,52 +196,86 @@ export default function UsersPage() {
       {/* Create User Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-2">
-            <div className="flex flex-col gap-1.5">
-              <Label>Full Name</Label>
-              <Input placeholder="John Doe" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Email</Label>
-              <Input type="email" placeholder="john@example.com" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Password</Label>
-              <Input type="password" placeholder="Secure password" value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Role</Label>
-              <Select value={form.role} onValueChange={(v) => setForm(f => ({ ...f, role: v as UserForm["role"] }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
-                  <SelectItem value="operator">Operator</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {form.role !== "super_admin" && (
-              <div className="flex flex-col gap-1.5">
-                <Label>Assign to Tenant</Label>
-                <Select value={form.tenantId} onValueChange={(v) => setForm(f => ({ ...f, tenantId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select tenant" /></SelectTrigger>
-                  <SelectContent>
-                    {tenants.map(t => <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={submitting || !userFormValid}>
-              {submitting ? "Creating…" : "Create User"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+  <DialogHeader>
+    <DialogTitle>Update User</DialogTitle>
+  </DialogHeader>
+
+  <div className="flex flex-col gap-4 py-2">
+    <div className="flex flex-col gap-1.5">
+      <Label>Full Name</Label>
+      <Input 
+        placeholder="John Doe" 
+        value={form.name} 
+        onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} 
+      />
+    </div>
+
+    <div className="flex flex-col gap-1.5">
+      <Label>Email</Label>
+      <Input 
+        type="email" 
+        placeholder="john@example.com" 
+        value={form.email} 
+        onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} 
+      />
+    </div>
+
+    {/* ── Role + Tenant side by side ── */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+      {/* Role */}
+      <div className="flex flex-col gap-1.5">
+        <Label>Role</Label>
+        <Select 
+          value={form.role} 
+          onValueChange={(v) => setForm(f => ({ ...f, role: v as UserForm["role"] }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+            <SelectItem value="operator">Operator</SelectItem>
+            <SelectItem value="super_admin">Super Admin</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Tenant – only shown when needed */}
+      {form.role !== "super_admin" && (
+        <div className="flex flex-col gap-1.5">
+          <Label>Assign to Tenant</Label>
+          <Select 
+            value={form.tenantId ?? ""} 
+            onValueChange={(v) => setForm(f => ({ ...f, tenantId: v }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select tenant" />
+            </SelectTrigger>
+            <SelectContent>
+              {tenants.map(t => (
+                <SelectItem key={t._id} value={t._id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <DialogFooter>
+    <Button variant="outline" onClick={() => setShowDialog(false)}>
+      Cancel
+    </Button>
+    <Button 
+      onClick={handleUpdate} 
+      disabled={submitting || !userFormValid}
+    >
+      {submitting ? "Updating…" : "Update User"}
+    </Button>
+  </DialogFooter>
+</DialogContent>
       </Dialog>
     </div>
   );

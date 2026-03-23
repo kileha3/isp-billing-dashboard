@@ -11,6 +11,7 @@ import { Wifi, AlertCircle, Eye, EyeOff, Router, CreditCard, BarChart3, Headphon
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { z } from "zod";
+import { appName } from "@/lib/utils";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -84,10 +85,9 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Brand */}
           <div className="flex items-center justify-center gap-2 mb-10">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Wifi className="h-4 w-4 text-primary-foreground" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-lg">
+              <img className="h-16 w-16 text-primary-foreground" src={"icon.svg"} />
             </div>
-            <span className="text-lg font-semibold tracking-tight text-foreground">NetBill</span>
           </div>
 
           <div className="mb-8 text-center">
@@ -172,24 +172,20 @@ export default function LoginPage() {
 
       {/* Right — branding panel */}
       <div className="hidden lg:flex flex-1 flex-col justify-center px-14 py-16 bg-primary">
-        <div className="flex items-center gap-2.5 mb-10">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-            <Wifi className="h-5 w-5 text-white" />
-          </div>
-        </div>
+        
 
         <h2 className="text-4xl font-bold text-white leading-tight text-balance mb-4">
           ISP Billing That Works While You Sleep
         </h2>
-        <p className="text-base text-white/70 leading-relaxed mb-10 max-w-sm">
-          Manage your hotspot network, collect payments automatically and grow your ISP business with NetBill.
+        <p className="text-base text-white/70 leading-relaxed mb-10 max-w-xlg">
+          Manage your hotspot network, collect payments automatically and grow your ISP business with {appName}.
         </p>
 
-        <div className="grid grid-cols-2 gap-4 max-w-lg">
+        <div className="grid grid-cols-2 gap-4 max-w-xlg">
           {FEATURES.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="rounded-xl bg-white/10 p-5">
-              <Icon className="h-5 w-5 text-white mb-3" />
-              <p className="text-sm font-semibold text-white mb-1">{title}</p>
+              <span><Icon className="h-5 w-5 text-white mb-3" /></span>
+              <span><p className="text-sm font-semibold text-white mb-1">{title}</p></span>
               <p className="text-xs text-white/65 leading-relaxed">{desc}</p>
             </div>
           ))}

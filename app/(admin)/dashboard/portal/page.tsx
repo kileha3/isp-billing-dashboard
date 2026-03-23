@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Save, Upload, Eye, RefreshCw, Wifi, Phone, Mail, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { TenantPortalSettings } from "@/lib/types";
+import type { Tenant, TenantPortalSettings } from "@/lib/types";
+import { appName, imageUrl } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const DEFAULT_SETTINGS: TenantPortalSettings = {
   branding: {
@@ -47,6 +48,7 @@ const PRESET_COLORS = [
 
 export default function PortalCustomizationPage({ tenantId }: { tenantId?: string }) {
   const { toast } = useToast();
+  const router = useRouter();
   const [settings, setSettings] = useState<TenantPortalSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,9 +58,10 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
 
   const load = useCallback(async () => {
     try {
-      const data = await apiClient.tenant.getPortalSettings(tenantId);
+      const { data } = await apiClient.tenant.get(tenantId);
+      if(!data.portalSettings.termsUrl) data.portalSettings.termsUrl = "https://isp.easypay.co.tz/terms-and-conditions";
       setSettings(data);
-      if (data.branding.logo) setLogoPreview(data.branding.logo);
+      if (settings.branding.logo) setLogoPreview(settings.branding.logo);
     } catch {
       setSettings(DEFAULT_SETTINGS);
     } finally {
@@ -77,6 +80,10 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
     reader.readAsDataURL(file);
   }
 
+  const canNotSave = () => {
+    return saving || (settings.support.showOnPortal && (settings.support.email.length <= 2 || settings.support.phone.length <= 8 || settings.support.whatsapp.length <= 8));
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
@@ -84,14 +91,14 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
       if (logoFile) {
         const formData = new FormData();
         formData.append("logo", logoFile);
-        const uploadData = await apiClient.tenant.uploadLogo(formData);
+        const uploadData = await apiClient.tenant.uploadLogo(formData, tenantId);
         logoUrl = uploadData.url;
       }
-      await apiClient.tenant.updatePortalSettings({
-        ...settings,
-        branding: { ...settings.branding, logo: logoUrl },
-      }, tenantId);
+      const _settings = { ...settings, branding: { ...settings.branding, logo: logoUrl }};
+      if(!_settings.support.showOnPortal) delete (_settings as any).support;
+      await apiClient.tenant.updatePortalSettings(_settings, tenantId);
       toast({ title: "Portal settings saved", description: "Your captive portal has been updated." });
+      router.back();
     } catch {
       toast({ title: "Saved locally", description: "Could not reach server — changes previewed locally.", variant: "destructive" });
     } finally {
@@ -130,7 +137,7 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
           <h1 className="text-2xl font-semibold tracking-tight">Portal Design</h1>
           <p className="text-sm text-muted-foreground mt-1">Customize how your captive portal looks for customers</p>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={canNotSave()}>
           <Save className="h-4 w-4 mr-2" />
           {saving ? "Saving…" : "Save Changes"}
         </Button>
@@ -152,8 +159,8 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
                 <Label>Logo</Label>
                 <div className="flex items-center gap-4">
                   <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted overflow-hidden">
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Logo" className="h-full w-full object-contain" />
+                    {logoPreview || settings.branding.logo.length ? (
+                      <img src={logoPreview ?  logoPreview : `${imageUrl}/${settings.branding.logo}`} alt="Logo" className="h-full w-full object-contain" />
                     ) : (
                       <Wifi className="h-6 w-6 text-muted-foreground" />
                     )}
@@ -288,7 +295,7 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />Phone</Label>
-                  <Input placeholder="+254712345678" value={settings.support.phone} onChange={(e) => setSupport("phone", e.target.value)} />
+                  <Input placeholder="+255712XXXXXX" value={settings.support.phone} onChange={(e) => setSupport("phone", e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />Email</Label>
@@ -296,7 +303,7 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="flex items-center gap-1.5"><MessageCircle className="h-3.5 w-3.5" />WhatsApp</Label>
-                  <Input placeholder="+254712345678" value={settings.support.whatsapp} onChange={(e) => setSupport("whatsapp", e.target.value)} />
+                  <Input placeholder="+255712XXXXXX" value={settings.support.whatsapp} onChange={(e) => setSupport("whatsapp", e.target.value)} />
                 </div>
               </div>
             </CardContent>
@@ -327,7 +334,7 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
                   checked={settings.portalSettings.showPoweredBy}
                   onCheckedChange={(v) => setPortal("showPoweredBy", v)}
                 />
-                <Label htmlFor="showPoweredBy">Show "Powered by NetBill"</Label>
+                <Label htmlFor="showPoweredBy">Show "Powered by {appName}"</Label>
               </div>
             </CardContent>
           </Card>
@@ -345,9 +352,9 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
               {/* Header */}
               <div className="flex items-center gap-3 px-5 py-4" style={{ background: settings.branding.primaryColor }}>
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 overflow-hidden shrink-0">
-                  {logoPreview ? (
-                    <img src={logoPreview} alt="Logo" className="h-8 w-8 object-contain" />
-                  ) : (
+                  {logoPreview || settings.branding.logo.length ? (
+                      <img src={logoPreview ?  logoPreview : `${imageUrl}/${settings.branding.logo}`} alt="Logo" className="h-8 w-8 object-contain" />
+                    ): (
                     <Wifi className="h-5 w-5 text-white" />
                   )}
                 </div>
@@ -380,9 +387,9 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
                 {settings.portalSettings.displayMode !== "vouchers_only" && (
                   <div className="flex flex-col gap-2">
                     {[
-                      { name: "Hourly", price: "KES 50", data: "Unlimited", duration: "1 hour" },
-                      { name: "Daily", price: "KES 100", data: "1 GB", duration: "24 hours" },
-                      { name: "Weekly", price: "KES 500", data: "5 GB", duration: "7 days" },
+                      { name: "Hourly", price: "TZS 50", data: "Unlimited", duration: "1 hour" },
+                      { name: "Daily", price: "TZS 100", data: "1 GB", duration: "24 hours" },
+                      { name: "Weekly", price: "TZS 500", data: "5 GB", duration: "7 days" },
                     ].map((pkg) => (
                       <div key={pkg.name} className="flex items-center justify-between rounded-lg border border-border p-3 hover:border-[var(--portal-primary)] transition-colors cursor-pointer">
                         <div>
@@ -424,7 +431,7 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
               {/* Powered by */}
               {settings.portalSettings.showPoweredBy && (
                 <div className="px-5 py-2 text-center">
-                  <p className="text-[10px] text-muted-foreground/50">Powered by NetBill</p>
+                  <p className="text-[10px] text-muted-foreground/50">Powered by {appName}</p>
                 </div>
               )}
             </div>

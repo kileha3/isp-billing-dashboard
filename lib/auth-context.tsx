@@ -33,9 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (currentToken) {
       setToken(currentToken);
       apiClient.auth.me()
-        .then((data) => {
-          setUser(data.user);
-        })
+        .then((user) => setUser(user))
         .catch(() => {
           // Token is invalid - clear it
           apiClient.auth.logout();
@@ -46,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
   const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
     // apiClient.auth.login automatically stores the token

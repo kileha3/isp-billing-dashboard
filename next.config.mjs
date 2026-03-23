@@ -5,6 +5,9 @@ const nextConfig = {
     "PORT": process.env.NEXT_PUBLIC_SERVICE_PORT || "3000",
     "ENVIRONMENT": process.env.NEXT_PUBLIC_ENVIRONMENT || "development"
   },
+  images: {
+    domains: ['localhost','isp.easypay.co.tz'],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

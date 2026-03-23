@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Wifi, AlertCircle, Eye, EyeOff, CheckCircle2, Shield, Zap, Users, Globe } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { z } from "zod";
+import { appName } from "@/lib/utils";
 
 const signupSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
@@ -135,10 +136,9 @@ export default function SignupPage() {
         <div className="w-full max-w-sm">
           {/* Brand */}
           <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Wifi className="h-4 w-4 text-primary-foreground" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-lg">
+              <img className="h-16 w-16 text-primary-foreground" src={"icon.svg"} />
             </div>
-            <span className="text-lg font-semibold tracking-tight text-foreground">NetBill</span>
           </div>
 
           <div className="mb-7 text-center">
@@ -255,20 +255,16 @@ export default function SignupPage() {
 
       {/* Right — branding panel */}
       <div className="hidden lg:flex flex-1 flex-col justify-center px-14 py-16 bg-primary">
-        <div className="flex items-center gap-2.5 mb-10">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-            <Wifi className="h-5 w-5 text-white" />
-          </div>
-        </div>
+        
 
         <h2 className="text-4xl font-bold text-white leading-tight text-balance mb-4">
           Your ISP. Your Rules. Your Revenue.
         </h2>
-        <p className="text-base text-white/70 leading-relaxed mb-10 max-w-sm">
-          Join hundreds of ISPs using NetBill to automate payments, manage routers and grow subscriber bases effortlessly.
+        <p className="text-base text-white/70 leading-relaxed mb-10 max-w-xlg">
+          Join hundreds of ISPs using {appName} to automate payments, manage routers and grow subscriber bases effortlessly.
         </p>
 
-        <div className="grid grid-cols-2 gap-4 max-w-lg">
+        <div className="grid grid-cols-2 gap-4 max-w-xlg">
           {FEATURES.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="rounded-xl bg-white/10 p-5">
               <Icon className="h-5 w-5 text-white mb-3" />

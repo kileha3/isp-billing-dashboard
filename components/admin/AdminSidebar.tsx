@@ -28,6 +28,7 @@ import {
   Network,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { appName } from "@/lib/utils";
 
 const navMain = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -66,11 +67,11 @@ export function AdminSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <Wifi className="h-4 w-4 text-primary-foreground" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+                  <img className="h-8 w-8 text-primary-foreground" src={"../icon.svg"} />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold text-sidebar-foreground">NetBill</span>
+                  <span className="font-semibold text-sidebar-foreground">{appName}</span>
                   <span className="text-xs text-sidebar-foreground/60 truncate max-w-[120px]">
                     {user?.tenantId ? "ISP Dashboard" : "Super Admin"}
                   </span>

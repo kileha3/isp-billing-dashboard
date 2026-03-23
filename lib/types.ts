@@ -47,7 +47,6 @@ export interface TenantPortalSettings {
 export interface Tenant {
   _id: string;
   name: string;
-  subdomain: string;
   branding: TenantPortalSettings["branding"];
   support: TenantPortalSettings["support"];
   portalSettings: TenantPortalSettings["portalSettings"];

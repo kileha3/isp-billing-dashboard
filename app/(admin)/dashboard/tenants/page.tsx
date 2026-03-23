@@ -18,39 +18,10 @@ import type { Tenant } from "@/lib/types";
 import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
 
-const MOCK_TENANTS: Tenant[] = [
-  {
-    _id: "t1", name: "FastNet ISP", subdomain: "fastnet",
-    branding: { logo: "", primaryColor: "#3B82F6", secondaryColor: "#1E40AF", businessName: "FastNet WiFi" },
-    support: { phone: "+254712345678", email: "support@fastnet.com", whatsapp: "", showOnPortal: true },
-    portalSettings: { displayMode: "both", welcomeMessage: "Welcome to FastNet!", termsUrl: "", showPoweredBy: true },
-    settings: { currency: "KES", timezone: "Africa/Nairobi" },
-    status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    _id: "t2", name: "QuickConnect Ltd", subdomain: "quickconnect",
-    branding: { logo: "", primaryColor: "#10B981", secondaryColor: "#065F46", businessName: "QuickConnect" },
-    support: { phone: "+254798765432", email: "help@quickconnect.co.ke", whatsapp: "+254798765432", showOnPortal: true },
-    portalSettings: { displayMode: "packages_only", welcomeMessage: "", termsUrl: "", showPoweredBy: false },
-    settings: { currency: "KES", timezone: "Africa/Nairobi" },
-    status: "active", createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    _id: "t3", name: "Suburban WiFi", subdomain: "suburbanwifi",
-    branding: { logo: "", primaryColor: "#F59E0B", secondaryColor: "#78350F", businessName: "Suburban WiFi" },
-    support: { phone: "", email: "", whatsapp: "", showOnPortal: false },
-    portalSettings: { displayMode: "vouchers_only", welcomeMessage: "", termsUrl: "", showPoweredBy: true },
-    settings: { currency: "KES", timezone: "Africa/Nairobi" },
-    status: "suspended", createdAt: new Date(Date.now() - 86400000 * 30).toISOString(), updatedAt: new Date().toISOString(),
-  },
-];
-
 const tenantSchema = z.object({
   name: z.string().min(2, "Business name must be at least 2 characters"),
-  subdomain: z.string().min(2, "Subdomain must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers and hyphens"),
   adminName: z.string().min(2, "Admin name is required"),
   adminEmail: z.string().email("Enter a valid email address"),
-  adminPassword: z.string().min(8, "Password must be at least 8 characters"),
   chargingMode: z.enum(["revenue_share", "fixed"]),
   revenueSharePercent: z.number().min(1).max(100).optional(),
   fixedAmount: z.number().min(1).optional(),
@@ -59,10 +30,8 @@ const tenantSchema = z.object({
 
 type TenantForm = {
   name: string;
-  subdomain: string;
   adminName: string;
   adminEmail: string;
-  adminPassword: string;
   chargingMode: "revenue_share" | "fixed";
   revenueSharePercent: string;
   fixedAmount: string;
@@ -70,7 +39,7 @@ type TenantForm = {
 };
 
 const DEFAULT_FORM: TenantForm = {
-  name: "", subdomain: "", adminName: "", adminEmail: "", adminPassword: "",
+  name: "", adminName: "", adminEmail: "",
   chargingMode: "revenue_share", revenueSharePercent: "10", fixedAmount: "", fixedDuration: "monthly",
 };
 
@@ -93,10 +62,8 @@ export default function TenantsPage() {
 
   const load = useCallback(async () => {
     try {
-      const data = await apiClient.tenants.list();
-      setTenants(data.tenants ?? data);
-    } catch {
-      setTenants(MOCK_TENANTS);
+      const { data } = await apiClient.tenants.list();
+      setTenants(data);
     } finally {
       setLoading(false);
     }
@@ -106,8 +73,8 @@ export default function TenantsPage() {
 
   function validate(): boolean {
     const payload = {
-      name: form.name, subdomain: form.subdomain, adminName: form.adminName,
-      adminEmail: form.adminEmail, adminPassword: form.adminPassword, chargingMode: form.chargingMode,
+      name: form.name, adminName: form.adminName,
+      adminEmail: form.adminEmail, chargingMode: form.chargingMode,
       revenueSharePercent: form.chargingMode === "revenue_share" ? Number(form.revenueSharePercent) : undefined,
       fixedAmount: form.chargingMode === "fixed" ? Number(form.fixedAmount) : undefined,
       fixedDuration: form.chargingMode === "fixed" ? form.fixedDuration : undefined,
@@ -127,8 +94,7 @@ export default function TenantsPage() {
   }
 
   function isFormValid(): boolean {
-    const base = form.name.length >= 2 && form.subdomain.length >= 2 && /^[a-z0-9-]+$/.test(form.subdomain)
-      && form.adminName.length >= 2 && form.adminEmail.includes("@") && form.adminPassword.length >= 8;
+    const base = form.name.length >= 2 && form.adminName.length >= 2 && form.adminEmail.includes("@")
     if (!base) return false;
     if (form.chargingMode === "revenue_share") return Number(form.revenueSharePercent) > 0 && Number(form.revenueSharePercent) <= 100;
     if (form.chargingMode === "fixed") return Number(form.fixedAmount) > 0;
@@ -139,11 +105,11 @@ export default function TenantsPage() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const result = await apiClient.tenants.create({
-        name: form.name, subdomain: form.subdomain,
-        adminName: form.adminName, adminEmail: form.adminEmail, adminPassword: form.adminPassword,
+      const {data} = await apiClient.tenants.create({
+        name: form.name,adminName: form.adminName, adminEmail: form.adminEmail,
       });
-      const newTenant = result.tenant;
+
+      const newTenant = data;
       toast({ title: "Tenant created", description: `${form.name} has been added.` });
       setShowDialog(false);
       setForm(DEFAULT_FORM);
@@ -186,7 +152,6 @@ export default function TenantsPage() {
 
   const columns = [
     { key: "name", label: "Business Name" },
-    { key: "subdomain", label: "Subdomain", render: (v: unknown) => <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{String(v)}</code> },
     {
       key: "branding", label: "Brand Color",
       render: (v: unknown) => {
@@ -221,7 +186,7 @@ export default function TenantsPage() {
         columns={columns as never}
         loading={loading}
         searchable
-        searchKeys={["name", "subdomain"] as never}
+        searchKeys={["name"] as never}
         searchPlaceholder="tenants"
         emptyMessage="No tenants yet."
         pageSize={10}
@@ -252,10 +217,16 @@ export default function TenantsPage() {
                   <Palette className="mr-2 h-4 w-4" />
                   Portal Design
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                {/* <DropdownMenuItem onClick={() => {
+                  setForm({
+                    name: t.name, adminName: "", adminEmail: "",
+  chargingMode: "revenue_share", revenueSharePercent: "10", fixedAmount: "", fixedDuration: "monthly",
+                  });
+                  setShowDialog(true);
+                }}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit Details
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleToggleStatus(t)}>
                   {t.status === "active"
@@ -263,10 +234,10 @@ export default function TenantsPage() {
                     : <><Power className="mr-2 h-4 w-4" />Activate</>
                   }
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(t)}>
+                {/* <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(t)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
               </DropdownMenuContent>
             </DropdownMenu>
           );
@@ -293,19 +264,7 @@ export default function TenantsPage() {
                 />
                 {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
               </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Subdomain <span className="text-destructive">*</span></Label>
-                <div className="flex items-center gap-0">
-                  <Input
-                    placeholder="e.g. fastnet"
-                    value={form.subdomain}
-                    onChange={(e) => setField("subdomain", e.target.value.toLowerCase().replace(/\s/g, "-"))}
-                    className="rounded-r-none border-r-0"
-                  />
-                  <span className="flex items-center h-10 px-3 rounded-r-md border border-border bg-muted text-sm text-muted-foreground whitespace-nowrap">.netbill.app</span>
-                </div>
-                {errors.subdomain && <p className="text-xs text-destructive">{errors.subdomain}</p>}
-              </div>
+              
             </div>
 
             {/* Admin account */}
@@ -321,11 +280,7 @@ export default function TenantsPage() {
                 <Input type="email" placeholder="admin@fastnet.com" value={form.adminEmail} onChange={(e) => setField("adminEmail", e.target.value)} />
                 {errors.adminEmail && <p className="text-xs text-destructive">{errors.adminEmail}</p>}
               </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Admin Password <span className="text-destructive">*</span></Label>
-                <Input type="password" placeholder="Min. 8 characters" value={form.adminPassword} onChange={(e) => setField("adminPassword", e.target.value)} />
-                {errors.adminPassword && <p className="text-xs text-destructive">{errors.adminPassword}</p>}
-              </div>
+             
             </div>
 
             {/* Charging mode */}
@@ -371,7 +326,7 @@ export default function TenantsPage() {
               {form.chargingMode === "fixed" && (
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label>Fixed Amount (KES) <span className="text-destructive">*</span></Label>
+                    <Label>Fixed Amount (TZS) <span className="text-destructive">*</span></Label>
                     <Input
                       type="number"
                       min={1}

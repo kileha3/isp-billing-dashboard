@@ -4,14 +4,15 @@ import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/lib/auth-context'
 import './globals.css'
+import { appName } from '@/lib/utils'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'NetBill — ISP Billing Platform',
-  description: 'Multi-tenant ISP billing and hotspot management platform',
-  generator: 'v0.app',
+  title: `${appName} — ISP Billing Platform`,
+  description: 'Cutting-edge ISP billing and hotspot management platform',
+  generator: 'easypay',
   icons: {
     icon: [
       {

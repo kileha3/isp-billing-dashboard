@@ -1,4 +1,14 @@
-import type { User, TenantPortalSettings, DashboardStats, RouterDevice, Package, Voucher, Transaction, HotspotSession, Peer } from "@/lib/types";
+import type {
+  User,
+  TenantPortalSettings,
+  DashboardStats,
+  RouterDevice,
+  Package,
+  Voucher,
+  Transaction,
+  HotspotSession,
+  Peer,
+} from "@/lib/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7000/v1";
 
@@ -9,7 +19,7 @@ const REMEMBER_KEY = "netbill_remember";
 /**
  * Secure token management using sessionStorage by default,
  * with localStorage option for "remember me" functionality.
- * 
+ *
  * Security best practices:
  * - Tokens stored in memory as primary source (most secure)
  * - sessionStorage used for tab persistence (cleared when browser closes)
@@ -29,7 +39,7 @@ class TokenManager {
 
   private getStoredToken(): string | null {
     if (typeof window === "undefined") return null;
-    
+
     // Check if user chose "remember me" - use localStorage
     const remembered = localStorage.getItem(REMEMBER_KEY);
     if (remembered === "true") {
@@ -79,30 +89,35 @@ const tokenManager = new TokenManager();
 
 async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = tokenManager.getToken();
-  
+
   const headers: Record<string, string> = {
-    ...(options.body && typeof options.body === "string" ? { "Content-Type": "application/json" } : {}),
+    ...(options.body && typeof options.body === "string"
+      ? { "Content-Type": "application/json" }
+      : {}),
     ...(options.headers as Record<string, string>),
   };
-  
+
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
-  
+
   if (!res.ok) {
     // Handle 401 unauthorized - clear token and redirect to login
     if (res.status === 401) {
       tokenManager.setToken(null);
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.includes("/login")
+      ) {
         window.location.href = "/login";
       }
     }
     throw new Error(data?.error ?? data?.message ?? "Request failed");
   }
-  
+
   return data;
 }
 
@@ -120,24 +135,42 @@ export const apiClient = {
   },
 
   auth: {
-    login: async (email: string, password: string, rememberMe: boolean = false) => {
-      const { data } = await req<{data: { token: string; user: User }}>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
+    login: async (
+      email: string,
+      password: string,
+      rememberMe: boolean = false,
+    ) => {
+      const { data } = await req<{ data: { token: string; user: User } }>(
+        "/auth/login",
+        {
+          method: "POST",
+          body: JSON.stringify({ email, password, rememberMe }),
+        },
+      );
       // Store token with remember preference
       tokenManager.setToken(data.token, rememberMe);
       return data;
     },
 
-    me: () => req<{ user: User }>("/auth/me"),
+    me: async (): Promise<User> => {
+      const res = await req<{ data: { user: User } }>("/auth/me");
+      return res.data.user;
+    },
 
     logout: () => {
       tokenManager.setToken(null);
     },
 
-    updateProfile: (data: { name?: string; email?: string; currentPassword?: string; newPassword?: string }) =>
-      req<{ user: User }>("/auth/profile", { method: "PATCH", body: JSON.stringify(data) }),
+    updateProfile: (data: {
+      name?: string;
+      email?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    }) =>
+      req<{ user: User }>("/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
   },
 
   dashboard: {
@@ -146,13 +179,21 @@ export const apiClient = {
 
   routers: {
     list: (params?: Record<string, string>) =>
-      req<{ routers: RouterDevice[] }>(`/routers${params ? "?" + new URLSearchParams(params) : ""}`),
+      req<{ data: RouterDevice[] }>(
+        `/routers${params ? "?" + new URLSearchParams(params) : ""}`,
+      ),
 
     create: (data: Partial<RouterDevice>) =>
-      req<{ router: RouterDevice }>("/routers", { method: "POST", body: JSON.stringify(data) }),
+      req<{ data: {script: string, router: RouterDevice} }>("/routers", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
     update: (id: string, data: Partial<RouterDevice>) =>
-      req<{ router: RouterDevice }>(`/routers/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+      req<{ router: RouterDevice }>(`/routers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
 
     delete: (id: string) =>
       req<{ message: string }>(`/routers/${id}`, { method: "DELETE" }),
@@ -161,17 +202,23 @@ export const apiClient = {
       req<{ script: string }>(`/routers/${id}/setup-script`),
 
     getInfo: (id: string) =>
-      req<{ model: string; type: string; routerOsVersion: string; vpnIp: string; interfaces: string[] }>(`/routers/${id}/info`),
+      req<any>(`/routers/${id}`),
   },
 
   packages: {
     list: () => req<{ packages: Package[] }>("/packages"),
 
     create: (data: Partial<Package>) =>
-      req<{ package: Package }>("/packages", { method: "POST", body: JSON.stringify(data) }),
+      req<{ package: Package }>("/packages", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
     update: (id: string, data: Partial<Package>) =>
-      req<{ package: Package }>(`/packages/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+      req<{ package: Package }>(`/packages/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
 
     delete: (id: string) =>
       req<{ message: string }>(`/packages/${id}`, { method: "DELETE" }),
@@ -179,104 +226,179 @@ export const apiClient = {
 
   vouchers: {
     list: (params?: Record<string, string>) =>
-      req<{ vouchers: Voucher[] }>(`/vouchers${params ? "?" + new URLSearchParams(params) : ""}`),
+      req<{ vouchers: Voucher[] }>(
+        `/vouchers${params ? "?" + new URLSearchParams(params) : ""}`,
+      ),
 
-    generate: (data: { packageId: string; quantity: number; prefix?: string }) =>
-      req<{ vouchers: Voucher[] }>("/vouchers/generate", { method: "POST", body: JSON.stringify(data) }),
+    generate: (data: {
+      packageId: string;
+      quantity: number;
+      prefix?: string;
+    }) =>
+      req<{ vouchers: Voucher[] }>("/vouchers/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
     export: () => {
       const token = tokenManager.getToken();
       return fetch(`${BASE}/vouchers/export`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }).then(r => r.text());
+      }).then((r) => r.text());
     },
   },
 
   transactions: {
     list: (params?: Record<string, string | undefined>) => {
-      const clean = Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v !== undefined)) as Record<string, string>;
-      return req<{ transactions: Transaction[] }>(`/transactions${Object.keys(clean).length ? "?" + new URLSearchParams(clean) : ""}`);
+      const clean = Object.fromEntries(
+        Object.entries(params ?? {}).filter(([, v]) => v !== undefined),
+      ) as Record<string, string>;
+      return req<{ transactions: Transaction[] }>(
+        `/transactions${Object.keys(clean).length ? "?" + new URLSearchParams(clean) : ""}`,
+      );
     },
   },
 
   sessions: {
     list: (params?: Record<string, string>) =>
-      req<{ sessions: HotspotSession[] }>(`/sessions${params ? "?" + new URLSearchParams(params) : ""}`),
+      req<{ sessions: HotspotSession[] }>(
+        `/sessions${params ? "?" + new URLSearchParams(params) : ""}`,
+      ),
 
     disconnect: (id: string) =>
-      req<{ message: string }>(`/sessions/${id}/disconnect`, { method: "POST" }),
+      req<{ message: string }>(`/sessions/${id}/disconnect`, {
+        method: "POST",
+      }),
 
     clearMac: (id: string) =>
       req<{ message: string }>(`/sessions/${id}/clear-mac`, { method: "POST" }),
 
     changePackage: (id: string, packageId: string) =>
-      req<{ message: string }>(`/sessions/${id}/change-package`, { method: "POST", body: JSON.stringify({ packageId }) }),
+      req<{ message: string }>(`/sessions/${id}/change-package`, {
+        method: "POST",
+        body: JSON.stringify({ packageId }),
+      }),
   },
 
   tenant: {
+    get: (tenantId?: string) =>
+      req<{ data: import("@/lib/types").Tenant }>(
+        `/tenants/${tenantId || "current"}`,
+      ),
+
     getPortalSettings: (tenantId?: string) =>
-      req<TenantPortalSettings>(tenantId ? `/admin/tenants/${tenantId}/portal` : "/tenant/portal"),
+      req<{ data: TenantPortalSettings }>(
+        tenantId ? `/tenants/${tenantId}/portal` : "/tenant/portal",
+      ),
 
     updatePortalSettings: (data: TenantPortalSettings, tenantId?: string) =>
       req<TenantPortalSettings>(
-        tenantId ? `/admin/tenants/${tenantId}/portal` : "/tenant/portal",
-        { method: "PATCH", body: JSON.stringify(data) }
+        tenantId ? `/tenants/${tenantId}/portal` : "/tenant/portal",
+        { method: "PATCH", body: JSON.stringify(data) },
       ),
 
     uploadLogo: (formData: FormData, tenantId?: string) => {
       const token = tokenManager.getToken();
       const headers: Record<string, string> = {};
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      const url = tenantId ? `${BASE}/admin/tenants/${tenantId}/portal/logo` : `${BASE}/tenant/portal/logo`;
-      return fetch(url, { method: "POST", headers, body: formData }).then(r => r.json()) as Promise<{ url: string }>;
+      const url = tenantId
+        ? `${BASE}/tenants/${tenantId}/portal/logo`
+        : `${BASE}/tenant/portal/logo`;
+      return fetch(url, { method: "POST", headers, body: formData }).then((r) =>
+        r.json(),
+      ) as Promise<{ url: string }>;
     },
 
     updateSettings: (data: { currency?: string; timezone?: string }) =>
-      req<{ message: string }>("/tenant/settings", { method: "PATCH", body: JSON.stringify(data) }),
+      req<{ message: string }>("/tenant/settings", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
   },
 
   tenants: {
-    list: () => req<{ tenants: import("@/lib/types").Tenant[] }>("/admin/tenants"),
+    list: () => req<{ data: import("@/lib/types").Tenant[] }>("/tenants"),
 
-    create: (data: { name: string; subdomain: string; adminName: string; adminEmail: string; adminPassword: string }) =>
-      req<{ tenant: import("@/lib/types").Tenant }>("/admin/tenants", { method: "POST", body: JSON.stringify(data) }),
+    create: (data: { name: string; adminName: string; adminEmail: string }) =>
+      req<{ data: import("@/lib/types").Tenant }>("/tenants", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
     update: (id: string, data: Partial<import("@/lib/types").Tenant>) =>
-      req<{ tenant: import("@/lib/types").Tenant }>(`/admin/tenants/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+      req<{ tenant: import("@/lib/types").Tenant }>(`/tenants/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
 
     updateStatus: (id: string, status: "active" | "suspended") =>
-      req<{ tenant: import("@/lib/types").Tenant }>(`/admin/tenants/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+      req<{ tenant: import("@/lib/types").Tenant }>(`/tenants/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
 
     delete: (id: string) =>
-      req<{ message: string }>(`/admin/tenants/${id}`, { method: "DELETE" }),
+      req<{ message: string }>(`/tenants/${id}`, { method: "DELETE" }),
+  },
+
+  user: {
+    get: (userId?: string) =>
+      req<{ data: import("@/lib/types").User }>(
+        `/users/${userId || "current"}`,
+      ),
   },
 
   users: {
-    list: (params?: Record<string, string>) =>
-      req<{ users: import("@/lib/types").User[] }>(`/admin/users${params ? "?" + new URLSearchParams(params) : ""}`),
+    list: async (params?: Record<string, string>): Promise< User[]> => {
+      const res = await req<{ data: User[] }>(`/users${params ? "?" + new URLSearchParams(params) : ""}`);
+      return res.data;
+    },
 
-    create: (data: { name: string; email: string; password: string; role: string; tenantId?: string }) =>
-      req<{ user: import("@/lib/types").User }>("/admin/users", { method: "POST", body: JSON.stringify(data) }),
-
-    update: (id: string, data: Partial<import("@/lib/types").User & { password?: string }>) =>
-      req<{ user: import("@/lib/types").User }>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    update: (
+      id: string,
+      data: Partial<import("@/lib/types").User>,
+    ) =>
+      req<{ user: import("@/lib/types").User }>(`/users/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
 
     delete: (id: string) =>
-      req<{ message: string }>(`/admin/users/${id}`, { method: "DELETE" }),
+      req<{ message: string }>(`/users/${id}`, { method: "DELETE" }),
 
     resetPassword: (id: string, password: string) =>
-      req<{ message: string }>(`/admin/users/${id}/reset-password`, { method: "POST", body: JSON.stringify({ password }) }),
+      req<{ message: string }>(`/users/${id}/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({ password }),
+      }),
   },
 
   peers: {
     list: (params?: Record<string, string>) =>
-      req<{ peers: Peer[] }>(`/peers${params ? "?" + new URLSearchParams(params) : ""}`),
+      req<{ peers: Peer[] }>(
+        `/peers${params ? "?" + new URLSearchParams(params) : ""}`,
+      ),
 
-    create: (data: Pick<Peer, "mac" | "ip" | "tenantId"> & { hostname?: string; routerId?: string; status?: Peer["status"] }) =>
-      req<{ peer: Peer }>("/peers", { method: "POST", body: JSON.stringify(data) }),
+    create: (
+      data: Pick<Peer, "mac" | "ip" | "tenantId"> & {
+        hostname?: string;
+        routerId?: string;
+        status?: Peer["status"];
+      },
+    ) =>
+      req<{ peer: Peer }>("/peers", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
-    update: (id: string, data: Partial<Omit<Peer, "_id" | "createdAt" | "updatedAt">>) =>
-      req<{ peer: Peer }>(`/peers/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    update: (
+      id: string,
+      data: Partial<Omit<Peer, "_id" | "createdAt" | "updatedAt">>,
+    ) =>
+      req<{ peer: Peer }>(`/peers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
 
     delete: (id: string) =>
       req<{ message: string }>(`/peers/${id}`, { method: "DELETE" }),
@@ -293,9 +415,21 @@ export const apiClient = {
       req<{ packages: Package[] }>(`/portal/packages?router=${routerId}`),
 
     redeemVoucher: (data: { code: string; routerId: string; mac: string }) =>
-      req<{ package?: Package; session: object }>("/portal/voucher", { method: "POST", body: JSON.stringify(data) }),
+      req<{ package?: Package; session: object }>("/portal/voucher", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
-    initiatePayment: (data: { packageId: string; routerId: string; mac: string; phone: string; paymentMethod: string }) =>
-      req<{ transactionId: string; message: string }>("/portal/payment", { method: "POST", body: JSON.stringify(data) }),
+    initiatePayment: (data: {
+      packageId: string;
+      routerId: string;
+      mac: string;
+      phone: string;
+      paymentMethod: string;
+    }) =>
+      req<{ transactionId: string; message: string }>("/portal/payment", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 };

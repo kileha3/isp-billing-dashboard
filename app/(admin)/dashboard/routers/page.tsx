@@ -19,17 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
 
-const MOCK_ROUTERS: RouterDevice[] = [
-  { _id: "1", name: "Main Gateway", location: "Nairobi CBD", ipAddress: "192.168.1.1", status: "online", model: "hAP ac2", tenantId: "t1", wgPublicKey: "abc123pub", wgAddress: "10.0.0.1/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "2", name: "Westlands Hub", location: "Westlands", ipAddress: "192.168.2.1", status: "online", model: "RB4011", tenantId: "t1", wgPublicKey: "def456pub", wgAddress: "10.0.0.2/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "3", name: "Kasarani Node", location: "Kasarani", ipAddress: "192.168.3.1", status: "offline", model: "hAP ac3", tenantId: "t2", wgPublicKey: "ghi789pub", wgAddress: "10.0.0.3/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-const MOCK_TENANTS: Tenant[] = [
-  { _id: "t1", name: "FastNet ISP", subdomain: "fastnet", branding: { logo: "", primaryColor: "#3B82F6", secondaryColor: "#1E40AF", businessName: "FastNet" }, support: { phone: "", email: "", whatsapp: "", showOnPortal: false }, portalSettings: { displayMode: "both", welcomeMessage: "", termsUrl: "", showPoweredBy: true }, settings: { currency: "KES", timezone: "Africa/Nairobi" }, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "t2", name: "QuickConnect Ltd", subdomain: "quickconnect", branding: { logo: "", primaryColor: "#10B981", secondaryColor: "#065F46", businessName: "QuickConnect" }, support: { phone: "", email: "", whatsapp: "", showOnPortal: false }, portalSettings: { displayMode: "both", welcomeMessage: "", termsUrl: "", showPoweredBy: true }, settings: { currency: "KES", timezone: "Africa/Nairobi" }, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
 interface RouterInfo {
   model: string;
   type: string;
@@ -120,60 +109,7 @@ function CopyableScript({ content, label }: { content: string; label?: string })
   );
 }
 
-function generateVpnScript(router: RouterDevice, serverIp = "YOUR_SERVER_IP"): string {
-  return `/interface wireguard
-add name=wg-netbill listen-port=${router.wgListenPort} private-key="<WILL_BE_SET_AUTOMATICALLY>"
 
-/interface wireguard peers
-add interface=wg-netbill \\
-    public-key="${router.wgPublicKey}" \\
-    allowed-address=0.0.0.0/0 \\
-    endpoint-address=${serverIp} \\
-    endpoint-port=${router.wgListenPort} \\
-    persistent-keepalive=25s
-
-/ip address
-add address=${router.wgAddress} interface=wg-netbill
-
-/ip route
-add dst-address=0.0.0.0/0 gateway=wg-netbill
-
-# Save and apply — VPN will connect automatically`;
-}
-
-function generateHotspotScript(router: RouterDevice, iface: string, serverUrl: string): string {
-  const routerId = router._id;
-  return `/ip hotspot
-add name=hotspot1 interface=${iface} address-pool=hs-pool-1 \\
-    profile=hsprof1
-
-/ip hotspot profile
-add name=hsprof1 hotspot-address=192.168.88.1 \\
-    html-directory=hotspot \\
-    http-cookie-lifetime=1d \\
-    login-by=http-chap,http-pap \\
-    rate-limit="" \\
-    use-radius=no
-
-/ip hotspot walled-garden ip
-add dst-host=${new URL(serverUrl).hostname} action=accept
-
-# Set redirect URL in hotspot profile:
-# Hotspot > Server Profiles > hsprof1 > Login Page
-# Set "Login Page URL" to:
-#   ${serverUrl}/pay?router=${routerId}
-
-/ip pool
-add name=hs-pool-1 ranges=192.168.88.10-192.168.88.254
-
-/ip dhcp-server
-add interface=${iface} address-pool=hs-pool-1 name=dhcp1
-
-/ip dhcp-server network
-add address=192.168.88.0/24 gateway=192.168.88.1 dns-server=8.8.8.8
-
-# Apply and test connection`;
-}
 
 export default function RoutersPage() {
   usePageTitle("Routers");
@@ -207,10 +143,10 @@ export default function RoutersPage() {
 
   const load = useCallback(async () => {
     try {
-      const data = await apiClient.routers.list();
-      setRouters(data.routers ?? data);
+      const { data } = await apiClient.routers.list();
+      setRouters(data);
     } catch {
-      setRouters(MOCK_ROUTERS);
+      setRouters([]);
     } finally {
       setLoading(false);
     }
@@ -219,10 +155,10 @@ export default function RoutersPage() {
   const loadTenants = useCallback(async () => {
     if (!isSuperAdmin) return;
     try {
-      const data = await apiClient.tenants.list();
-      setTenants(data.tenants ?? data);
+      const { data } = await apiClient.tenants.list();
+      setTenants(data);
     } catch {
-      setTenants(MOCK_TENANTS);
+      setTenants([]);
     }
   }, [isSuperAdmin]);
 
@@ -236,7 +172,7 @@ export default function RoutersPage() {
     if (pollingInterval) { clearInterval(pollingInterval); setPollingInterval(null); }
     if (existingRouter) {
       // Re-setup wizard: skip "basic" step and show VPN script directly
-      setSetupTarget(existingRouter);
+      /* setSetupTarget(existingRouter);
       const script = generateVpnScript(existingRouter);
       setWizard({
         step: "vpn_script",
@@ -246,7 +182,7 @@ export default function RoutersPage() {
         selectedInterface: "",
         hotspotScript: "",
         pollingStatus: "waiting",
-      });
+      }); */
       startPolling(existingRouter._id);
     } else {
       setSetupTarget(null);
@@ -284,20 +220,11 @@ export default function RoutersPage() {
     setSubmittingBasic(true);
     try {
       const payload = { name: basicForm.name, location: basicForm.location, tenantId: basicForm.tenantId || user?.tenantId };
-      const data = await apiClient.routers.create(payload);
-      const newRouter = data.router ?? MOCK_ROUTERS[0];
-      const script = generateVpnScript(newRouter);
-      setWizard(w => ({ ...w, step: "vpn_script", router: newRouter, vpnScript: script }));
-      startPolling(newRouter._id);
+      const { data: {router, script} } = await apiClient.routers.create(payload);
+      setWizard(w => ({ ...w, step: "vpn_script", router, vpnScript: script }));
+      startPolling(router._id);
     } catch {
-      const mockRouter: RouterDevice = {
-        _id: `r_${Date.now()}`, name: basicForm.name, location: basicForm.location, status: "pending" as never,
-        model: "Unknown", tenantId: basicForm.tenantId || "t1", wgPublicKey: "MOCK_PUBLIC_KEY_" + Math.random().toString(36).slice(2, 10),
-        wgAddress: "10.0.0.10/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-      };
-      const script = generateVpnScript(mockRouter);
-      setWizard(w => ({ ...w, step: "vpn_script", router: mockRouter, vpnScript: script }));
-      startPolling(mockRouter._id);
+      //
     } finally {
       setSubmittingBasic(false);
     }
@@ -306,20 +233,11 @@ export default function RoutersPage() {
   function startPolling(routerId: string) {
     const interval = setInterval(async () => {
       try {
-        const data = await apiClient.routers.list();
-        const list = data.routers ?? data;
-        const r = list.find((rt: RouterDevice) => rt._id === routerId);
-        if (r?.status === "online") {
+        const { data: router} = await apiClient.routers.getInfo(routerId);
+        if (router?.status === "online") {
           clearInterval(interval);
           setPollingInterval(null);
-          let info: RouterInfo = MOCK_ROUTER_INFO;
-          try {
-            const infoData = await apiClient.routers.getInfo(routerId);
-            info = infoData;
-          } catch {
-            info = MOCK_ROUTER_INFO;
-          }
-          setWizard(w => ({ ...w, pollingStatus: "connected", routerInfo: info }));
+          setWizard(w => ({ ...w, pollingStatus: "connected", routerInfo: router.info }));
         }
       } catch { /* keep polling */ }
     }, 5000);
@@ -339,9 +257,7 @@ export default function RoutersPage() {
   }
 
   function handleSelectInterface(iface: string) {
-    const serverUrl = typeof window !== "undefined" ? window.location.origin : "https://your-domain.com";
-    const script = wizard.router ? generateHotspotScript(wizard.router, iface, serverUrl) : "";
-    setWizard(w => ({ ...w, selectedInterface: iface, hotspotScript: script, step: "hotspot_script" }));
+    setWizard(w => ({ ...w, selectedInterface: iface, hotspotScript: "", step: "hotspot_script" }));
   }
 
   async function handleDelete(router: RouterDevice) {
@@ -500,7 +416,7 @@ export default function RoutersPage() {
               <div className="flex flex-col gap-1.5">
                 <Label>Location <span className="text-destructive">*</span></Label>
                 <Input
-                  placeholder="e.g. Nairobi CBD, Westlands"
+                  placeholder="e.g. Dodoma, Sinza"
                   value={basicForm.location}
                   onChange={(e) => { setBasicForm(f => ({ ...f, location: e.target.value })); setBasicErrors(er => ({ ...er, location: undefined })); }}
                 />
