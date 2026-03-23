@@ -62,7 +62,7 @@ jobs:
           services:
             ${CONTAINER_PREFIX}-proxy:
               image: nginx:alpine
-              counter_name:${CONTAINER_PREFIX}-proxy
+              container_name: ${CONTAINER_PREFIX}-proxy
               ports:
                 - "${SERVICE_PORT}:${SERVICE_PORT}"
               volumes:
