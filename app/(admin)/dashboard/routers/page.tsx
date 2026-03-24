@@ -402,7 +402,7 @@ export default function RoutersPage() {
           {/* Step 1 — Basic Info (only for new routers) */}
           {wizardStep === "basic" && (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">Enter the router name and location. WireGuard keys will be generated automatically after saving.</p>
+              <p className="text-sm text-muted-foreground">Enter the router name and location. configuration script will be generated automatically after saving.</p>
               <div className="flex flex-col gap-1.5">
                 <Label>Router Name <span className="text-destructive">*</span></Label>
                 <Input
@@ -411,7 +411,7 @@ export default function RoutersPage() {
                   onChange={(e) => { setBasicForm(f => ({ ...f, name: e.target.value })); setBasicErrors(er => ({ ...er, name: undefined })); }}
                   autoFocus
                 />
-                {basicErrors.name && <p className="text-xs text-destructive">{basicErrors.name}</p>}
+                {basicErrors.name && <p className="text-xs text-destructive">{basicErrors.name}</p>} 
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Location <span className="text-destructive">*</span></Label>
