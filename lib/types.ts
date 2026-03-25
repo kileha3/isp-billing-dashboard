@@ -71,6 +71,7 @@ export interface RouterDevice {
   wgListenPort: number;
   createdAt: string;
   updatedAt: string;
+  script?: string
 }
 
 // ─── Package ──────────────────────────────────────────────────────────────────

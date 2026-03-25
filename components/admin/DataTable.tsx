@@ -161,13 +161,13 @@ export function DataTable<T extends Record<string, unknown>>({
                     const val = getCellValue(row, String(col.key));
                     return (
                       <TableCell key={String(col.key)} className={cn("px-5 py-4 text-sm", col.className)}>
-                        {col.render ? col.render(val, row) : String(val ?? "—")}
+                        {(col.render ? col.render(val, row) : String(val ?? "—"))||"-"}
                       </TableCell>
                     );
                   })}
                   {actions && (
                     <TableCell className="px-5 py-4 text-right">
-                      {actions(row)}
+                      {actions(row) || "-"}
                     </TableCell>
                   )}
                 </TableRow>

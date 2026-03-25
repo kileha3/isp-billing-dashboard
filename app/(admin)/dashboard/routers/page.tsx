@@ -18,6 +18,7 @@ import type { RouterDevice, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { appName } from "@/lib/utils";
 
 interface RouterInfo {
   model: string;
@@ -92,19 +93,21 @@ function CopyableScript({ content, label }: { content: string; label?: string })
     setTimeout(() => setCopied(false), 2000);
   }
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 w-full">
       {label && <p className="text-sm text-muted-foreground">{label}</p>}
-      <div className="relative">
-        <pre className="rounded-md bg-[hsl(220,13%,9%)] text-[hsl(210,17%,82%)] p-4 text-xs font-mono overflow-auto max-h-52 leading-relaxed whitespace-pre-wrap">{content}</pre>
-        <Button
-          variant="outline"
-          size="sm"
-          className="absolute top-2 right-2 h-7 px-2 text-xs bg-background/80 backdrop-blur-sm"
-          onClick={handleCopy}
-        >
-          {copied ? <><Check className="h-3 w-3 mr-1" />Copied</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
-        </Button>
-      </div>
+      <div className="relative w-full">
+  <pre className="rounded-md bg-[hsl(220,13%,9%)] text-[hsl(210,17%,82%)] p-4 text-xs font-mono overflow-auto max-h-52 leading-relaxed whitespace-pre-wrap break-words w-full">
+    {content}
+  </pre>
+  <Button
+    variant="outline"
+    size="sm"
+    className="absolute top-2 right-2 h-7 px-2 text-xs bg-background/80 backdrop-blur-sm"
+    onClick={handleCopy}
+  >
+    {copied ? <><Check className="h-3 w-3 mr-1" />Copied</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
+  </Button>
+</div>
     </div>
   );
 }
@@ -172,17 +175,16 @@ export default function RoutersPage() {
     if (pollingInterval) { clearInterval(pollingInterval); setPollingInterval(null); }
     if (existingRouter) {
       // Re-setup wizard: skip "basic" step and show VPN script directly
-      /* setSetupTarget(existingRouter);
-      const script = generateVpnScript(existingRouter);
+      setSetupTarget(existingRouter);
       setWizard({
         step: "vpn_script",
         router: existingRouter,
-        vpnScript: script,
+        vpnScript: existingRouter.script!,
         routerInfo: null,
         selectedInterface: "",
         hotspotScript: "",
         pollingStatus: "waiting",
-      }); */
+      });
       startPolling(existingRouter._id);
     } else {
       setSetupTarget(null);
@@ -220,7 +222,7 @@ export default function RoutersPage() {
     setSubmittingBasic(true);
     try {
       const payload = { name: basicForm.name, location: basicForm.location, tenantId: basicForm.tenantId || user?.tenantId };
-      const { data: {router, script} } = await apiClient.routers.create(payload);
+      const { data: { router, script } } = await apiClient.routers.create(payload);
       setWizard(w => ({ ...w, step: "vpn_script", router, vpnScript: script }));
       startPolling(router._id);
     } catch {
@@ -233,7 +235,7 @@ export default function RoutersPage() {
   function startPolling(routerId: string) {
     const interval = setInterval(async () => {
       try {
-        const { data: router} = await apiClient.routers.getInfo(routerId);
+        const { data: router } = await apiClient.routers.getInfo(routerId);
         if (router?.status === "online") {
           clearInterval(interval);
           setPollingInterval(null);
@@ -285,7 +287,7 @@ export default function RoutersPage() {
         return (
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">{String(v) || "—"}</span>
-            <code className="text-xs font-mono text-muted-foreground">{r.wgAddress}</code>
+            <code className="text-xs font-mono text-muted-foreground">{r.wgAddress || "-"}</code>
           </div>
         );
       }
@@ -392,7 +394,7 @@ export default function RoutersPage() {
 
       {/* Add/Re-install Router Wizard */}
       <Dialog open={showWizard} onOpenChange={(open) => { if (!open) closeWizard(); }}>
-        <DialogContent className="w-full max-w-lg sm:max-w-xl">
+        <DialogContent className="w-full max-w-3xl sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{wizardTitle}</DialogTitle>
           </DialogHeader>
@@ -403,25 +405,31 @@ export default function RoutersPage() {
           {wizardStep === "basic" && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">Enter the router name and location. configuration script will be generated automatically after saving.</p>
-              <div className="flex flex-col gap-1.5">
-                <Label>Router Name <span className="text-destructive">*</span></Label>
-                <Input
-                  placeholder="e.g. Main Gateway"
-                  value={basicForm.name}
-                  onChange={(e) => { setBasicForm(f => ({ ...f, name: e.target.value })); setBasicErrors(er => ({ ...er, name: undefined })); }}
-                  autoFocus
-                />
-                {basicErrors.name && <p className="text-xs text-destructive">{basicErrors.name}</p>} 
+
+              {/* Horizontal row for Router Name and Location */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Router Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="e.g. Main Gateway"
+                    value={basicForm.name}
+                    onChange={(e) => { setBasicForm(f => ({ ...f, name: e.target.value })); setBasicErrors(er => ({ ...er, name: undefined })); }}
+                    autoFocus
+                  />
+                  {basicErrors.name && <p className="text-xs text-destructive">{basicErrors.name}</p>}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label>Location <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="e.g. Dodoma, Sinza"
+                    value={basicForm.location}
+                    onChange={(e) => { setBasicForm(f => ({ ...f, location: e.target.value })); setBasicErrors(er => ({ ...er, location: undefined })); }}
+                  />
+                  {basicErrors.location && <p className="text-xs text-destructive">{basicErrors.location}</p>}
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Location <span className="text-destructive">*</span></Label>
-                <Input
-                  placeholder="e.g. Dodoma, Sinza"
-                  value={basicForm.location}
-                  onChange={(e) => { setBasicForm(f => ({ ...f, location: e.target.value })); setBasicErrors(er => ({ ...er, location: undefined })); }}
-                />
-                {basicErrors.location && <p className="text-xs text-destructive">{basicErrors.location}</p>}
-              </div>
+
               {isSuperAdmin && (
                 <div className="flex flex-col gap-1.5">
                   <Label>Tenant</Label>
@@ -433,6 +441,7 @@ export default function RoutersPage() {
                   </Select>
                 </div>
               )}
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={closeWizard}>Cancel</Button>
                 <Button onClick={handleSaveBasic} disabled={submittingBasic}>
@@ -448,7 +457,7 @@ export default function RoutersPage() {
               <div className="flex items-start gap-3 rounded-lg border border-border p-3 bg-muted/30">
                 <Info className="h-4 w-4 mt-0.5 text-primary shrink-0" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Paste this script into your MikroTik router terminal. It will establish a WireGuard VPN connection back to the NetBill server. Once connected, the status below will update automatically.
+                  Paste this script into your MikroTik router terminal. It will establish a VPN connection back to the ${appName} server. Once connected, the status below will update automatically.
                 </p>
               </div>
               <CopyableScript content={wizard.vpnScript} />
@@ -458,7 +467,7 @@ export default function RoutersPage() {
                     <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                     <div>
                       <p className="text-sm font-medium">Waiting for connection…</p>
-                      <p className="text-xs text-muted-foreground">Checking every 5 seconds</p>
+                      <p className="text-xs text-muted-foreground">Checking every 1 minute</p>
                     </div>
                   </>
                 )}
