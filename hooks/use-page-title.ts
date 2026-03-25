@@ -1,5 +1,6 @@
 "use client";
 
+import { appName } from "@/lib/utils";
 import { useEffect } from "react";
 
 /**
@@ -9,7 +10,7 @@ import { useEffect } from "react";
 export function usePageTitle(title: string) {
   useEffect(() => {
     const previous = document.title;
-    document.title = `${title} | NetBill`;
+    document.title = `${title} | ${appName}`;
     return () => {
       document.title = previous;
     };

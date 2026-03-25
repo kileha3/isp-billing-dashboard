@@ -160,7 +160,7 @@ jobs:
 
             docker compose down 
             docker compose pull
-            docker compose -p ${{env.CONTAINER_PREFIX}} up -d --force-recreate
+            docker compose up -d --force-recreate
 
             # Cleanup temporary volumes, images and containers
             docker system prune -a --volumes -f

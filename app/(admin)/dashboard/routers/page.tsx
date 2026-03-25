@@ -240,7 +240,7 @@ export default function RoutersPage() {
           setWizard(w => ({ ...w, pollingStatus: "connected", routerInfo: router.info }));
         }
       } catch { /* keep polling */ }
-    }, 5000);
+    }, 60000);
     setPollingInterval(interval);
     setTimeout(() => {
       clearInterval(interval);
@@ -249,7 +249,7 @@ export default function RoutersPage() {
         if (w.pollingStatus === "waiting") return { ...w, pollingStatus: "timeout" };
         return w;
       });
-    }, 120000);
+    }, 600000);
   }
 
   function handleProceedToInterfaces() {
