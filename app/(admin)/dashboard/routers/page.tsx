@@ -96,18 +96,18 @@ function CopyableScript({ content, label }: { content: string; label?: string })
     <div className="flex flex-col gap-2 w-full">
       {label && <p className="text-sm text-muted-foreground">{label}</p>}
       <div className="relative w-full">
-  <pre className="rounded-md bg-[hsl(220,13%,9%)] text-[hsl(210,17%,82%)] p-4 text-xs font-mono overflow-auto max-h-52 leading-relaxed whitespace-pre-wrap break-words w-full">
-    {content}
-  </pre>
-  <Button
-    variant="outline"
-    size="sm"
-    className="absolute top-2 right-2 h-7 px-2 text-xs bg-background/80 backdrop-blur-sm"
-    onClick={handleCopy}
-  >
-    {copied ? <><Check className="h-3 w-3 mr-1" />Copied</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
-  </Button>
-</div>
+        <pre className="rounded-md bg-[hsl(220,13%,9%)] text-[hsl(210,17%,82%)] p-4 text-xs font-mono overflow-auto max-h-52 leading-relaxed whitespace-pre-wrap break-words w-full">
+          {content}
+        </pre>
+        <Button
+          variant="outline"
+          size="sm"
+          className="absolute top-2 right-2 h-7 px-2 text-xs bg-background/80 backdrop-blur-sm"
+          onClick={handleCopy}
+        >
+          {copied ? <><Check className="h-3 w-3 mr-1" />Copied</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -171,15 +171,15 @@ export default function RoutersPage() {
     return () => { if (pollingInterval) clearInterval(pollingInterval); };
   }, [pollingInterval]);
 
-  function openWizard(existingRouter?: RouterDevice) {
+  async function openWizard(existingRouter?: RouterDevice) {
     if (pollingInterval) { clearInterval(pollingInterval); setPollingInterval(null); }
     if (existingRouter) {
-      // Re-setup wizard: skip "basic" step and show VPN script directly
+      const { data: { script } } = await apiClient.routers.getScript(existingRouter._id);
       setSetupTarget(existingRouter);
       setWizard({
         step: "vpn_script",
         router: existingRouter,
-        vpnScript: existingRouter.script!,
+        vpnScript: script,
         routerInfo: null,
         selectedInterface: "",
         hotspotScript: "",
@@ -222,7 +222,8 @@ export default function RoutersPage() {
     setSubmittingBasic(true);
     try {
       const payload = { name: basicForm.name, location: basicForm.location, tenantId: basicForm.tenantId || user?.tenantId };
-      const { data: { router, script } } = await apiClient.routers.create(payload);
+      const { data: { router } } = await apiClient.routers.create(payload);
+      const { data: { script } } = await apiClient.routers.getScript(router._id);
       setWizard(w => ({ ...w, step: "vpn_script", router, vpnScript: script }));
       startPolling(router._id);
     } catch {
@@ -280,14 +281,15 @@ export default function RoutersPage() {
   const columns = [
     { key: "name", label: "Name" },
     { key: "location", label: "Location" },
+    { key: "ipAddress", label: "Assigned IP" },
     {
       key: "model", label: "Device Info",
       render: (v: unknown, row: unknown) => {
         const r = row as RouterDevice;
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium">{String(v) || "—"}</span>
-            <code className="text-xs font-mono text-muted-foreground">{r.wgAddress || "-"}</code>
+            <span className="text-sm font-medium">{r.model}</span>
+            <code className="text-xs font-mono text-muted-foreground">{r.version}</code>
           </div>
         );
       }

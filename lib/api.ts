@@ -199,7 +199,7 @@ export const apiClient = {
       req<{ message: string }>(`/routers/${id}`, { method: "DELETE" }),
 
     getScript: (id: string) =>
-      req<{ script: string }>(`/routers/${id}/setup-script`),
+      req<{data: { script: string }}>(`/routers/${id}/script`),
 
     getInfo: (id: string) =>
       req<any>(`/routers/${id}`),

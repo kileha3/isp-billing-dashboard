@@ -65,12 +65,11 @@ export interface RouterDevice {
   location?: string;
   ipAddress?: string;
   model?: string;
+  version?: string;
   status: RouterStatus;
-  wgPublicKey: string;
-  wgAddress: string;
-  wgListenPort: number;
   createdAt: string;
   updatedAt: string;
+  uptime: string;
   script?: string
 }
 
