@@ -384,7 +384,7 @@ export default function RoutersPage() {
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
-                {r.status === "pending" && (<DropdownMenuItem onClick={() => checkRouterStatus()}>
+                {r.status === "pending" && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Check Status
                 </DropdownMenuItem>)}
