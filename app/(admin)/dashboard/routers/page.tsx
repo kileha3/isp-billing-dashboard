@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, ExternalLink } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, ExternalLink, RefreshCcwDot } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { RouterDevice, Tenant } from "@/lib/types";
@@ -258,6 +258,11 @@ export default function RoutersPage() {
     setWizard(w => ({ ...w, selectedInterface: iface, hotspotScript: "", step: "hotspot_script" }));
   }
 
+  async function checkRouterStatus(routerId: string){
+    const { data } = await apiClient.routers.checkAndGetStatus(routerId);
+    openWizard(data);
+  }
+
   async function handleDelete(router: RouterDevice) {
     if (!confirm(`Delete router "${router.name}"?`)) return;
     try {
@@ -379,6 +384,10 @@ export default function RoutersPage() {
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
+                {r.status === "pending" && (<DropdownMenuItem onClick={() => checkRouterStatus()}>
+                  <RefreshCcwDot className="mr-2 h-4 w-4" />
+                  Check Status
+                </DropdownMenuItem>)}
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(r)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete

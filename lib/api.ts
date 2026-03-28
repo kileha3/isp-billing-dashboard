@@ -203,6 +203,9 @@ export const apiClient = {
 
     getInfo: (id: string) =>
       req<any>(`/routers/${id}`),
+
+    checkAndGetStatus: (id: string) =>
+      req<{ data: RouterDevice }>(`/routers/${id}/status`),
   },
 
   packages: {
