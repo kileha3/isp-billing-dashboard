@@ -258,7 +258,8 @@ export default function RoutersPage() {
     setWizard(w => ({ ...w, selectedInterface: iface, hotspotScript: "", step: "hotspot_script" }));
   }
 
-  async function checkRouterStatus(routerId: string){
+  async function checkRouterStatus(routerId?: string){
+    if(!routerId) return;
     const { data } = await apiClient.routers.checkAndGetStatus(routerId);
     openWizard(data);
   }
