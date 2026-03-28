@@ -28,14 +28,6 @@ interface RouterInfo {
   interfaces: string[];
 }
 
-const MOCK_ROUTER_INFO: RouterInfo = {
-  model: "hAP ac2",
-  type: "WiFi Router",
-  routerOsVersion: "7.13.2",
-  vpnIp: "10.0.0.1",
-  interfaces: ["ether1-WAN", "ether2-LAN", "wlan1-2GHz", "wlan2-5GHz", "bridge-local"],
-};
-
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "hotspot_script" | "done";
 
 interface WizardState {
@@ -50,8 +42,8 @@ interface WizardState {
 
 const STEP_LABELS: Record<WizardStep, string> = {
   basic: "Details",
-  vpn_script: "VPN Setup",
-  interfaces: "Interface",
+  vpn_script: "Connection",
+  interfaces: "Interfaces",
   hotspot_script: "Hotspot",
   done: "Complete",
 };
@@ -85,11 +77,12 @@ function StepIndicator({ current, steps }: { current: WizardStep; steps: WizardS
   );
 }
 
-function CopyableScript({ content, label }: { content: string; label?: string }) {
+function CopyableScript({ content, label, onCopy }: { content: string; label?: string, onCopy: () => void }) {
   const [copied, setCopied] = useState(false);
   function handleCopy() {
     navigator.clipboard.writeText(content);
     setCopied(true);
+    onCopy();
     setTimeout(() => setCopied(false), 2000);
   }
   return (
@@ -125,6 +118,7 @@ export default function RoutersPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [showWizard, setShowWizard] = useState(false);
+  const [scriptCopied, setScriptCopied] = useState(false);
   // For re-setup from list actions
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
 
@@ -234,6 +228,7 @@ export default function RoutersPage() {
   }
 
   function startPolling(routerId: string) {
+    if (!scriptCopied || routerId.length === 0) return;
     const interval = setInterval(async () => {
       try {
         const { data: router } = await apiClient.routers.getInfo(routerId);
@@ -243,7 +238,7 @@ export default function RoutersPage() {
           setWizard(w => ({ ...w, pollingStatus: "connected", routerInfo: router.info }));
         }
       } catch { /* keep polling */ }
-    }, 60000);
+    }, 30000);
     setPollingInterval(interval);
     setTimeout(() => {
       clearInterval(interval);
@@ -252,7 +247,7 @@ export default function RoutersPage() {
         if (w.pollingStatus === "waiting") return { ...w, pollingStatus: "timeout" };
         return w;
       });
-    }, 600000);
+    }, 300000);
   }
 
   function handleProceedToInterfaces() {
@@ -266,8 +261,8 @@ export default function RoutersPage() {
   async function handleDelete(router: RouterDevice) {
     if (!confirm(`Delete router "${router.name}"?`)) return;
     try {
-      await apiClient.routers.delete(router._id);
-      toast({ title: "Router deleted" });
+      const { message } = await apiClient.routers.delete(router._id);
+      toast({ title: message });
       load();
     } catch {
       toast({ title: "Error", description: "Failed to delete router.", variant: "destructive" });
@@ -340,7 +335,7 @@ export default function RoutersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Routers</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage MikroTik routers and VPN peers</p>
+          <p className="text-sm text-muted-foreground mt-1">Manage your MikroTik routers</p>
         </div>
         <Button onClick={() => openWizard()}>
           <Plus className="h-4 w-4 mr-2" />
@@ -446,7 +441,7 @@ export default function RoutersPage() {
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={closeWizard}>Cancel</Button>
-                <Button onClick={handleSaveBasic} disabled={submittingBasic}>
+                <Button onClick={handleSaveBasic} disabled={submittingBasic || (basicSchema.safeParse(basicForm).error?.isEmpty == false)}>
                   {submittingBasic ? "Creating…" : "Save & Continue"}
                 </Button>
               </div>
@@ -462,14 +457,17 @@ export default function RoutersPage() {
                   Paste this script into your MikroTik router terminal. It will establish a VPN connection back to the ${appName} server. Once connected, the status below will update automatically.
                 </p>
               </div>
-              <CopyableScript content={wizard.vpnScript} />
+              <CopyableScript content={wizard.vpnScript} onCopy={() => {
+                setScriptCopied(true);
+                startPolling(wizard.router?._id || "");
+              }} />
               <div className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${wizard.pollingStatus === "connected" ? "border-emerald-500/30 bg-emerald-500/5" : wizard.pollingStatus === "timeout" ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
                 {wizard.pollingStatus === "waiting" && (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                     <div>
                       <p className="text-sm font-medium">Waiting for connection…</p>
-                      <p className="text-xs text-muted-foreground">Checking every 1 minute</p>
+                      <p className="text-xs text-muted-foreground">Checking every 30 seconds</p>
                     </div>
                   </>
                 )}
@@ -497,14 +495,8 @@ export default function RoutersPage() {
                 )}
               </div>
               <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setWizard(w => ({ ...w, pollingStatus: "connected", routerInfo: MOCK_ROUTER_INFO }))}
-                >
-                  Skip (demo)
-                </Button>
                 <Button onClick={handleProceedToInterfaces} disabled={wizard.pollingStatus === "waiting" && wizard.routerInfo === null}>
-                  Next: Select Interface
+                  Next: Select Interface (s)
                 </Button>
               </div>
             </div>
@@ -549,7 +541,7 @@ export default function RoutersPage() {
                   <code className="font-mono text-xs bg-muted px-1 rounded">{wizard.selectedInterface}</code> and redirects customers to your payment page.
                 </p>
               </div>
-              <CopyableScript content={wizard.hotspotScript} />
+              <CopyableScript content={wizard.hotspotScript} onCopy={() => { }} />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "interfaces" }))}>Back</Button>
                 <Button onClick={() => setWizard(w => ({ ...w, step: "done" }))}>

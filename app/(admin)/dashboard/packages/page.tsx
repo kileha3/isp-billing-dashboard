@@ -25,44 +25,27 @@ const packageSchema = z.object({
   price: z.coerce.number().min(0, "Price must be 0 or more"),
   duration: z.coerce.number().int().min(1, "Duration must be at least 1"),
   dataLimit: z.coerce.number().min(0, "Data limit must be 0 or more"),
-  speedLimit: z.coerce.number().min(1, "Speed must be at least 1"),
+  speedLimit: z.coerce.number().min(0, "Speed limit must be 0 or more"),
 });
-
-const MOCK_ROUTERS: RouterDevice[] = [
-  { _id: "r1", name: "Main Gateway", location: "Nairobi CBD", ipAddress: "192.168.1.1", status: "online", model: "hAP ac2", tenantId: "t1", wgPublicKey: "abc", wgAddress: "10.0.0.1/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "r2", name: "Westlands Hub", location: "Westlands", ipAddress: "192.168.2.1", status: "online", model: "RB4011", tenantId: "t1", wgPublicKey: "def", wgAddress: "10.0.0.2/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "r3", name: "Kasarani Node", location: "Kasarani", ipAddress: "192.168.3.1", status: "offline", model: "hAP ac3", tenantId: "t2", wgPublicKey: "ghi", wgAddress: "10.0.0.3/24", wgListenPort: 51820, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-const MOCK_TENANTS: Tenant[] = [
-  { _id: "t1", name: "FastNet ISP", subdomain: "fastnet", branding: { logo: "", primaryColor: "#3B82F6", secondaryColor: "#1E40AF", businessName: "FastNet" }, support: { phone: "", email: "", whatsapp: "", showOnPortal: false }, portalSettings: { displayMode: "both", welcomeMessage: "", termsUrl: "", showPoweredBy: true }, settings: { currency: "KES", timezone: "Africa/Nairobi" }, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "t2", name: "QuickConnect Ltd", subdomain: "quickconnect", branding: { logo: "", primaryColor: "#10B981", secondaryColor: "#065F46", businessName: "QuickConnect" }, support: { phone: "", email: "", whatsapp: "", showOnPortal: false }, portalSettings: { displayMode: "both", welcomeMessage: "", termsUrl: "", showPoweredBy: true }, settings: { currency: "KES", timezone: "Africa/Nairobi" }, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-const MOCK_PACKAGES: Package[] = [
-  { _id: "1", name: "Hourly Unlimited", description: "1 hour unlimited browsing", price: 50, duration: 1, durationUnit: "hours", dataLimit: 0, speedLimit: 10, status: "active", isPublic: true, tenantId: "t1", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "2", name: "Daily 1GB", description: "24 hours, 1GB data", price: 100, duration: 1, durationUnit: "days", dataLimit: 1024, speedLimit: 20, status: "active", isPublic: true, tenantId: "t1", routerIds: ["r1"], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "3", name: "Weekly 5GB", description: "7 days, 5GB data", price: 500, duration: 7, durationUnit: "days", dataLimit: 5120, speedLimit: 50, status: "active", isPublic: true, tenantId: "t1", routerIds: ["r1", "r2"], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "4", name: "Monthly 30GB", description: "30 days, 30GB data", price: 2000, duration: 1, durationUnit: "months", dataLimit: 30720, speedLimit: 100, status: "active", isPublic: true, tenantId: "t2", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
 
 type DurationUnit = "minutes" | "hours" | "days" | "months";
 
 type PackageForm = {
   name: string;
   description: string;
-  price: string;
+  price: number;
   duration: string;
   durationUnit: DurationUnit;
   dataLimit: string;
   speedLimit: string;
   isPublic: boolean;
+  isFree: boolean;
   tenantId: string;
   routerIds: string[];
 };
 
 const DEFAULT_FORM: PackageForm = {
-  name: "", description: "", price: "", duration: "", durationUnit: "hours",
+  name: "", description: "", price: 1000, duration: "", durationUnit: "hours", isFree: false,
   dataLimit: "", speedLimit: "", isPublic: true, tenantId: "", routerIds: [],
 };
 
@@ -81,6 +64,11 @@ function formatData(mb: number) {
   if (mb === 0) return "Unlimited";
   if (mb >= 1024) return `${(mb / 1024).toFixed(0)}GB`;
   return `${mb}MB`;
+}
+
+function formatSpeed(mb: number) {
+  if (mb === 0) return "Unlimited";
+  return `${mb}Mbps`;
 }
 
 export default function PackagesPage() {
@@ -105,13 +93,13 @@ export default function PackagesPage() {
         apiClient.packages.list(),
         apiClient.routers.list(),
       ]);
-      if (pkgData.status === "fulfilled") setPackages(pkgData.value.packages ?? pkgData.value);
-      else setPackages(MOCK_PACKAGES);
-      if (routerData.status === "fulfilled") setRouters(routerData.value.routers ?? routerData.value);
-      else setRouters(MOCK_ROUTERS);
+      if (pkgData.status === "fulfilled") setPackages(pkgData.value.data);
+      else setPackages([]);
+      if (routerData.status === "fulfilled") setRouters(routerData.value.data);
+      else setRouters([]);
     } catch {
-      setPackages(MOCK_PACKAGES);
-      setRouters(MOCK_ROUTERS);
+      setPackages([]);
+      setRouters([]);
     } finally {
       setLoading(false);
     }
@@ -120,10 +108,10 @@ export default function PackagesPage() {
   const loadTenants = useCallback(async () => {
     if (!isSuperAdmin) return;
     try {
-      const data = await apiClient.tenants.list();
-      setTenants(data.tenants ?? data);
+      const { data } = await apiClient.tenants.list();
+      setTenants(data);
     } catch {
-      setTenants(MOCK_TENANTS);
+      setTenants([]);
     }
   }, [isSuperAdmin]);
 
@@ -152,7 +140,7 @@ export default function PackagesPage() {
     setForm({
       name: pkg.name,
       description: pkg.description ?? "",
-      price: String(pkg.price),
+      price: pkg.price,
       duration: String(pkg.duration),
       durationUnit: (pkg.durationUnit as DurationUnit) ?? "hours",
       dataLimit: String(pkg.dataLimit),
@@ -160,6 +148,7 @@ export default function PackagesPage() {
       isPublic: pkg.isPublic,
       tenantId: pkg.tenantId,
       routerIds: pkg.routerIds ?? [],
+      isFree: pkg.isFree
     });
     setShowDialog(true);
   }
@@ -186,6 +175,7 @@ export default function PackagesPage() {
       if (editTarget) {
         await apiClient.packages.update(editTarget._id, payload);
         toast({ title: "Package updated" });
+        load();
       } else {
         await apiClient.packages.create(payload);
         toast({ title: "Package created" });
@@ -216,7 +206,7 @@ export default function PackagesPage() {
 
   function getRouterNames(routerIds: string[]) {
     if (!routerIds || routerIds.length === 0) return null;
-    return routerIds.map(id => routers.find(r => r._id === id)?.name ?? id);
+    return routerIds.map(id => routers.find(r => r._id === id)?.name ?? null).filter(Boolean);
   }
 
   const packageFormValid = packageSchema.safeParse(form).success;
@@ -224,7 +214,7 @@ export default function PackagesPage() {
   const columns = [
     { key: "name", label: "Name" },
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
-    { key: "price", label: "Price (KES)", render: (v: unknown) => <span className="font-semibold">KES {Number(v).toLocaleString()}</span> },
+    { key: "price", label: "Price (Tsh)", render: (v: unknown) => <span className="font-semibold">{v === 0 ? "Free": `Tsh ${Number(v).toLocaleString()}`}</span> },
     {
       key: "duration", label: "Duration",
       render: (v: unknown, row: unknown) => {
@@ -233,7 +223,7 @@ export default function PackagesPage() {
       }
     },
     { key: "dataLimit", label: "Data", render: (v: unknown) => formatData(Number(v)) },
-    { key: "speedLimit", label: "Speed", render: (v: unknown) => `${v} Mbps` },
+    { key: "speedLimit", label: "Speed", render: (v: unknown) => formatSpeed(Number(v)) },
     {
       key: "routerIds", label: "Routers",
       render: (v: unknown) => {
@@ -253,8 +243,7 @@ export default function PackagesPage() {
         );
       }
     },
-    { key: "isPublic", label: "Public", render: (v: unknown) => <StatusBadge status={v ? "active" : "inactive"} /> },
-    { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
+    { key: "isPublic", label: "Visibility", render: (v: unknown) => <StatusBadge status={v ? "public" : "private"} /> },
   ];
 
   const availableRouters = getAvailableRouters();
@@ -264,7 +253,7 @@ export default function PackagesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Packages</h1>
-          <p className="text-sm text-muted-foreground mt-1">Define internet packages available to customers</p>
+          <p className="text-sm text-muted-foreground mt-1">Create your prefered packages available to customers</p>
         </div>
         <Button onClick={openAdd}>
           <Plus className="h-4 w-4 mr-2" />
@@ -273,7 +262,7 @@ export default function PackagesPage() {
       </div>
 
       <DataTable
-        data={(statusFilter === "all" ? packages : packages.filter(p => p.status === statusFilter)) as unknown as Record<string, unknown>[]}
+        data={(statusFilter === "all" ? packages : packages.filter(p => p.isPublic === (statusFilter === "true"))) as unknown as Record<string, unknown>[]}
         columns={columns as never}
         loading={loading}
         searchable
@@ -282,17 +271,31 @@ export default function PackagesPage() {
         emptyMessage="No packages yet."
         pageSize={10}
         filterSlot={
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-10 w-44 bg-background">
-              <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-3">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-10 w-44 bg-background">
+                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="false">Paid</SelectItem>
+                <SelectItem value="true">Free</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-10 w-44 bg-background">
+                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All visibilities</SelectItem>
+                <SelectItem value="false">Private</SelectItem>
+                <SelectItem value="true">Public</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
         actions={(row) => (
           <DropdownMenu>
@@ -342,8 +345,8 @@ export default function PackagesPage() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <Label>Price (KES)</Label>
-              <Input type="number" placeholder="100" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} />
+              <Label>Price (Tsh)</Label>
+              <Input type="number" placeholder="100" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: parseInt(e.target.value) }))} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Duration</Label>
@@ -365,13 +368,21 @@ export default function PackagesPage() {
               <Input type="number" placeholder="1024" value={form.dataLimit} onChange={(e) => setForm(f => ({ ...f, dataLimit: e.target.value }))} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Speed Limit (Mbps)</Label>
+              <Label>Speed Limit (Mbps, 0 = unlimited)</Label>
               <Input type="number" placeholder="10" value={form.speedLimit} onChange={(e) => setForm(f => ({ ...f, speedLimit: e.target.value }))} />
             </div>
-            <div className="col-span-2 flex items-center gap-3">
-              <Switch checked={form.isPublic} onCheckedChange={(v) => setForm(f => ({ ...f, isPublic: v }))} id="isPublic" />
-              <Label htmlFor="isPublic">Show on captive portal</Label>
+            <div className="col-span-2 flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <Switch checked={form.isPublic} onCheckedChange={(v) => setForm(f => ({ ...f, isPublic: v }))} id="isPublic" />
+                <Label htmlFor="isPublic">Let user see this package</Label>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Switch checked={form.isFree} onCheckedChange={(v) => setForm(f => ({ ...f, isFree: v, price: 0 }))} id="isFree" />
+                <Label htmlFor="isFree">Free package</Label>
+              </div>
             </div>
+
 
             {/* Router mapping */}
             <div className="col-span-2 flex flex-col gap-2">
@@ -409,7 +420,7 @@ export default function PackagesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={submitting || !packageFormValid}>
+            <Button onClick={handleSubmit} disabled={submitting || !packageFormValid}>
               {submitting ? "Saving…" : editTarget ? "Update" : "Create"}
             </Button>
           </DialogFooter>

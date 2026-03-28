@@ -206,7 +206,7 @@ export const apiClient = {
   },
 
   packages: {
-    list: () => req<{ packages: Package[] }>("/packages"),
+    list: () => req<{ data: Package[] }>("/packages"),
 
     create: (data: Partial<Package>) =>
       req<{ package: Package }>("/packages", {

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Clock, XCircle, RefreshCw, WifiOff, MinusCircle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, RefreshCw, WifiOff, MinusCircle, Languages, Globe, GlobeX, GlobeLock, Users, UserX } from "lucide-react";
 
 interface StatusConfig {
   classes: string;
@@ -23,6 +23,10 @@ const STATUS_MAP: Record<string, StatusConfig> = {
   inactive:     { classes: "bg-muted text-muted-foreground border-border", icon: <MinusCircle className="h-3 w-3" /> },
   disconnected: { classes: "bg-muted text-muted-foreground border-border", icon: <MinusCircle className="h-3 w-3" /> },
   "in progress": { classes: "bg-primary/10 text-primary border-primary/20", icon: <RefreshCw className="h-3 w-3" /> },
+  private: { classes: "bg-[oklch(0.78_0.17_75)]/12 text-[oklch(0.52_0.17_60)] border-[oklch(0.78_0.17_75)]/30", icon: <GlobeLock className="h-3 w-3" /> },
+  public: { classes: "bg-primary/10 text-primary border-primary/20", icon: <Globe className="h-3 w-3" /> },
+  free: { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <Users className="h-3 w-3" /> },
+  payment: { classes: "bg-primary/10 text-primary border-primary/20", icon: <UserX className="h-3 w-3" /> },
 };
 
 interface StatusBadgeProps {

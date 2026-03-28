@@ -87,6 +87,7 @@ export interface Package {
   speedLimit: number;
   status: "active" | "inactive";
   isPublic: boolean;
+  isFree: boolean;
   routerIds: string[];
   createdAt: string;
   updatedAt: string;
