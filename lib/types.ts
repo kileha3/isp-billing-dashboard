@@ -53,7 +53,13 @@ export interface Tenant {
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
-
+export interface RouterInfo {
+  model: string;
+  version: string;
+  cpuLoad: string;
+  uptime: string;
+  interfaces: Array<{name: string, isRunning: boolean}>
+}
 export interface RouterDevice {
   _id: string;
   tenantId: string;
@@ -65,11 +71,7 @@ export interface RouterDevice {
   updatedAt: string;
   uptime: string;
   script?: string;
-  info: {
-    model?: string;
-    version?: string;
-    interfaces?: Array<string>
-  };
+  info: RouterInfo
 }
 
 // ─── Package ──────────────────────────────────────────────────────────────────

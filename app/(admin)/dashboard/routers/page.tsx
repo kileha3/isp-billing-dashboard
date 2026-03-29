@@ -14,19 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, ExternalLink, RefreshCcwDot } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { RouterDevice, Tenant } from "@/lib/types";
+import type { RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 
-interface RouterInfo {
-  model: string;
-  version: string;
-  cpuLoad: string;
-  uptime: string;
-  interfaces: string[];
-}
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "hotspot_script" | "done";
 
@@ -522,16 +515,17 @@ export default function RoutersPage() {
               <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
                 {wizard.routerInfo.interfaces.map(iface => (
                   <button
-                    key={iface}
-                    onClick={() => handleSelectInterface(iface)}
+                    key={iface.name}
+                    onClick={() => handleSelectInterface(iface.name)}
                     className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-2 w-2 rounded-full bg-primary" />
-                      <code className="text-sm font-mono font-medium">{iface}</code>
+                      <code className="text-sm font-mono font-medium">{iface.name}</code>
+                      <code className="text-sm font-mono font-medium">{iface.isRunning ? "Running":"Iddle"}</code>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {iface.includes("wlan") ? "Wireless" : iface.includes("bridge") ? "Bridge" : iface.includes("ether") ? "Ethernet" : "Interface"}
+                      {iface.name.includes("wlan") ? "Wireless" : iface.name.includes("bridge") ? "Bridge" : iface.name.includes("ether") ? "Ethernet" : "Interface"}
                     </Badge>
                   </button>
                 ))}
