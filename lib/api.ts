@@ -184,7 +184,7 @@ export const apiClient = {
       ),
 
     create: (data: Partial<RouterDevice>) =>
-      req<{ data: {script: string, router: RouterDevice} }>("/routers", {
+      req<{ data: { script: string; router: RouterDevice } }>("/routers", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -199,13 +199,15 @@ export const apiClient = {
       req<{ message: string }>(`/routers/${id}`, { method: "DELETE" }),
 
     getScript: (id: string) =>
-      req<{data: { script: string }}>(`/routers/${id}/script`),
+      req<{ data: { script: string } }>(`/routers/${id}/script`),
 
-    getInfo: (id: string) =>
-      req<any>(`/routers/${id}`),
+    getInfo: (id: string) => req<any>(`/routers/${id}`),
 
-    checkAndGetStatus: (id: string) =>
-      req<{ data: RouterDevice }>(`/routers/${id}/status`),
+    checkStatus: (id: string) =>
+      req<{ data: RouterDevice }>(`/routers/status`, {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      }),
   },
 
   packages: {
@@ -352,15 +354,14 @@ export const apiClient = {
   },
 
   users: {
-    list: async (params?: Record<string, string>): Promise< User[]> => {
-      const res = await req<{ data: User[] }>(`/users${params ? "?" + new URLSearchParams(params) : ""}`);
+    list: async (params?: Record<string, string>): Promise<User[]> => {
+      const res = await req<{ data: User[] }>(
+        `/users${params ? "?" + new URLSearchParams(params) : ""}`,
+      );
       return res.data;
     },
 
-    update: (
-      id: string,
-      data: Partial<import("@/lib/types").User>,
-    ) =>
+    update: (id: string, data: Partial<import("@/lib/types").User>) =>
       req<{ user: import("@/lib/types").User }>(`/users/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),

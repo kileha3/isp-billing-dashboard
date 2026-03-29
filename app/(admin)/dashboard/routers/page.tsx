@@ -22,9 +22,9 @@ import { appName } from "@/lib/utils";
 
 interface RouterInfo {
   model: string;
-  type: string;
-  routerOsVersion: string;
-  vpnIp: string;
+  version: string;
+  cpuLoad: string;
+  uptime: string;
   interfaces: string[];
 }
 
@@ -170,8 +170,9 @@ export default function RoutersPage() {
     if (existingRouter) {
       const { data: { script } } = await apiClient.routers.getScript(existingRouter._id);
       setSetupTarget(existingRouter);
+      const startPhase = existingRouter.status == "online" && (existingRouter.info?.interfaces?.length || 0) != 0 ? "hotspot_script" : existingRouter.status == "online" ? "interfaces" : "vpn_script";
       setWizard({
-        step: "vpn_script",
+        step: startPhase,
         router: existingRouter,
         vpnScript: script,
         routerInfo: null,
@@ -258,10 +259,10 @@ export default function RoutersPage() {
     setWizard(w => ({ ...w, selectedInterface: iface, hotspotScript: "", step: "hotspot_script" }));
   }
 
-  async function checkRouterStatus(routerId?: string){
-    if(!routerId) return;
-    const { data } = await apiClient.routers.checkAndGetStatus(routerId);
-    openWizard(data);
+  async function checkRouterStatus(routerId?: string) {
+    if (!routerId) return;
+    await apiClient.routers.checkStatus(routerId);
+    load();
   }
 
   async function handleDelete(router: RouterDevice) {
@@ -289,8 +290,8 @@ export default function RoutersPage() {
         const r = row as RouterDevice;
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium">{r.model}</span>
-            <code className="text-xs font-mono text-muted-foreground">{r.version}</code>
+            <span className="text-sm font-medium">{r.info.model}</span>
+            <code className="text-xs font-mono text-muted-foreground">{r.info.version}</code>
           </div>
         );
       }
@@ -472,7 +473,7 @@ export default function RoutersPage() {
                 startPolling(wizard.router?._id || "");
               }} />
               <div className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${wizard.pollingStatus === "connected" ? "border-emerald-500/30 bg-emerald-500/5" : wizard.pollingStatus === "timeout" ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
-                {wizard.pollingStatus === "waiting" && (
+                {wizard.pollingStatus === "waiting" && scriptCopied && (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                     <div>
@@ -489,17 +490,17 @@ export default function RoutersPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
                       <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
-                      <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.routerOsVersion}</span>
-                      <span className="text-muted-foreground">VPN IP</span><code className="font-mono font-medium">{wizard.routerInfo.vpnIp}</code>
+                      <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
+                      <span className="text-muted-foreground">VPN IP</span><code className="font-mono font-medium">{wizard.routerInfo.cpuLoad}</code>
                     </div>
                   </div>
                 )}
-                {wizard.pollingStatus === "timeout" && (
+                {wizard.pollingStatus === "timeout" && scriptCopied && (
                   <>
                     <div className="h-4 w-4 shrink-0 rounded-full bg-destructive/20" />
                     <div>
                       <p className="text-sm font-medium text-destructive">Connection timeout</p>
-                      <p className="text-xs text-muted-foreground">Check script was applied correctly and try again</p>
+                      <p className="text-xs text-muted-foreground">Check if script was applied correctly and try again</p>
                     </div>
                   </>
                 )}
@@ -516,7 +517,7 @@ export default function RoutersPage() {
           {wizardStep === "interfaces" && wizard.routerInfo && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
-                Select the network interface where the captive portal (hotspot) will be active. This is typically the LAN or bridge interface facing your customers.
+                Select the network interfaces where the captive portal (hotspot) will be active. This is typically the LAN or bridge interface facing your customers.
               </p>
               <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
                 {wizard.routerInfo.interfaces.map(iface => (
@@ -576,8 +577,8 @@ export default function RoutersPage() {
               {wizard.routerInfo && (
                 <div className="w-full rounded-lg border border-border p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                   <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
-                  <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.routerOsVersion}</span>
-                  <span className="text-muted-foreground">VPN IP</span><code className="font-mono font-medium">{wizard.routerInfo.vpnIp}</code>
+                  <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
+                  <span className="text-muted-foreground">Load %</span><code className="font-mono font-medium">{wizard.routerInfo.cpuLoad}</code>
                   <span className="text-muted-foreground">Interface</span><code className="font-mono font-medium">{wizard.selectedInterface}</code>
                 </div>
               )}

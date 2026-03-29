@@ -1,7 +1,3 @@
-// ─── Primitives ───────────────────────────────────────────────────────────────
-// All _id fields use UUID v4 strings (xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx).
-// Never use ObjectId or numeric IDs — the backend must generate UUIDs on create.
-
 export type UserRole = "super_admin" | "tenant_admin" | "operator";
 export type RouterStatus = "online" | "offline" | "pending";
 export type VoucherStatus = "unused" | "redeemed" | "expired";
@@ -64,13 +60,16 @@ export interface RouterDevice {
   name: string;
   location?: string;
   ipAddress?: string;
-  model?: string;
-  version?: string;
   status: RouterStatus;
   createdAt: string;
   updatedAt: string;
   uptime: string;
-  script?: string
+  script?: string;
+  info: {
+    model?: string;
+    version?: string;
+    interfaces?: Array<string>
+  };
 }
 
 // ─── Package ──────────────────────────────────────────────────────────────────
