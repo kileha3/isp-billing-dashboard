@@ -21,15 +21,14 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 
 
-type WizardStep = "basic" | "vpn_script" | "interfaces" | "hotspot_script" | "done";
+type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
 
 interface WizardState {
   step: WizardStep;
   router: RouterDevice | null;
   vpnScript: string;
   routerInfo: RouterInfo | null;
-  selectedInterface: string;
-  hotspotScript: string;
+  selectedInterface: string[];
   pollingStatus: "waiting" | "connected" | "timeout";
 }
 
@@ -37,11 +36,10 @@ const STEP_LABELS: Record<WizardStep, string> = {
   basic: "Details",
   vpn_script: "Connection",
   interfaces: "Interfaces",
-  hotspot_script: "Hotspot",
-  done: "Complete",
+  done: "Summary",
 };
 
-const STEPS: WizardStep[] = ["basic", "vpn_script", "interfaces", "hotspot_script", "done"];
+const STEPS: WizardStep[] = ["basic", "vpn_script", "interfaces", "done"];
 
 const basicSchema = z.object({
   name: z.string().min(1, "Router name is required"),
@@ -53,7 +51,7 @@ function StepIndicator({ current, steps }: { current: WizardStep; steps: WizardS
   const currentIdx = steps.indexOf(current);
   return (
     <div className="flex items-center gap-0 mb-6">
-      {steps.slice(0, -1).map((step, i) => (
+      {steps.map((step, i) => (
         <div key={step} className="flex items-center gap-0 flex-1 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${i < currentIdx ? "bg-primary text-primary-foreground" : i === currentIdx ? "bg-primary text-primary-foreground ring-2 ring-primary/30" : "bg-muted text-muted-foreground"}`}>
@@ -124,8 +122,7 @@ export default function RoutersPage() {
     router: null,
     vpnScript: "",
     routerInfo: null,
-    selectedInterface: "",
-    hotspotScript: "",
+    selectedInterface: [],
     pollingStatus: "waiting",
   });
 
@@ -161,16 +158,15 @@ export default function RoutersPage() {
   async function openWizard(existingRouter?: RouterDevice) {
     if (pollingInterval) { clearInterval(pollingInterval); setPollingInterval(null); }
     if (existingRouter) {
+      setBasicForm(f => ({ ...f, name: existingRouter.name!, location: existingRouter.location!, tenantId: existingRouter.tenantId! }))
       const { data: { script } } = await apiClient.routers.getScript(existingRouter._id);
       setSetupTarget(existingRouter);
-      const startPhase = existingRouter.status == "online" && (existingRouter.info?.interfaces?.length || 0) != 0 ? "hotspot_script" : existingRouter.status == "online" ? "interfaces" : "vpn_script";
       setWizard({
-        step: startPhase,
+        step: "basic",
         router: existingRouter,
         vpnScript: script,
-        routerInfo: null,
-        selectedInterface: "",
-        hotspotScript: "",
+        routerInfo: existingRouter.info,
+        selectedInterface: [],
         pollingStatus: "waiting",
       });
       startPolling(existingRouter._id);
@@ -178,7 +174,7 @@ export default function RoutersPage() {
       setSetupTarget(null);
       setBasicForm({ name: "", location: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
       setBasicErrors({});
-      setWizard({ step: "basic", router: null, vpnScript: "", routerInfo: null, selectedInterface: "", hotspotScript: "", pollingStatus: "waiting" });
+      setWizard({ step: "basic", router: null, vpnScript: "", routerInfo: null, selectedInterface: [], pollingStatus: "waiting" });
     }
     setShowWizard(true);
   }
@@ -205,12 +201,20 @@ export default function RoutersPage() {
     return true;
   }
 
+  const updateInterfaces = async () => {
+    if (!setupTarget) return;
+    const payload = { captiveInterfaces: wizard.selectedInterface }
+    await apiClient.routers.update(setupTarget._id, payload);
+    toast({title: "Configurations was saved successfully"});
+    load();
+  }
+
   async function handleSaveBasic() {
     if (!validateBasic()) return;
     setSubmittingBasic(true);
     try {
       const payload = { name: basicForm.name, location: basicForm.location, tenantId: basicForm.tenantId || user?.tenantId };
-      const { data: { router } } = await apiClient.routers.create(payload);
+      const { data: { router } } = await (setupTarget ? apiClient.routers.update(setupTarget._id, payload) : apiClient.routers.create(payload));
       const { data: { script } } = await apiClient.routers.getScript(router._id);
       setWizard(w => ({ ...w, step: "vpn_script", router, vpnScript: script }));
       startPolling(router._id);
@@ -249,12 +253,13 @@ export default function RoutersPage() {
   }
 
   function handleSelectInterface(iface: string) {
-    setWizard(w => ({ ...w, selectedInterface: iface, hotspotScript: "", step: "hotspot_script" }));
+    const exist = (wizard.selectedInterface).includes(iface);
+    const selectedInterface = [...(wizard.selectedInterface).filter(name => exist ? name !== iface : true), exist ? null : iface].filter(Boolean) as string[];
+    setWizard(w => ({ ...w, selectedInterface, step: "interfaces" }));
   }
 
   async function checkRouterStatus(routerId?: string) {
     if (!routerId) return;
-    await apiClient.routers.checkStatus(routerId);
     load();
   }
 
@@ -283,14 +288,25 @@ export default function RoutersPage() {
         const r = row as RouterDevice;
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium">{r.info.model}</span>
-            <code className="text-xs font-mono text-muted-foreground">{r.info.version}</code>
+            <span className="text-sm font-medium">{r.info?.model || "Undetermined"}</span>
+            <code className="text-xs font-mono text-muted-foreground">{r.info?.version || "Undetermined"}</code>
           </div>
         );
       }
     },
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
+    {
+      key: "uptime", label: "Uptime", render: (v: unknown, row: unknown) => {
+        const r = row as RouterDevice;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{r.status === "online" ? (r.info?.uptime || "Undetermined") : ""}</span>
+          </div>
+        );
+      }
+    },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
+
     {
       key: "_id",
       label: "",
@@ -379,7 +395,7 @@ export default function RoutersPage() {
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
-                {r.status === "pending" && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
+                {r.status !== "online" && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Check Status
                 </DropdownMenuItem>)}
@@ -513,44 +529,30 @@ export default function RoutersPage() {
                 Select the network interfaces where the captive portal (hotspot) will be active. This is typically the LAN or bridge interface facing your customers.
               </p>
               <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-                {wizard.routerInfo.interfaces.map(iface => (
-                  <button
-                    key={iface.name}
-                    onClick={() => handleSelectInterface(iface.name)}
-                    className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 w-2 rounded-full bg-primary" />
-                      <code className="text-sm font-mono font-medium">{iface.name}</code>
-                      <code className="text-sm font-mono font-medium">{iface.isRunning ? "Running":"Iddle"}</code>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {iface.name.includes("wlan") ? "Wireless" : iface.name.includes("bridge") ? "Bridge" : iface.name.includes("ether") ? "Ethernet" : "Interface"}
-                    </Badge>
-                  </button>
-                ))}
+                {wizard.routerInfo.interfaces.map(iface => {
+                  const isSelected = (wizard.selectedInterface || []).includes(iface.name)
+                  return (
+                    <button
+                      key={iface.name}
+                      onClick={() => handleSelectInterface(iface.name)}
+                      className={`flex items-center justify-between rounded-lg border border-border px-4 py-3 text-left transition-colors ${isSelected ? "bg:border-primary bg: bg-primary/5" : ""} hover:border-primary hover:bg-primary/5`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        <code className="text-sm font-mono font-medium">{iface.name}</code>
+                        <code className="text-sm font-mono font-medium">{iface.isRunning ? "Running" : "Iddle"}</code>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {iface.name.includes("wlan") ? "Wireless" : iface.name.includes("bridge") ? "Bridge" : iface.name.includes("ether") ? "Ethernet" : "Interface"}
+                      </Badge>
+                    </button>
+                  )
+                })}
               </div>
               <div className="flex justify-end">
-                <Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "vpn_script" }))}>Back</Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4 — Hotspot Script */}
-          {wizardStep === "hotspot_script" && (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-start gap-3 rounded-lg border border-border p-3 bg-muted/30">
-                <Info className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Paste this hotspot configuration script into your MikroTik terminal. It sets up the captive portal on interface{" "}
-                  <code className="font-mono text-xs bg-muted px-1 rounded">{wizard.selectedInterface}</code> and redirects customers to your payment page.
-                </p>
-              </div>
-              <CopyableScript content={wizard.hotspotScript} onCopy={() => { }} />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "interfaces" }))}>Back</Button>
-                <Button onClick={() => setWizard(w => ({ ...w, step: "done" }))}>
-                  <Check className="h-4 w-4 mr-1.5" />Finish Setup
+                <Button variant="outline" className="mr-1.5" onClick={() => setWizard(w => ({ ...w, step: "vpn_script" }))}>Back</Button>
+                <Button onClick={() => setWizard(w => ({ ...w, step: "done" }))} disabled={(wizard.selectedInterface || []).length === 0}>
+                  Preview Setup
                 </Button>
               </div>
             </div>
@@ -572,11 +574,18 @@ export default function RoutersPage() {
                 <div className="w-full rounded-lg border border-border p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                   <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
                   <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
-                  <span className="text-muted-foreground">Load %</span><code className="font-mono font-medium">{wizard.routerInfo.cpuLoad}</code>
-                  <span className="text-muted-foreground">Interface</span><code className="font-mono font-medium">{wizard.selectedInterface}</code>
+                  <span className="text-muted-foreground">Portal Interface</span><code className="font-mono font-medium">{wizard.selectedInterface.join(",")}</code>
                 </div>
               )}
-              <Button onClick={closeWizard} className="w-full">Done</Button>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" className="mr-1.5" onClick={() => setWizard(w => ({ ...w, step: "interfaces" }))}>Back</Button>
+                <Button onClick={() => {
+                  updateInterfaces();
+                  closeWizard()
+                }} disabled={(wizard.selectedInterface || []).length === 0}>
+                  <Check className="h-4 w-4 mr-1.5" />Save configuration
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

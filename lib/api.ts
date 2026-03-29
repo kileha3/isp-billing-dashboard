@@ -190,7 +190,7 @@ export const apiClient = {
       }),
 
     update: (id: string, data: Partial<RouterDevice>) =>
-      req<{ router: RouterDevice }>(`/routers/${id}`, {
+      req<{ data: { script: string; router: RouterDevice } }>(`/routers/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -201,13 +201,7 @@ export const apiClient = {
     getScript: (id: string) =>
       req<{ data: { script: string } }>(`/routers/${id}/script`),
 
-    getInfo: (id: string) => req<any>(`/routers/${id}`),
-
-    checkStatus: (id: string) =>
-      req<{ data: RouterDevice }>(`/routers/status`, {
-        method: "POST",
-        body: JSON.stringify({ id }),
-      }),
+    getInfo: (id: string) => req<{ data: RouterDevice }>(`/routers?id=${id}`),
   },
 
   packages: {

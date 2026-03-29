@@ -69,6 +69,7 @@ export interface RouterDevice {
   status: RouterStatus;
   createdAt: string;
   updatedAt: string;
+  captiveInterfaces?: Array<string>;
   uptime: string;
   script?: string;
   info: RouterInfo
