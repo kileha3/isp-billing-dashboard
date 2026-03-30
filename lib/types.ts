@@ -58,7 +58,17 @@ export interface RouterInfo {
   version: string;
   cpuLoad: string;
   uptime: string;
-  interfaces: Array<{name: string, isRunning: boolean}>
+  availableInterfaces: Array<{name: string, isRunning: boolean}>
+}
+
+export interface Notification {
+  _id: string;
+  title: string;
+  message: string;
+  type: "router_offline" | "router_online" | "user_joined" | "session_expired" | "payment_success" | "payment_failed";
+  read: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 export interface RouterDevice {
   _id: string;
@@ -69,6 +79,8 @@ export interface RouterDevice {
   status: RouterStatus;
   createdAt: string;
   updatedAt: string;
+  isActive: boolean;
+  portalInterfaces?: Array<{type: string, interfaces: Array<string>}>
   uptime: string;
   script?: string;
   info: RouterInfo

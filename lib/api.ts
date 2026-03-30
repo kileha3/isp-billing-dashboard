@@ -8,6 +8,7 @@ import type {
   Transaction,
   HotspotSession,
   Peer,
+  Notification,
 } from "@/lib/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7000/v1";
@@ -177,6 +178,11 @@ export const apiClient = {
     getStats: () => req<DashboardStats>("/dashboard"),
   },
 
+  notifications: {
+    list: () => req<{ data: Array<Notification> }>("/notifications"),
+    markAllRead: () => req<any>("/notifications/mark-all-read", { method: "PATCH" }),
+  },
+
   routers: {
     list: (params?: Record<string, string>) =>
       req<{ data: RouterDevice[] }>(
@@ -184,13 +190,13 @@ export const apiClient = {
       ),
 
     create: (data: Partial<RouterDevice>) =>
-      req<{ data: { script: string; router: RouterDevice } }>("/routers", {
+      req<{ data: RouterDevice  }>("/routers", {
         method: "POST",
         body: JSON.stringify(data),
       }),
 
     update: (id: string, data: Partial<RouterDevice>) =>
-      req<{ router: RouterDevice }>(`/routers/${id}`, {
+      req<{ data: RouterDevice  }>(`/routers/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -201,13 +207,7 @@ export const apiClient = {
     getScript: (id: string) =>
       req<{ data: { script: string } }>(`/routers/${id}/script`),
 
-    getInfo: (id: string) => req<any>(`/routers/${id}`),
-
-    checkStatus: (id: string) =>
-      req<{ data: RouterDevice }>(`/routers/status`, {
-        method: "POST",
-        body: JSON.stringify({ id }),
-      }),
+    getInfo: (id: string) => req<{ data: RouterDevice }>(`/routers?id=${id}`),
   },
 
   packages: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -18,24 +18,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LogOut, Settings, Bell, CheckCheck, WifiOff, Router, CreditCard, Package, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api";
+import { Notification } from "@/lib/types";
 
-interface AppNotification {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  read: boolean;
-  icon: React.ReactNode;
-}
-
-const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  { id: "1", title: "Router offline", description: "Kasarani Node has gone offline. Check VPN connection.", time: "2 min ago", read: false, icon: <WifiOff className="h-4 w-4 text-destructive" /> },
-  { id: "2", title: "New transaction", description: "M-PESA payment of KES 500 received from 0712 345 678.", time: "14 min ago", read: false, icon: <CreditCard className="h-4 w-4 text-emerald-600" /> },
-  { id: "3", title: "Router reconnected", description: "Westlands Hub is back online.", time: "1 hr ago", read: false, icon: <Router className="h-4 w-4 text-primary" /> },
-  { id: "4", title: "Package created", description: "\"Weekly 10GB\" package was added successfully.", time: "3 hrs ago", read: true, icon: <Package className="h-4 w-4 text-muted-foreground" /> },
-  { id: "5", title: "Payment failed", description: "Airtel Money transaction for KES 100 failed for 0750 123 456.", time: "5 hrs ago", read: true, icon: <AlertCircle className="h-4 w-4 text-amber-500" /> },
-  { id: "6", title: "Voucher batch generated", description: "100 vouchers for \"Daily 1GB\" have been generated.", time: "Yesterday", read: true, icon: <Package className="h-4 w-4 text-muted-foreground" /> },
-];
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -50,20 +35,40 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/portal": "Portal Design",
 };
 
+const notificationIconMap = {
+  router_offline: <WifiOff />,
+  router_online: <Router />,
+  user_joined: <Package />,
+  session_expired: <AlertCircle />,
+  payment_success: <CreditCard />,
+  payment_failed: <AlertCircle />,
+}
+
 export function AdminHeader() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+
+  const load = useCallback(async () => {
+      try {
+        const { data } = await apiClient.notifications.list();
+        setNotifications(data);
+      } catch {
+        setNotifications([]);
+      }
+    }, []);
 
   function handleLogout() {
     logout();
     router.push("/login");
   }
 
-  function markAllRead() {
+  async function markAllRead() {
     setNotifications(ns => ns.map(n => ({ ...n, read: true })));
+    await apiClient.notifications.markAllRead();
+    load();
   }
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -79,6 +84,8 @@ export function AdminHeader() {
     .sort((a, b) => b[0].length - a[0].length)
     .find(([key]) => pathname?.startsWith(key))?.[1] ?? "Dashboard";
 
+   useEffect(() => { load(); }, [load]);
+   
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4">
       <SidebarTrigger className="-ml-1" />
@@ -121,23 +128,23 @@ export function AdminHeader() {
               <div className="flex flex-col divide-y divide-border">
                 {notifications.map((n) => (
                   <button
-                    key={n.id}
+                    key={n._id}
                     className={cn(
                       "flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 w-full",
                       !n.read && "bg-primary/[0.03]"
                     )}
-                    onClick={() => setNotifications(ns => ns.map(x => x.id === n.id ? { ...x, read: true } : x))}
+                    onClick={() => setNotifications(ns => ns.map(x => x._id === n._id ? { ...x, read: true } : x))}
                   >
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted mt-0.5">
-                      {n.icon}
+                      {notificationIconMap[n.type] || <Bell className="h-4 w-4 text-muted-foreground" />}
                     </div>
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className={cn("text-sm truncate", !n.read ? "font-semibold text-foreground" : "font-normal text-foreground/80")}>{n.title}</p>
                         {!n.read && <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{n.description}</p>
-                      <p className="text-[11px] text-muted-foreground/70 mt-0.5">{n.time}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{n.message}</p>
+                      <p className="text-[11px] text-muted-foreground/70 mt-0.5">{n.createdAt}</p>
                     </div>
                   </button>
                 ))}
