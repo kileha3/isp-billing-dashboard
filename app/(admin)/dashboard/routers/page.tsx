@@ -236,30 +236,30 @@ export default function RoutersPage() {
     }
   }
 
-   const checkStatus = async (routerId: string) => {
-      const { data: router } = await apiClient.routers.getInfo(routerId);
-      if (router?.status === "online") {
-        clearTimeout(pollingTimeOut);
-        setpollingTimeOut(null);
-        setWizard((w) => ({
-          ...w,
-          pollingStatus: "connected",
-          routerInfo: router.info,
-        }));
-        return;
-      }
+  const updateStatus = (router: RouterDevice) => {
+    if (router?.status === "online") {
+      clearTimeout(pollingTimeOut);
+      setpollingTimeOut(null);
+      setWizard((w) => ({
+        ...w,
+        pollingStatus: "connected",
+        routerInfo: router.info,
+      }));
+      return;
     }
+  }
 
 
   useEffect(() => {
     const eventName = "queue_router_status";
     const handler = (data: any) => {
-      console.log("kileha:router status update:", data)
+      if (data.tenantId === user?._id) {
+        if(showWizard) updateStatus(data);
+        if(!showWizard) load();
+      }
     }
     SocketClient.on(eventName, handler)
-    return () => {
-      SocketClient.off(eventName, handler)
-    }
+    return () => SocketClient.off(eventName, handler)
   }, [])
 
   function startPolling(routerId: string | undefined) {
@@ -267,7 +267,8 @@ export default function RoutersPage() {
     setScriptCopied(true);
     const _pollingTimeOut = setTimeout(async () => {
       setScriptCopied(false);
-      checkStatus(routerId);
+      const { data: router } = await apiClient.routers.getInfo(routerId);
+      updateStatus(router);
     }, 3 * 60_000);
     setpollingTimeOut(_pollingTimeOut);
     SocketClient.join(routerId || "");
@@ -281,8 +282,8 @@ export default function RoutersPage() {
 
   async function checkRouterStatus(routerId?: string) {
     if (!routerId) return;
+    SocketClient.join(routerId);
     await apiClient.routers.checkStatus(routerId);
-    load();
   }
 
   const isCombinedActive = selectedType === "Combined" || (serviceInterfaces.Combined && serviceInterfaces.Combined.length > 0);
