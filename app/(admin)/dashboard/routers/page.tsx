@@ -138,7 +138,7 @@ export default function RoutersPage() {
     pollingStatus: "waiting",
   });
 
-  const [pollingTimeOut, setpollingTimeOut] = useState<NodeJS.Timeout | null>(null);
+  const [pollingTimeOut, setpollingTimeOut] = useState<any>(null);
 
   const load = useCallback(async () => {
     try {
@@ -236,6 +236,20 @@ export default function RoutersPage() {
     }
   }
 
+   const checkStatus = async (routerId: string) => {
+      const { data: router } = await apiClient.routers.getInfo(routerId);
+      if (router?.status === "online") {
+        clearTimeout(pollingTimeOut);
+        setpollingTimeOut(null);
+        setWizard((w) => ({
+          ...w,
+          pollingStatus: "connected",
+          routerInfo: router.info,
+        }));
+        return;
+      }
+    }
+
 
   useEffect(() => {
     const eventName = "queue_router_status";
@@ -251,29 +265,12 @@ export default function RoutersPage() {
   function startPolling(routerId: string | undefined) {
     if (!routerId) return;
     setScriptCopied(true);
-    const checkStatus = async () => {
-      const { data: router } = await apiClient.routers.getInfo(routerId);
-      if (router?.status === "online") {
-        clearTimeout(_pollingTimeOut);
-        setpollingTimeOut(null);
-        setWizard((w) => ({
-          ...w,
-          pollingStatus: "connected",
-          routerInfo: router.info,
-        }));
-        return;
-      }
-    }
     const _pollingTimeOut = setTimeout(async () => {
       setScriptCopied(false);
-      checkStatus();
+      checkStatus(routerId);
     }, 3 * 60_000);
     setpollingTimeOut(_pollingTimeOut);
     SocketClient.join(routerId || "");
-    SocketClient.on("router_status_update", (data) => {
-      console.log("Received router status update via socket:", data);
-      checkStatus();
-    });
   }
 
   function handleProceedToInterfaces() {
