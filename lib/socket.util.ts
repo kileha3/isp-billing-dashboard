@@ -15,12 +15,10 @@ class SocketClient {
       })
 
       this.socket.on("connect", () => {
-        console.log("Socket Connected:", this.socket.id)
         resolve(this.socket)
       })
 
       this.socket.on("disconnect", () => {
-        console.log("Socket Disconnected")
         resolve(null)
       })
     }
