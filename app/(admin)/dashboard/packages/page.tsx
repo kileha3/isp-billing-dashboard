@@ -19,6 +19,7 @@ import type { Package, RouterDevice, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const packageSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -82,6 +83,7 @@ export default function PackagesPage() {
   const [editTarget, setEditTarget] = useState<Package | null>(null);
   const [form, setForm] = useState<PackageForm>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [packageToDelete, setPackageToDelete] = useState<Package | null>(null);
 
   usePageTitle("Packages");
   const isSuperAdmin = isRole("super_admin");
@@ -186,17 +188,6 @@ export default function PackagesPage() {
       toast({ title: "Error", description: "Failed to save package.", variant: "destructive" });
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function handleDelete(pkg: Package) {
-    if (!confirm(`Delete package "${pkg.name}"?`)) return;
-    try {
-      await apiClient.packages.delete(pkg._id);
-      toast({ title: "Package deleted" });
-      load();
-    } catch {
-      toast({ title: "Error", description: "Failed to delete.", variant: "destructive" });
     }
   }
 
@@ -308,7 +299,7 @@ export default function PackagesPage() {
               <DropdownMenuItem onClick={() => openEdit(row as unknown as Package)}>
                 <Pencil className="mr-2 h-4 w-4" />Edit
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(row as unknown as Package)}>
+              <DropdownMenuItem className="text-destructive" onClick={() => setPackageToDelete  (row as unknown as Package)}>
                 <Trash2 className="mr-2 h-4 w-4" />Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -426,6 +417,25 @@ export default function PackagesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {packageToDelete && (<ConfirmDialog
+              open={packageToDelete !== null}
+              title="Delete Package"
+              message={`Are you sure you want to delete ${packageToDelete!.name}? This action cannot be undone.`}
+              variant="destructive"
+              onCancel={() => setPackageToDelete(null)}
+              onConfirm={async () => {
+                const packageId = packageToDelete!._id;
+                setPackageToDelete(null);
+                try {
+                  const { message } = await apiClient.packages.delete(packageId);
+                  toast({ title: message });
+                  load();
+                } catch {
+                  toast({ title: "Error", description: "Failed to delete package.", variant: "destructive" });
+                }
+              }}
+            />)}
     </div>
   );
 }

@@ -237,26 +237,45 @@ export default function RoutersPage() {
   }
 
   function startPolling(routerId: string) {
-    if (!scriptCopied || routerId.length === 0) return;
+
+    let attempts = 0;
+    const maxAttempts = 3;
+    const intervalTime = 60_000; // 1 minute
+
     const interval = setInterval(async () => {
+      attempts += 1;
+
       try {
         const { data: router } = await apiClient.routers.getInfo(routerId);
+
         if (router?.status === "online") {
           clearInterval(interval);
           setPollingInterval(null);
-          setWizard(w => ({ ...w, pollingStatus: "connected", routerInfo: router.info }));
+
+          setWizard((w) => ({
+            ...w,
+            pollingStatus: "connected",
+            routerInfo: router.info,
+          }));
+          return;
         }
-      } catch { /* keep polling */ }
-    }, 30000);
+      } catch {
+        // ignore errors and keep polling
+      }
+
+      // stop after 3 attempts
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        setPollingInterval(null);
+
+        setWizard((w) => ({
+          ...w,
+          pollingStatus: w.pollingStatus === "waiting" ? "timeout" : w.pollingStatus,
+        }));
+      }
+    }, intervalTime);
+
     setPollingInterval(interval);
-    setTimeout(() => {
-      clearInterval(interval);
-      setPollingInterval(null);
-      setWizard(w => {
-        if (w.pollingStatus === "waiting") return { ...w, pollingStatus: "timeout" };
-        return w;
-      });
-    }, 300000);
   }
 
   function handleProceedToInterfaces() {
@@ -313,7 +332,6 @@ export default function RoutersPage() {
 
   }
 
-  const handleDelete = (router: RouterDevice) => setRouterToDelete(router);
 
   function getTenantName(tenantId: string) {
     return tenants.find(t => t._id === tenantId)?.name ?? tenantId;
@@ -451,7 +469,7 @@ export default function RoutersPage() {
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
-                {r.status !== "online" && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
+                {r.status !== "offline" && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Check Status
                 </DropdownMenuItem>)}
@@ -459,7 +477,7 @@ export default function RoutersPage() {
                   {r.isActive ? (<X className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
                   {r.isActive ? "Deactivate" : "Activate"}
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(r)}>
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
@@ -724,8 +742,10 @@ export default function RoutersPage() {
         variant="destructive"
         onCancel={() => setRouterToDelete(null)}
         onConfirm={async () => {
+          const routerId = routerToDelete!._id;
+          setRouterToDelete(null);
           try {
-            const { message } = await apiClient.routers.delete(routerToDelete!._id);
+            const { message } = await apiClient.routers.delete(routerId);
             toast({ title: message });
             load();
           } catch {
