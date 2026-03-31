@@ -195,6 +195,12 @@ export const apiClient = {
         body: JSON.stringify(data),
       }),
 
+    checkStatus: (id: string) =>
+      req<any>("/routers/status", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      }),
+
     update: (id: string, data: Partial<RouterDevice>) =>
       req<{ data: RouterDevice  }>(`/routers/${id}`, {
         method: "PATCH",

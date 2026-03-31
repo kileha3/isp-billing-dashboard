@@ -21,6 +21,8 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ro } from "date-fns/locale";
+import SocketClient from "@/lib/socket.util";
+import { set } from "date-fns";
 
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
@@ -136,7 +138,7 @@ export default function RoutersPage() {
     pollingStatus: "waiting",
   });
 
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [pollingTimeOut, setpollingTimeOut] = useState<NodeJS.Timeout | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -164,11 +166,11 @@ export default function RoutersPage() {
 
 
   useEffect(() => {
-    return () => { if (pollingInterval) clearInterval(pollingInterval); };
-  }, [pollingInterval]);
+    return () => { if (pollingTimeOut) clearTimeout(pollingTimeOut); };
+  }, [pollingTimeOut]);
 
   async function openWizard(existingRouter?: RouterDevice) {
-    if (pollingInterval) { clearInterval(pollingInterval); setPollingInterval(null); }
+    if (pollingTimeOut) { clearInterval(pollingTimeOut); setpollingTimeOut(null); }
     if (existingRouter) {
       setBasicForm(f => ({ ...f, name: existingRouter.name!, location: existingRouter.location!, tenantId: existingRouter.tenantId! }))
       const { data: { script } } = await apiClient.routers.getScript(existingRouter._id);
@@ -181,7 +183,6 @@ export default function RoutersPage() {
         selectedInterface: existingRouter.portalInterfaces || [],
         pollingStatus: "waiting",
       });
-      startPolling(existingRouter._id);
     } else {
       setSetupTarget(null);
       setBasicForm({ name: "", location: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
@@ -192,7 +193,7 @@ export default function RoutersPage() {
   }
 
   function closeWizard() {
-    if (pollingInterval) { clearInterval(pollingInterval); setPollingInterval(null); }
+    if (pollingTimeOut) { clearInterval(pollingTimeOut); setpollingTimeOut(null); }
     setShowWizard(false);
     setSetupTarget(null);
     load();
@@ -228,7 +229,6 @@ export default function RoutersPage() {
       const { data: router } = await (setupTarget ? apiClient.routers.update(setupTarget._id, payload) : apiClient.routers.create(payload));
       const { data: { script } } = await apiClient.routers.getScript(router._id);
       setWizard(w => ({ ...w, step: "vpn_script", router, vpnScript: script }));
-      startPolling(router._id);
     } catch {
       //
     } finally {
@@ -236,46 +236,44 @@ export default function RoutersPage() {
     }
   }
 
-  function startPolling(routerId: string) {
 
-    let attempts = 0;
-    const maxAttempts = 3;
-    const intervalTime = 60_000; // 1 minute
+  useEffect(() => {
+    const eventName = "queue_router_status";
+    const handler = (data: any) => {
+      console.log("kileha:router status update:", data)
+    }
+    SocketClient.on(eventName, handler)
+    return () => {
+      SocketClient.off(eventName, handler)
+    }
+  }, [])
 
-    const interval = setInterval(async () => {
-      attempts += 1;
-
-      try {
-        const { data: router } = await apiClient.routers.getInfo(routerId);
-
-        if (router?.status === "online") {
-          clearInterval(interval);
-          setPollingInterval(null);
-
-          setWizard((w) => ({
-            ...w,
-            pollingStatus: "connected",
-            routerInfo: router.info,
-          }));
-          return;
-        }
-      } catch {
-        // ignore errors and keep polling
-      }
-
-      // stop after 3 attempts
-      if (attempts >= maxAttempts) {
-        clearInterval(interval);
-        setPollingInterval(null);
-
+  function startPolling(routerId: string | undefined) {
+    if (!routerId) return;
+    setScriptCopied(true);
+    const checkStatus = async () => {
+      const { data: router } = await apiClient.routers.getInfo(routerId);
+      if (router?.status === "online") {
+        clearTimeout(_pollingTimeOut);
+        setpollingTimeOut(null);
         setWizard((w) => ({
           ...w,
-          pollingStatus: w.pollingStatus === "waiting" ? "timeout" : w.pollingStatus,
+          pollingStatus: "connected",
+          routerInfo: router.info,
         }));
+        return;
       }
-    }, intervalTime);
-
-    setPollingInterval(interval);
+    }
+    const _pollingTimeOut = setTimeout(async () => {
+      setScriptCopied(false);
+      checkStatus();
+    }, 3 * 60_000);
+    setpollingTimeOut(_pollingTimeOut);
+    SocketClient.join(routerId || "");
+    SocketClient.on("router_status_update", (data) => {
+      console.log("Received router status update via socket:", data);
+      checkStatus();
+    });
   }
 
   function handleProceedToInterfaces() {
@@ -286,6 +284,7 @@ export default function RoutersPage() {
 
   async function checkRouterStatus(routerId?: string) {
     if (!routerId) return;
+    await apiClient.routers.checkStatus(routerId);
     load();
   }
 
@@ -555,10 +554,7 @@ export default function RoutersPage() {
                   Paste this script into your MikroTik router terminal. It will establish a VPN connection back to the ${appName} server. Once connected, the status below will update automatically.
                 </p>
               </div>
-              <CopyableScript content={wizard.vpnScript} onCopy={() => {
-                setScriptCopied(true);
-                startPolling(wizard.router?._id || "");
-              }} />
+              <CopyableScript content={wizard.vpnScript} onCopy={() => startPolling(wizard.router?._id)} />
               <div className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${wizard.pollingStatus === "connected" ? "border-emerald-500/30 bg-emerald-500/5" : wizard.pollingStatus === "timeout" ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
                 {wizard.pollingStatus === "waiting" && scriptCopied && (
                   <>
