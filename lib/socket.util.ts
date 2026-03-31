@@ -28,26 +28,24 @@ class SocketClient {
   }
 
   // get instance
-  static getSocket(): Socket {
-    if (!this.socket) {
-      throw new Error("Socket not initialized. Call connect() first.")
-    }
+  static getSocket(): Socket | null {
+    if (!this.socket) return null;
     return this.socket
   }
 
   // listen to event
   static on(event: string, callback: (data: any) => void) {
-    this.getSocket().on(event, callback)
+    this.getSocket()?.on(event, callback)
   }
 
   // stop listening
   static off(event: string, callback?: (data: any) => void) {
-    this.getSocket().off(event, callback)
+    this.getSocket()?.off(event, callback)
   }
 
   // emit event
   static emit(event: string, data?: any) {
-    this.getSocket().emit(event, data)
+    this.getSocket()?.emit(event, data)
   }
 
   // join room (optional pattern)
