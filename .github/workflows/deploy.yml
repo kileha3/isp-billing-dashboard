@@ -152,13 +152,6 @@ jobs:
             # Set up container 
             docker login -u "${{ github.actor }}" -p "${{ secrets.GHCR_ACCESS_TOKEN }} ghcr.io"
 
-            # Stop all matching containers
-            docker ps -a --filter "name=^${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}" --format "{{.ID}}" | xargs -r docker stop
-
-            # Remove all matching containers
-            docker ps -a --filter "name=^${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}" --format "{{.ID}}" | xargs -r docker rm
-
-            docker compose down 
             docker compose pull
             docker compose up -d --force-recreate
 
