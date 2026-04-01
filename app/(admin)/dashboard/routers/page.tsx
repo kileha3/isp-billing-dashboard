@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, ExternalLink, RefreshCcwDot, CheckCheck, Cross, X } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, ExternalLink, RefreshCcwDot, CheckCheck, Cross, X, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { RouterDevice, RouterInfo, Tenant } from "@/lib/types";
@@ -26,14 +26,17 @@ import { set } from "date-fns";
 
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
+type WizardMode = "create" | "edit" | "setup";
 
 interface WizardState {
   step: WizardStep;
+  mode: WizardMode;
   router: RouterDevice | null;
   vpnScript: string;
   routerInfo: RouterInfo | null;
   selectedInterface: Array<{ type: string; interfaces: Array<string> }>;
   pollingStatus: "waiting" | "connected" | "timeout";
+  canClose: boolean;
 }
 
 const STEP_LABELS: Record<WizardStep, string> = {
@@ -122,7 +125,6 @@ export default function RoutersPage() {
     Combined: [],
   });
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
-  // For re-setup from list actions
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
 
   const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "" });
@@ -131,14 +133,16 @@ export default function RoutersPage() {
 
   const [wizard, setWizard] = useState<WizardState>({
     step: "basic",
+    mode: "create",
     router: null,
     vpnScript: "",
     routerInfo: null,
     selectedInterface: [],
     pollingStatus: "waiting",
+    canClose: true,
   });
 
-  const [pollingTimeOut, setpollingTimeOut] = useState<any>(null);
+  const [pollingTimeOut, setPollingTimeOut] = useState<any>(null);
 
   const load = useCallback(async () => {
     try {
@@ -163,37 +167,86 @@ export default function RoutersPage() {
 
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
 
-
-
   useEffect(() => {
     return () => { if (pollingTimeOut) clearTimeout(pollingTimeOut); };
   }, [pollingTimeOut]);
 
-  async function openWizard(existingRouter?: RouterDevice) {
-    if (pollingTimeOut) { clearInterval(pollingTimeOut); setpollingTimeOut(null); }
-    if (existingRouter) {
-      setBasicForm(f => ({ ...f, name: existingRouter.name!, location: existingRouter.location!, tenantId: existingRouter.tenantId! }))
-      const { data: { script } } = await apiClient.routers.getScript(existingRouter._id);
-      setSetupTarget(existingRouter);
-      setWizard({
-        step: "basic",
-        router: existingRouter,
-        vpnScript: script,
-        routerInfo: existingRouter.info,
-        selectedInterface: existingRouter.portalInterfaces || [],
-        pollingStatus: "waiting",
-      });
-    } else {
-      setSetupTarget(null);
-      setBasicForm({ name: "", location: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
-      setBasicErrors({});
-      setWizard({ step: "basic", router: null, vpnScript: "", routerInfo: null, selectedInterface: [], pollingStatus: "waiting" });
-    }
+  async function openWizardForCreate() {
+    if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
+    setSetupTarget(null);
+    setBasicForm({ name: "", location: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
+    setBasicErrors({});
+    setServiceInterfaces({ Hotspot: [], PPPoE: [], Combined: [] });
+    setSelectedType("Hotspot");
+    setWizard({
+      step: "basic",
+      mode: "create",
+      router: null,
+      vpnScript: "",
+      routerInfo: null,
+      selectedInterface: [],
+      pollingStatus: "waiting",
+      canClose: true,
+    });
+    setShowWizard(true);
+  }
+
+  async function openWizardForEdit(router: RouterDevice) {
+    if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
+    setSetupTarget(router);
+    setBasicForm({
+      name: router.name!,
+      location: router.location!,
+      tenantId: router.tenantId!
+    });
+    setBasicErrors({});
+    setWizard({
+      step: "basic",
+      mode: "edit",
+      router: router,
+      vpnScript: "",
+      routerInfo: router.info,
+      selectedInterface: router.portalInterfaces || [],
+      pollingStatus: "waiting",
+      canClose: true,
+    });
+    setShowWizard(true);
+  }
+
+  async function openWizardForSetup(router: RouterDevice) {
+    if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
+    setSetupTarget(router);
+    setBasicForm({
+      name: router.name!,
+      location: router.location!,
+      tenantId: router.tenantId!
+    });
+    setBasicErrors({});
+
+    // Fetch script for the router
+    const { data: { script } } = await apiClient.routers.getScript(router._id);
+
+    setWizard({
+      step: "vpn_script",
+      mode: "setup",
+      router: router,
+      vpnScript: script,
+      routerInfo: router.info,
+      selectedInterface: router.portalInterfaces || [],
+      pollingStatus: router.info ? "connected" : "waiting",
+      canClose: true,
+    });
+    setServiceInterfaces(router.portalInterfaces?.reduce((acc, item) => {
+      const type = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+      acc[type] = item.interfaces;
+      return acc;
+    }, { Hotspot: [], PPPoE: [], Combined: [] } as Record<string, string[]>) || { Hotspot: [], PPPoE: [], Combined: [] });
     setShowWizard(true);
   }
 
   function closeWizard() {
-    if (pollingTimeOut) { clearInterval(pollingTimeOut); setpollingTimeOut(null); }
+    if (!wizard.canClose) return;
+    if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
     setShowWizard(false);
     setSetupTarget(null);
     load();
@@ -217,7 +270,7 @@ export default function RoutersPage() {
   const updateInterfaces = async () => {
     if (!setupTarget) return;
     await apiClient.routers.update(setupTarget._id, { portalInterfaces: wizard.selectedInterface });
-    toast({ title: "Configurations was saved successfully" });
+    toast({ title: "Configuration saved successfully" });
     load();
   }
 
@@ -226,11 +279,28 @@ export default function RoutersPage() {
     setSubmittingBasic(true);
     try {
       const payload = { name: basicForm.name, location: basicForm.location, tenantId: basicForm.tenantId || user?.tenantId };
-      const { data: router } = await (setupTarget ? apiClient.routers.update(setupTarget._id, payload) : apiClient.routers.create(payload));
-      const { data: { script } } = await apiClient.routers.getScript(router._id);
-      setWizard(w => ({ ...w, step: "vpn_script", router, vpnScript: script }));
-    } catch {
-      //
+
+      if (wizard.mode === "edit") {
+        // Edit mode - just update and close
+        await apiClient.routers.update(setupTarget!._id, payload);
+        toast({ title: "Router updated successfully" });
+        closeWizard();
+      } else {
+        // Create mode - create router and proceed to script
+        const { data: router } = await apiClient.routers.create(payload);
+        const { data: { script } } = await apiClient.routers.getScript(router._id);
+        setSetupTarget(router);
+        setWizard(w => ({
+          ...w,
+          step: "vpn_script",
+          mode: "setup",
+          router,
+          vpnScript: script,
+          canClose: true
+        }));
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save router information.", variant: "destructive" });
     } finally {
       setSubmittingBasic(false);
     }
@@ -239,7 +309,7 @@ export default function RoutersPage() {
   const updateStatus = (router: RouterDevice) => {
     if (router?.status === "online") {
       clearTimeout(pollingTimeOut);
-      setpollingTimeOut(null);
+      setPollingTimeOut(null);
       setWizard((w) => ({
         ...w,
         pollingStatus: "connected",
@@ -249,40 +319,36 @@ export default function RoutersPage() {
     }
   }
 
-
   useEffect(() => {
     const eventName = "queue_router_status";
     const handler = (data: any) => {
+      console.log("Socket event received:", data);
       if (data.tenantId === user?._id) {
-        if(showWizard) updateStatus(data);
-        if(!showWizard) load();
+        if (showWizard && wizard.mode === "setup" && setupTarget?._id === data._id) {
+          updateStatus(data);
+        }
+        if (!showWizard) load();
       }
     }
     SocketClient.on(eventName, handler)
     return () => SocketClient.off(eventName, handler)
-  }, [])
+  }, [user?._id, showWizard, wizard.mode, setupTarget?._id])
 
   function startPolling(routerId: string | undefined) {
     if (!routerId) return;
-    setScriptCopied(true);
     const _pollingTimeOut = setTimeout(async () => {
-      setScriptCopied(false);
       const { data: router } = await apiClient.routers.getInfo(routerId);
       updateStatus(router);
     }, 3 * 60_000);
-    setpollingTimeOut(_pollingTimeOut);
-    SocketClient.join(routerId || "");
+    setPollingTimeOut(_pollingTimeOut);
   }
 
   function handleProceedToInterfaces() {
-    setWizard(w => ({ ...w, step: "interfaces" }));
+    setWizard(w => ({ ...w, step: "interfaces", canClose: true }));
   }
-
-
 
   async function checkRouterStatus(routerId?: string) {
     if (!routerId) return;
-    SocketClient.join(routerId);
     await apiClient.routers.checkStatus(routerId);
   }
 
@@ -326,9 +392,7 @@ export default function RoutersPage() {
     await apiClient.routers.update(router._id, { isActive: !router.isActive });
     load();
     toast({ title: `Router ${router.isActive ? "deactivated" : "activated"} successfully` });
-
   }
-
 
   function getTenantName(tenantId: string) {
     return tenants.find(t => t._id === tenantId)?.name ?? tenantId;
@@ -363,45 +427,10 @@ export default function RoutersPage() {
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
     { key: "isActive", label: "State", render: (v: unknown) => <StatusBadge status={String(v ? "active" : "inactive")} /> },
-
-    /* {
-      key: "_id",
-      label: "",
-      render: (_v: unknown, row: unknown) => {
-        const r = row as RouterDevice;
-        const isOnline = r.status === "online";
-        const url = r.ipAddress ? `http://${r.ipAddress}` : null;
-        return (
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  disabled={!isOnline || !url}
-                  onClick={() => url && window.open(url, "_blank", "noopener,noreferrer")}
-                  className={[
-                    "flex items-center justify-center h-7 w-7 rounded-md transition-colors",
-                    isOnline && url
-                      ? "text-emerald-600 hover:bg-emerald-50 cursor-pointer"
-                      : "text-muted-foreground/30 cursor-not-allowed",
-                  ].join(" ")}
-                  aria-label={isOnline ? `Open ${r.name} admin panel` : "Router offline"}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                {isOnline && url ? `Open admin panel (${r.ipAddress})` : "Router is offline"}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-    }, */
   ];
 
   const wizardStep = wizard.step;
-  const wizardTitle = setupTarget ? `Re-install Billing — ${setupTarget.name}` : "Add Router";
+  const wizardTitle = wizard.mode === "create" ? "Add Router" : wizard.mode === "edit" ? `Edit Router — ${setupTarget?.name}` : `Setup Billing — ${setupTarget?.name}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -410,7 +439,7 @@ export default function RoutersPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Routers</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your MikroTik routers</p>
         </div>
-        <Button onClick={() => openWizard()}>
+        <Button onClick={openWizardForCreate}>
           <Plus className="h-4 w-4 mr-2" />
           Add Router
         </Button>
@@ -447,7 +476,7 @@ export default function RoutersPage() {
               <SelectContent>
                 <SelectItem value="all">All States</SelectItem>
                 <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Innactive</SelectItem>
+                <SelectItem value="false">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -462,7 +491,11 @@ export default function RoutersPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openWizard(r)}>
+                <DropdownMenuItem onClick={() => openWizardForEdit(r)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Router
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openWizardForSetup(r)}>
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
@@ -484,17 +517,22 @@ export default function RoutersPage() {
         }}
       />
 
-      {/* Add/Re-install Router Wizard */}
-      <Dialog open={showWizard} onOpenChange={(open) => { if (!open) closeWizard(); }}>
-        <DialogContent className="w-full max-w-3xl sm:max-w-3xl">
+      {/* Router Wizard Dialog */}
+      <Dialog open={showWizard} onOpenChange={(open) => { if (!open && wizard.canClose) closeWizard(); }}>
+        <DialogContent className="w-full max-w-3xl sm:max-w-3xl" onInteractOutside={(e) => {
+          if (!wizard.canClose) e.preventDefault();
+        }}>
           <DialogHeader>
             <DialogTitle>{wizardTitle}</DialogTitle>
           </DialogHeader>
 
-          <StepIndicator current={wizardStep} steps={STEPS} />
+          {/* Only show steps for create and setup modes, not for edit */}
+          {(wizard.mode === "create" || wizard.mode === "setup") && wizardStep !== "basic" && (
+            <StepIndicator current={wizardStep} steps={STEPS} />
+          )}
 
-          {/* Step 1 — Basic Info (only for new routers) */}
-          {wizardStep === "basic" && (
+          {/* Step 1 — Basic Info (only for create mode) */}
+          {wizardStep === "basic" && wizard.mode === "create" && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">Enter the router name and location. configuration script will be generated automatically after saving.</p>
 
@@ -536,66 +574,122 @@ export default function RoutersPage() {
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={closeWizard}>Cancel</Button>
-                <Button onClick={handleSaveBasic} disabled={submittingBasic || (basicSchema.safeParse(basicForm).error?.isEmpty == false)}>
+                <Button onClick={handleSaveBasic} disabled={submittingBasic}>
                   {submittingBasic ? "Creating…" : "Save & Continue"}
                 </Button>
               </div>
             </div>
           )}
 
+          {/* Step 1 — Basic Info (for edit mode) */}
+          {wizardStep === "basic" && wizard.mode === "edit" && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">Edit router details.</p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Router Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="e.g. Main Gateway"
+                    value={basicForm.name}
+                    onChange={(e) => { setBasicForm(f => ({ ...f, name: e.target.value })); setBasicErrors(er => ({ ...er, name: undefined })); }}
+                    autoFocus
+                  />
+                  {basicErrors.name && <p className="text-xs text-destructive">{basicErrors.name}</p>}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label>Location <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="e.g. Dodoma, Sinza"
+                    value={basicForm.location}
+                    onChange={(e) => { setBasicForm(f => ({ ...f, location: e.target.value })); setBasicErrors(er => ({ ...er, location: undefined })); }}
+                  />
+                  {basicErrors.location && <p className="text-xs text-destructive">{basicErrors.location}</p>}
+                </div>
+              </div>
+
+              {isSuperAdmin && (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Tenant</Label>
+                  <Select value={basicForm.tenantId} onValueChange={(v) => setBasicForm(f => ({ ...f, tenantId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select tenant" /></SelectTrigger>
+                    <SelectContent>
+                      {tenants.map(t => <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={closeWizard}>Cancel</Button>
+                <Button onClick={handleSaveBasic} disabled={submittingBasic}>
+                  Update
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Step 2 — VPN Script */}
-          {wizardStep === "vpn_script" && wizard.router && (
+          {wizardStep === "vpn_script" && wizard.mode === "setup" && wizard.router && (
             <div className="flex flex-col gap-4">
               <div className="flex items-start gap-3 rounded-lg border border-border p-3 bg-muted/30">
                 <Info className="h-4 w-4 mt-0.5 text-primary shrink-0" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Paste this script into your MikroTik router terminal. It will establish a VPN connection back to the ${appName} server. Once connected, the status below will update automatically.
+                  Paste this script into your MikroTik router terminal. It will establish a VPN connection back to the {appName} server. Once connected, the status below will update automatically.
                 </p>
               </div>
-              <CopyableScript content={wizard.vpnScript} onCopy={() => startPolling(wizard.router?._id)} />
-              <div className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${wizard.pollingStatus === "connected" ? "border-emerald-500/30 bg-emerald-500/5" : wizard.pollingStatus === "timeout" ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
-                {wizard.pollingStatus === "waiting" && scriptCopied && (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium">Waiting for connection…</p>
-                      <p className="text-xs text-muted-foreground">Checking every 30 seconds</p>
+              <CopyableScript content={wizard.vpnScript} onCopy={() => {
+
+                setScriptCopied(true);
+                setWizard((prev) => ({ ...prev, pollingStatus: "waiting" }));
+                startPolling(wizard.router?._id);
+              }} />
+              {scriptCopied === true && (
+                <div className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${wizard.router.status === "online" ? "border-emerald-500/30 bg-emerald-500/5" : wizard.pollingStatus === "timeout" ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
+                  {wizard.pollingStatus === "waiting" && (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Waiting for connection…</p>
+                        <p className="text-xs text-muted-foreground">Checking every 30 seconds</p>
+                      </div>
+                    </>
+                  )}
+                  {wizard.pollingStatus === "connected" && wizard.routerInfo && wizard.router.status === "online" && (
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="flex items-center gap-2">
+                        <Wifi className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <p className="text-sm font-semibold text-emerald-600">Router Connected</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                        <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
+                        <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
+                        <span className="text-muted-foreground">CPU Load</span><code className="font-mono font-medium">{wizard.routerInfo.cpuLoad}</code>
+                      </div>
                     </div>
-                  </>
-                )}
-                {wizard.pollingStatus === "connected" && wizard.routerInfo && (
-                  <div className="flex flex-col gap-2 w-full">
-                    <div className="flex items-center gap-2">
-                      <Wifi className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <p className="text-sm font-semibold text-emerald-600">Router Connected</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                      <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
-                      <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
-                      <span className="text-muted-foreground">VPN IP</span><code className="font-mono font-medium">{wizard.routerInfo.cpuLoad}</code>
-                    </div>
-                  </div>
-                )}
-                {wizard.pollingStatus === "timeout" && scriptCopied && (
-                  <>
-                    <div className="h-4 w-4 shrink-0 rounded-full bg-destructive/20" />
-                    <div>
-                      <p className="text-sm font-medium text-destructive">Connection timeout</p>
-                      <p className="text-xs text-muted-foreground">Check if script was applied correctly and try again</p>
-                    </div>
-                  </>
-                )}
-              </div>
+                  )}
+                  {wizard.pollingStatus === "timeout" && wizard.router.status !== "online" && (
+                    <>
+                      <div className="h-4 w-4 shrink-0 rounded-full bg-destructive/20" />
+                      <div>
+                        <p className="text-sm font-medium text-destructive">Connection timeout</p>
+                        <p className="text-xs text-muted-foreground">Check if script was applied correctly and try again</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="flex justify-end gap-2">
-                <Button onClick={handleProceedToInterfaces} disabled={wizard.pollingStatus === "waiting" && wizard.routerInfo === null}>
-                  Next: Select Interface (s)
+                <Button onClick={handleProceedToInterfaces} disabled={wizard.router.status !== "online" }>
+                  Next: Select Interface(s)
                 </Button>
               </div>
             </div>
           )}
 
           {/* Step 3 — Interface Selection */}
-          {wizardStep === "interfaces" && wizard.routerInfo && (
+          {wizardStep === "interfaces" && wizard.mode === "setup" && wizard.routerInfo && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
                 Select your prefered network interfaces where your billing services will be installed.
@@ -674,7 +768,7 @@ export default function RoutersPage() {
                 <Button
                   variant="outline"
                   className="mr-1.5"
-                  onClick={() => setWizard((w) => ({ ...w, step: "vpn_script" }))}
+                  onClick={() => setWizard((w) => ({ ...w, step: "vpn_script", canClose: true }))}
                 >
                   Back
                 </Button>
@@ -684,7 +778,7 @@ export default function RoutersPage() {
                     const payload = Object.entries(serviceInterfaces)
                       .filter(([_, interfaces]) => interfaces.length > 0)
                       .map(([type, interfaces]) => ({ type: type.toLowerCase(), interfaces }));
-                    setWizard((w) => ({ ...w, step: "done", selectedInterface: payload }));
+                    setWizard((w) => ({ ...w, step: "done", selectedInterface: payload, canClose: false }));
                   }}
                   disabled={
                     Object.values(serviceInterfaces).every((arr) => arr.length === 0)
@@ -696,8 +790,8 @@ export default function RoutersPage() {
             </div>
           )}
 
-          {/* Step 5 — Done */}
-          {wizardStep === "done" && (
+          {/* Step 4 — Done */}
+          {wizardStep === "done" && wizard.mode === "setup" && (
             <div className="flex flex-col items-center gap-4 py-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
                 <Check className="h-8 w-8 text-emerald-600" />
@@ -712,16 +806,22 @@ export default function RoutersPage() {
                 <div className="w-full rounded-lg border border-border p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                   <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
                   <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
-                  <span className="text-muted-foreground">Portal Interface</span><code className="font-mono font-medium">{wizard.selectedInterface.map((item) => `${item.type}: ${item.interfaces.join(", ")}\n`)}</code>
+                  <span className="text-muted-foreground">Portal Interfaces</span>
+                  <code className="font-mono font-medium">
+                    {wizard.selectedInterface.map((item) => `${item.type}: ${item.interfaces.join(", ")}`).join("\n")}
+                  </code>
                 </div>
               )}
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" className="mr-1.5" onClick={() => setWizard(w => ({ ...w, step: "interfaces" }))}>Back</Button>
+                <Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "interfaces", canClose: true }))}>
+                  Back
+                </Button>
                 <Button onClick={() => {
                   updateInterfaces();
-                  closeWizard()
-                }} disabled={(wizard.selectedInterface || []).length === 0}>
-                  <Check className="h-4 w-4 mr-1.5" />Save configuration
+                  closeWizard();
+                }}>
+                  <Check className="h-4 w-4 mr-1.5" />
+                  Apply Configuration
                 </Button>
               </div>
             </div>
