@@ -169,6 +169,7 @@ export default function RoutersPage() {
   }, [pollingTimeOut]);
 
   useEffect(() => {
+    console.log({showWizard, id: wizard, routerEvent})
     if (routerEvent) {
       console.log({showWizard, id: wizard, routerEvent})
       if (showWizard && wizard.mode === "setup" && wizard.router?._id) {
