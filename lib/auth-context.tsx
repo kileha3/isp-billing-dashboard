@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api";
 import type { User } from "@/lib/types";
-import SocketClient from "./socket.util";
 
 interface AuthContextValue {
   user: User | null;
@@ -34,10 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (currentToken) {
       setToken(currentToken);
       apiClient.auth.me()
-        .then((user) => {
-          if (user != null) SocketClient.connect().then(_ => SocketClient.join(user?._id!));
-          return setUser(user);
-        })
+        .then((user) => setUser(user))
         .catch(() => {
           // Token is invalid - clear it
           apiClient.auth.logout();

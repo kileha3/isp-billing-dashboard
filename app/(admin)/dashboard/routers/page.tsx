@@ -11,8 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, ExternalLink, RefreshCcwDot, CheckCheck, Cross, X, Pencil } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -20,9 +19,8 @@ import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { ro } from "date-fns/locale";
 import SocketClient from "@/lib/socket.util";
-import { set } from "date-fns";
+import { useRouterStatus } from "@/hooks/use-router-status";
 
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
@@ -124,6 +122,7 @@ export default function RoutersPage() {
     PPPoE: [],
     Combined: [],
   });
+   const { routerStatus } = useRouterStatus(user?._id!, "queue_router_status");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
 
@@ -167,6 +166,7 @@ export default function RoutersPage() {
 
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
 
+  console.log("socket", routerStatus);
   useEffect(() => {
     return () => { if (pollingTimeOut) clearTimeout(pollingTimeOut); };
   }, [pollingTimeOut]);
