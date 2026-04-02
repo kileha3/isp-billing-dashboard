@@ -114,7 +114,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user != null) SocketClient.connect().then(_ => SocketClient.join(user?._id!));
     if (authLoading || !user) return;
     apiClient.dashboard.getStats()
       .then(setStats)

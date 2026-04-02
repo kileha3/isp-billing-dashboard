@@ -7,6 +7,7 @@ class SocketClient {
   // initialize connection
    static async connect(options: any = {}) {
     const server = `${process.env.NEXT_PUBLIC_API_URL}`.split("/v")[0];
+    console.log("socket", server)
     return new Promise((resolve) => {
       if (!this.socket) {
       this.socket = io(server, {
@@ -16,7 +17,7 @@ class SocketClient {
       })
 
       this.socket.on("connect", () => {
-        console.log("Connection established successfully")
+        console.log("socket","Connection established successfully")
         resolve(this.socket)
       })
 
