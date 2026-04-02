@@ -19,7 +19,6 @@ import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import SocketClient from "@/lib/socket.util";
 import { useRouterEvents } from "@/hooks/use-router-event";
 
 
@@ -122,7 +121,7 @@ export default function RoutersPage() {
     PPPoE: [],
     Combined: [],
   });
-   const { routerEvent } = useRouterEvents(user?._id!, "queue_router_status");
+  const { routerEvent } = useRouterEvents(user?._id!, "queue_router_status");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
 
@@ -165,11 +164,20 @@ export default function RoutersPage() {
   }, [isSuperAdmin]);
 
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
-
-  console.log("socket", routerEvent);
   useEffect(() => {
     return () => { if (pollingTimeOut) clearTimeout(pollingTimeOut); };
   }, [pollingTimeOut]);
+
+  useEffect(() => {
+    if (routerEvent) {
+      if (showWizard && wizard.mode === "setup" && wizard.router?._id) {
+        apiClient.routers.getInfo(wizard.router?._id!).then(({ data: router }) => {
+          updateStatus(router);
+        });
+      }
+      if (!showWizard) load();
+    }
+  }, [routerEvent]);
 
   async function openWizardForCreate() {
     if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
@@ -319,29 +327,7 @@ export default function RoutersPage() {
     }
   }
 
-  useEffect(() => {
-    const eventName = "queue_router_status";
-    const handler = (data: any) => {
-      console.log("Socket event received:", data);
-      if (data.tenantId === user?._id) {
-        if (showWizard && wizard.mode === "setup" && setupTarget?._id === data._id) {
-          updateStatus(data);
-        }
-        if (!showWizard) load();
-      }
-    }
-    SocketClient.on(eventName, handler)
-    return () => SocketClient.off(eventName, handler)
-  }, [user?._id, showWizard, wizard.mode, setupTarget?._id])
 
-  function startPolling(routerId: string | undefined) {
-    if (!routerId) return;
-    const _pollingTimeOut = setTimeout(async () => {
-      const { data: router } = await apiClient.routers.getInfo(routerId);
-      updateStatus(router);
-    }, 3 * 60_000);
-    setPollingTimeOut(_pollingTimeOut);
-  }
 
   function handleProceedToInterfaces() {
     setWizard(w => ({ ...w, step: "interfaces", canClose: true }));
@@ -643,7 +629,6 @@ export default function RoutersPage() {
 
                 setScriptCopied(true);
                 setWizard((prev) => ({ ...prev, pollingStatus: "waiting" }));
-                startPolling(wizard.router?._id);
               }} />
               {scriptCopied === true && (
                 <div className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${wizard.router.status === "online" ? "border-emerald-500/30 bg-emerald-500/5" : wizard.pollingStatus === "timeout" ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
@@ -681,7 +666,7 @@ export default function RoutersPage() {
                 </div>
               )}
               <div className="flex justify-end gap-2">
-                <Button onClick={handleProceedToInterfaces} disabled={wizard.router.status !== "online" }>
+                <Button onClick={handleProceedToInterfaces} disabled={wizard.router.status !== "online"}>
                   Next: Select Interface(s)
                 </Button>
               </div>
