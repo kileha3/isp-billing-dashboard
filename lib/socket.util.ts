@@ -6,15 +6,17 @@ class SocketClient {
 
   // initialize connection
    static async connect(options: any = {}) {
+    const server = `${process.env.NEXT_PUBLIC_API_URL}`.split("/v")[0];
     return new Promise((resolve) => {
       if (!this.socket) {
-      this.socket = io(`${process.env.NEXT_PUBLIC_API_URL}`.split("/v")[0], {
+      this.socket = io(server, {
         transports: ["websocket"],
         autoConnect: true,
         ...options,
       })
 
       this.socket.on("connect", () => {
+        console.log("Connection established successfully")
         resolve(this.socket)
       })
 
