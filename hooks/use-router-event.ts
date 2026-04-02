@@ -15,11 +15,12 @@ export function useRouterEvents(listenFor: string, event: string) {
     // Connect to socket if not connected
     SocketClient.connect().then(() => {
       setIsConnected(true);
+      console.log('socket', `Listen for ${listenFor}`);
     });
 
     // Listen for room events
     const handleMessage = (data: RouterEvent) => {
-      console.log("seocket", data);
+      console.log("socket", data, data.tenantId === listenFor);
       if (data.tenantId === listenFor) {
         setRouterEvent(data);
       }
