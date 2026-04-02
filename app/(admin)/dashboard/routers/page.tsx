@@ -168,8 +168,9 @@ export default function RoutersPage() {
     return () => { if (pollingTimeOut) clearTimeout(pollingTimeOut); };
   }, [pollingTimeOut]);
 
+  console.log("seocket-outside", routerEvent)
   useEffect(() => {
-    console.log({showWizard, id: wizard, routerEvent})
+    console.log("socket-inside",{showWizard, id: wizard, routerEvent})
     if (routerEvent) {
       console.log({showWizard, id: wizard, routerEvent})
       if (showWizard && wizard.mode === "setup" && wizard.router?._id) {
@@ -652,8 +653,7 @@ export default function RoutersPage() {
                       <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
                         <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
                         <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
-                        <span className="text-muted-foreground">CPU Load</span><code className="font-mono font-medium">{wizard.routerInfo.cpuLoad}</code>
-                      </div>
+                        </div>
                     </div>
                   )}
                   {wizard.pollingStatus === "timeout" && wizard.router.status !== "online" && (
@@ -784,9 +784,9 @@ export default function RoutersPage() {
                 <Check className="h-8 w-8 text-emerald-600" />
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-semibold">Router Setup Complete</h3>
+                <h3 className="text-lg font-semibold">Billing service interface Summary</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  <span className="font-medium">{wizard.router?.name}</span> is configured and ready to serve customers.
+                  <span className="font-medium">{wizard.router?.name}</span> is configured and ready to serve customers through the following interfaces.
                 </p>
               </div>
               {wizard.routerInfo && (
