@@ -20,7 +20,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import SocketClient from "@/lib/socket.util";
-import { useRouterStatus } from "@/hooks/use-router-status";
+import { useRouterEvents } from "@/hooks/use-router-event";
 
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
@@ -122,7 +122,7 @@ export default function RoutersPage() {
     PPPoE: [],
     Combined: [],
   });
-   const { routerStatus } = useRouterStatus(user?._id!, "queue_router_status");
+   const { routerEvent } = useRouterEvents(user?._id!, "queue_router_status");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
 
@@ -166,7 +166,7 @@ export default function RoutersPage() {
 
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
 
-  console.log("socket", routerStatus);
+  console.log("socket", routerEvent);
   useEffect(() => {
     return () => { if (pollingTimeOut) clearTimeout(pollingTimeOut); };
   }, [pollingTimeOut]);
