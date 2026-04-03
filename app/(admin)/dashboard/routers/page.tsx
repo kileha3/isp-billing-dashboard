@@ -121,7 +121,7 @@ export default function RoutersPage() {
     PPPoE: [],
     Combined: [],
   });
-  const { routerEvent } = useRouterEvents(user?._id!, "queue_router_status");
+  const { routerEvent } = useRouterEvents("queue_router_status");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
 
