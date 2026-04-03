@@ -121,7 +121,7 @@ export default function RoutersPage() {
     PPPoE: [],
     Combined: [],
   });
-  const { routerEvent } = useRouterEvents("queue_router_status");
+  const { routerEvent, isConnected } = useRouterEvents("queue_router_status");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
 
@@ -168,11 +168,9 @@ export default function RoutersPage() {
     return () => { if (pollingTimeOut) clearTimeout(pollingTimeOut); };
   }, [pollingTimeOut]);
 
-  console.log("seocket-outside", routerEvent)
   useEffect(() => {
-    console.log("socket-inside",{showWizard, id: wizard, routerEvent})
     if (routerEvent) {
-      console.log({showWizard, id: wizard, routerEvent})
+      console.log("socket",{showWizard, id: wizard, routerEvent})
       if (showWizard && wizard.mode === "setup" && wizard.router?._id) {
         apiClient.routers.getInfo(wizard.router?._id!).then(({ data: router }) => {
           updateStatus(router);
@@ -180,7 +178,7 @@ export default function RoutersPage() {
       }
       if (!showWizard) load();
     }
-  }, [routerEvent]);
+  }, [routerEvent, isConnected]);
 
   async function openWizardForCreate() {
     if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }

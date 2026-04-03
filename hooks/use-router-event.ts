@@ -29,5 +29,5 @@ export function useRouterEvents(event: string) {
     };
   }, [event]);
 
-  return { routerEvent };
+  return { routerEvent,isConnected };
 }
