@@ -15,8 +15,7 @@ export function useRouterEvents(event: string) {
 
   useEffect(() => {
     const handleMessage = (data: RouterEvent) => {
-      console.dir({data, user}, {depth: null})
-      if (user && data.tenantId === user._id) setRouterEvent(data);
+      if (user && data.tenantId === user.tenantId) setRouterEvent(data);
     };
 
     // Connect to socket if not connected

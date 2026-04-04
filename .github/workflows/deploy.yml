@@ -53,6 +53,7 @@ jobs:
           cat <<EOF > envs
           ${{ secrets.ENV_VARIABLES }}
           EOF
+          
           cat <<EOF > docker-compose.yml
           services:
             ${CONTAINER_PREFIX}-proxy:

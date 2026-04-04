@@ -11,7 +11,7 @@ import type {
   Notification,
 } from "@/lib/types";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7000/v1";
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
 
 // Token storage keys
 const TOKEN_KEY = "netbill_token";

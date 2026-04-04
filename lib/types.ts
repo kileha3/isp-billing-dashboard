@@ -70,6 +70,11 @@ export interface Notification {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface DevicePortalInterface{
+  type: string;
+  interfaces: Array<string>
+}
 export interface RouterDevice {
   _id: string;
   tenantId: string;
@@ -80,7 +85,7 @@ export interface RouterDevice {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
-  portalInterfaces?: Array<{type: string, interfaces: Array<string>}>
+  portalInterfaces?: DevicePortalInterface,
   uptime: string;
   script?: string;
   info: RouterInfo

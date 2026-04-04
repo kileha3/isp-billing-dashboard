@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { RouterDevice, RouterInfo, Tenant } from "@/lib/types";
+import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -31,7 +31,7 @@ interface WizardState {
   router: RouterDevice | null;
   vpnScript: string;
   routerInfo: RouterInfo | null;
-  selectedInterface: Array<{ type: string; interfaces: Array<string> }>;
+  selectedInterface: { type: string; interfaces: Array<string> } | undefined;
   pollingStatus: "waiting" | "connected" | "timeout";
   canClose: boolean;
 }
@@ -116,11 +116,7 @@ export default function RoutersPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [scriptCopied, setScriptCopied] = useState(false);
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
-  const [serviceInterfaces, setServiceInterfaces] = useState<Record<string, string[]>>({
-    Hotspot: [],
-    PPPoE: [],
-    Combined: [],
-  });
+  const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
   const { routerEvent, isConnected } = useRouterEvents("queue_router_status");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
@@ -135,7 +131,7 @@ export default function RoutersPage() {
     router: null,
     vpnScript: "",
     routerInfo: null,
-    selectedInterface: [],
+    selectedInterface: undefined,
     pollingStatus: "waiting",
     canClose: true,
   });
@@ -185,7 +181,7 @@ export default function RoutersPage() {
     setSetupTarget(null);
     setBasicForm({ name: "", location: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
     setBasicErrors({});
-    setServiceInterfaces({ Hotspot: [], PPPoE: [], Combined: [] });
+    setServiceInterfaces(undefined);
     setSelectedType("Hotspot");
     setWizard({
       step: "basic",
@@ -193,7 +189,7 @@ export default function RoutersPage() {
       router: null,
       vpnScript: "",
       routerInfo: null,
-      selectedInterface: [],
+      selectedInterface: undefined,
       pollingStatus: "waiting",
       canClose: true,
     });
@@ -215,7 +211,7 @@ export default function RoutersPage() {
       router: router,
       vpnScript: "",
       routerInfo: router.info,
-      selectedInterface: router.portalInterfaces || [],
+      selectedInterface: router.portalInterfaces,
       pollingStatus: "waiting",
       canClose: true,
     });
@@ -241,15 +237,11 @@ export default function RoutersPage() {
       router: router,
       vpnScript: script,
       routerInfo: router.info,
-      selectedInterface: router.portalInterfaces || [],
+      selectedInterface: router.portalInterfaces,
       pollingStatus: router.info ? "connected" : "waiting",
       canClose: true,
     });
-    setServiceInterfaces(router.portalInterfaces?.reduce((acc, item) => {
-      const type = item.type.charAt(0).toUpperCase() + item.type.slice(1);
-      acc[type] = item.interfaces;
-      return acc;
-    }, { Hotspot: [], PPPoE: [], Combined: [] } as Record<string, string[]>) || { Hotspot: [], PPPoE: [], Combined: [] });
+    setServiceInterfaces(router.portalInterfaces);
     setShowWizard(true);
   }
 
@@ -339,19 +331,16 @@ export default function RoutersPage() {
     await apiClient.routers.checkStatus(routerId);
   }
 
-  const isCombinedActive = selectedType === "Combined" || (serviceInterfaces.Combined && serviceInterfaces.Combined.length > 0);
+  const isCombinedActive = selectedType === "Combined" || serviceInterfaces?.type === "combined";
 
   const handleSelectInterface = (ifaceName: string) => {
-    setServiceInterfaces((prev) => {
-      const current = prev[selectedType] || [];
-
-      const exists = current.includes(ifaceName);
-
+    setServiceInterfaces((prev: any) => {
+      const exists = serviceInterfaces?.interfaces.includes(ifaceName);
       return {
         ...prev,
         [selectedType]: exists
-          ? current.filter((i) => i !== ifaceName)
-          : [...current, ifaceName],
+          ? serviceInterfaces?.interfaces.filter((i) => i !== ifaceName)
+          : [...(serviceInterfaces?.interfaces || []), ifaceName],
       };
     });
   };
@@ -713,7 +702,7 @@ export default function RoutersPage() {
                   </p>
 
                   {wizard.routerInfo.availableInterfaces.map((iface) => {
-                    const selectedList = serviceInterfaces[selectedType] || [];
+                    const selectedList = serviceInterfaces?.interfaces || [];
                     const isSelected = selectedList.includes(iface.name);
 
                     return (
@@ -760,14 +749,9 @@ export default function RoutersPage() {
 
                 <Button
                   onClick={() => {
-                    const payload = Object.entries(serviceInterfaces)
-                      .filter(([_, interfaces]) => interfaces.length > 0)
-                      .map(([type, interfaces]) => ({ type: type.toLowerCase(), interfaces }));
-                    setWizard((w) => ({ ...w, step: "done", selectedInterface: payload, canClose: false }));
+                    setWizard((w) => ({ ...w, step: "done", selectedInterface: serviceInterfaces, canClose: false }));
                   }}
-                  disabled={
-                    Object.values(serviceInterfaces).every((arr) => arr.length === 0)
-                  }
+                  disabled={(serviceInterfaces?.interfaces || []).length === 0}
                 >
                   Preview Setup
                 </Button>
@@ -793,7 +777,7 @@ export default function RoutersPage() {
                   <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
                   <span className="text-muted-foreground">Portal Interfaces</span>
                   <code className="font-mono font-medium">
-                    {wizard.selectedInterface.map((item) => `${item.type}: ${item.interfaces.join(", ")}`).join("\n")}
+                    {wizard.selectedInterface?.type} - {wizard.selectedInterface?.interfaces.join(",")}
                   </code>
                 </div>
               )}
