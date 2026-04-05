@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil, Network } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useRouterEvents } from "@/hooks/use-router-event";
+import { Progress } from "@radix-ui/react-progress";
 
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
@@ -136,11 +137,13 @@ export default function RoutersPage() {
     canClose: true,
   });
 
-  const [pollingTimeOut, setPollingTimeOut] = useState<any>(null);
-
   const load = useCallback(async () => {
     try {
       const { data } = await apiClient.routers.list();
+      const inProgressRouter = data.find(router => router._id === wizard.router?._id);
+      if (showWizard && wizard.mode === "setup" && inProgressRouter) {
+        updateStatus(inProgressRouter);
+      }
       setRouters(data);
     } catch {
       setRouters([]);
@@ -160,24 +163,12 @@ export default function RoutersPage() {
   }, [isSuperAdmin]);
 
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
-  useEffect(() => {
-    return () => { if (pollingTimeOut) clearTimeout(pollingTimeOut); };
-  }, [pollingTimeOut]);
 
   useEffect(() => {
-    if (routerEvent) {
-      console.log("socket",{showWizard, id: wizard, routerEvent})
-      if (showWizard && wizard.mode === "setup" && wizard.router?._id) {
-        apiClient.routers.getInfo(wizard.router?._id!).then(({ data: router }) => {
-          updateStatus(router);
-        });
-      }
-      if (!showWizard) load();
-    }
+    if ((!showWizard || showWizard && wizard.mode === "setup") && routerEvent) load();
   }, [routerEvent, isConnected]);
 
   async function openWizardForCreate() {
-    if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
     setSetupTarget(null);
     setBasicForm({ name: "", location: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
     setBasicErrors({});
@@ -197,7 +188,6 @@ export default function RoutersPage() {
   }
 
   async function openWizardForEdit(router: RouterDevice) {
-    if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
     setSetupTarget(router);
     setBasicForm({
       name: router.name!,
@@ -219,7 +209,6 @@ export default function RoutersPage() {
   }
 
   async function openWizardForSetup(router: RouterDevice) {
-    if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
     setSetupTarget(router);
     setBasicForm({
       name: router.name!,
@@ -241,13 +230,12 @@ export default function RoutersPage() {
       pollingStatus: router.info ? "connected" : "waiting",
       canClose: true,
     });
-    setServiceInterfaces(router.portalInterfaces);
+    setServiceInterfaces((Array.isArray(router.portalInterfaces) ? (router.portalInterfaces as any)[0] : router.portalInterfaces));
     setShowWizard(true);
   }
 
   function closeWizard() {
     if (!wizard.canClose) return;
-    if (pollingTimeOut) { clearInterval(pollingTimeOut); setPollingTimeOut(null); }
     setShowWizard(false);
     setSetupTarget(null);
     load();
@@ -270,7 +258,10 @@ export default function RoutersPage() {
 
   const updateInterfaces = async () => {
     if (!setupTarget) return;
-    await apiClient.routers.update(setupTarget._id, { portalInterfaces: wizard.selectedInterface });
+    setShowWizard(false);
+    setLoading(true);
+    await apiClient.routers.update(setupTarget._id, { portalInterfaces: Array.isArray(serviceInterfaces) ? serviceInterfaces[0] : serviceInterfaces });
+    setLoading(false);
     toast({ title: "Configuration saved successfully" });
     load();
   }
@@ -308,16 +299,12 @@ export default function RoutersPage() {
   }
 
   const updateStatus = (router: RouterDevice) => {
-    if (router?.status === "online") {
-      clearTimeout(pollingTimeOut);
-      setPollingTimeOut(null);
-      setWizard((w) => ({
-        ...w,
-        pollingStatus: "connected",
-        routerInfo: router.info,
-      }));
-      return;
-    }
+    setWizard((w) => ({
+      ...w,
+      router,
+      pollingStatus: router?.status === "online" ? "connected" : w.pollingStatus,
+      routerInfo: router.info,
+    }));
   }
 
 
@@ -334,14 +321,17 @@ export default function RoutersPage() {
   const isCombinedActive = selectedType === "Combined" || serviceInterfaces?.type === "combined";
 
   const handleSelectInterface = (ifaceName: string) => {
-    setServiceInterfaces((prev: any) => {
-      const exists = serviceInterfaces?.interfaces.includes(ifaceName);
-      return {
-        ...prev,
-        [selectedType]: exists
-          ? serviceInterfaces?.interfaces.filter((i) => i !== ifaceName)
-          : [...(serviceInterfaces?.interfaces || []), ifaceName],
-      };
+    setServiceInterfaces((prev: DevicePortalInterface | undefined) => {
+      const _interfaces = serviceInterfaces?.interfaces || [];
+      const exists = _interfaces.includes(ifaceName);
+      const selected = {
+        ...(prev ? prev : {}),
+        type: selectedType.toLowerCase(),
+        interfaces: exists
+          ? _interfaces.filter((i) => i !== ifaceName)
+          : [..._interfaces, ifaceName]
+      }
+      return selected;
     });
   };
 
@@ -350,17 +340,9 @@ export default function RoutersPage() {
 
     setServiceInterfaces((prev: any) => {
       if (type === "Combined") {
-        return {
-          Hotspot: [],
-          PPPoE: [],
-          Combined: prev.Combined ?? [],
-        };
+        return undefined;
       }
-
-      return {
-        ...prev,
-        Combined: [],
-      };
+      return prev;
     });
   };
 
@@ -377,6 +359,16 @@ export default function RoutersPage() {
   const columns = [
     { key: "name", label: "Name" },
     { key: "location", label: "Location" },
+    {
+      key: "platform", label: "Identity", render: (v: unknown, row: unknown) => {
+        const r = row as RouterDevice;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm">{r.info.platform || "Undetermined"}</span>
+          </div>
+        );
+      }
+    },
     { key: "ipAddress", label: "Assigned IP" },
     {
       key: "model", label: "Device Info",
@@ -479,10 +471,10 @@ export default function RoutersPage() {
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Check Status
                 </DropdownMenuItem>)}
-                <DropdownMenuItem onClick={() => handleChangeState(r)}>
+                {isSuperAdmin && (<DropdownMenuItem onClick={() => handleChangeState(r)}>
                   {r.isActive ? (<X className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
                   {r.isActive ? "Deactivate" : "Activate"}
-                </DropdownMenuItem>
+                </DropdownMenuItem>)}
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
@@ -640,7 +632,7 @@ export default function RoutersPage() {
                       <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
                         <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
                         <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
-                        </div>
+                      </div>
                     </div>
                   )}
                   {wizard.pollingStatus === "timeout" && wizard.router.status !== "online" && (
@@ -677,13 +669,12 @@ export default function RoutersPage() {
 
                   {SERVICES.map((type) => {
                     const isActive = selectedType === type;
-                    const disabled = isCombinedActive && type !== "Combined";
+                    const disabled = false;
 
                     return (
                       <button
                         key={type}
                         onClick={() => handleSelectService(type)}
-                        disabled={disabled}
                         className={`text-left px-3 py-2 rounded-md border transition-colors
               ${isActive ? "border-primary bg-primary/5" : "border-border"}
               ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted"}
@@ -763,10 +754,10 @@ export default function RoutersPage() {
           {wizardStep === "done" && wizard.mode === "setup" && (
             <div className="flex flex-col items-center gap-4 py-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
-                <Check className="h-8 w-8 text-emerald-600" />
+                <Network className="h-8 w-8 text-emerald-600" />
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-semibold">Billing service interface Summary</h3>
+                <h3 className="text-lg font-semibold">Billing service interfaces summary</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   <span className="font-medium">{wizard.router?.name}</span> is configured and ready to serve customers through the following interfaces.
                 </p>
@@ -782,16 +773,16 @@ export default function RoutersPage() {
                 </div>
               )}
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "interfaces", canClose: true }))}>
+                {!loading && (<Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "interfaces", canClose: true }))}>
                   Back
-                </Button>
-                <Button onClick={() => {
+                </Button>)}
+                {!loading && (<Button onClick={() => {
                   updateInterfaces();
-                  closeWizard();
                 }}>
                   <Check className="h-4 w-4 mr-1.5" />
                   Apply Configuration
-                </Button>
+                </Button>)}
+                {loading && (<Progress />)}
               </div>
             </div>
           )}

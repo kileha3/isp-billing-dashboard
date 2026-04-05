@@ -56,7 +56,7 @@ export interface Tenant {
 export interface RouterInfo {
   model: string;
   version: string;
-  cpuLoad: string;
+  platform: string;
   uptime: string;
   availableInterfaces: Array<{name: string, isRunning: boolean}>
 }
