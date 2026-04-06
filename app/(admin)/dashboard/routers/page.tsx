@@ -201,7 +201,7 @@ export default function RoutersPage() {
       router: router,
       vpnScript: "",
       routerInfo: router.info,
-      selectedInterface: router.portalInterfaces,
+      selectedInterface: router.portalInterface,
       pollingStatus: "waiting",
       canClose: true,
     });
@@ -226,11 +226,11 @@ export default function RoutersPage() {
       router: router,
       vpnScript: script,
       routerInfo: router.info,
-      selectedInterface: router.portalInterfaces,
+      selectedInterface: router.portalInterface,
       pollingStatus: router.info ? "connected" : "waiting",
       canClose: true,
     });
-    setServiceInterfaces((Array.isArray(router.portalInterfaces) ? (router.portalInterfaces as any)[0] : router.portalInterfaces));
+    setServiceInterfaces((Array.isArray(router.portalInterface) ? (router.portalInterface as any)[0] : router.portalInterface));
     setShowWizard(true);
   }
 
@@ -259,11 +259,9 @@ export default function RoutersPage() {
   const updateInterfaces = async () => {
     if (!setupTarget) return;
     setShowWizard(false);
-    setLoading(true);
-    await apiClient.routers.update(setupTarget._id, { portalInterfaces: Array.isArray(serviceInterfaces) ? serviceInterfaces[0] : serviceInterfaces });
-    setLoading(false);
+    await apiClient.routers.update(setupTarget._id, { portalInterface: serviceInterfaces });
+    await load();
     toast({ title: "Configuration saved successfully" });
-    load();
   }
 
   async function handleSaveBasic() {
@@ -469,7 +467,7 @@ export default function RoutersPage() {
                 </DropdownMenuItem>
                 {r.status !== "offline" && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
-                  Check Status
+                  Sync Device
                 </DropdownMenuItem>)}
                 {isSuperAdmin && (<DropdownMenuItem onClick={() => handleChangeState(r)}>
                   {r.isActive ? (<X className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}

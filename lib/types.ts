@@ -85,7 +85,7 @@ export interface RouterDevice {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
-  portalInterfaces?: DevicePortalInterface,
+  portalInterface?: DevicePortalInterface,
   uptime: string;
   script?: string;
   info: RouterInfo
