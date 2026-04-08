@@ -1,6 +1,6 @@
 export type UserRole = "super_admin" | "tenant_admin" | "operator";
 export type RouterStatus = "online" | "offline" | "pending";
-export type VoucherStatus = "unused" | "redeemed" | "expired";
+export type VoucherStatus = "unused" | "used" | "expired";
 export type TransactionStatus = "paid" | "pending" | "failed" | "refunded";
 export type SessionStatus = "active" | "disconnected" | "expired";
 export type PortalDisplayMode = "packages_only" | "vouchers_only" | "both";
@@ -58,22 +58,28 @@ export interface RouterInfo {
   version: string;
   platform: string;
   uptime: string;
-  availableInterfaces: Array<{name: string, isRunning: boolean}>
+  availableInterfaces: Array<{ name: string; isRunning: boolean }>;
 }
 
 export interface Notification {
   _id: string;
   title: string;
   message: string;
-  type: "router_offline" | "router_online" | "user_joined" | "session_expired" | "payment_success" | "payment_failed";
+  type:
+    | "router_offline"
+    | "router_online"
+    | "user_joined"
+    | "session_expired"
+    | "payment_success"
+    | "payment_failed";
   read: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface DevicePortalInterface{
+export interface DevicePortalInterface {
   type: string;
-  interfaces: Array<string>
+  interfaces: Array<string>;
 }
 export interface RouterDevice {
   _id: string;
@@ -85,10 +91,10 @@ export interface RouterDevice {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
-  portalInterface?: DevicePortalInterface,
+  portalInterface?: DevicePortalInterface;
   uptime: string;
   script?: string;
-  info: RouterInfo
+  info: RouterInfo;
 }
 
 // ─── Package ──────────────────────────────────────────────────────────────────
@@ -102,6 +108,7 @@ export interface Package {
   duration: number;
   durationUnit: string;
   dataLimit: number;
+  dataLimitUnit: string;
   speedLimit: number;
   status: "active" | "inactive";
   isPublic: boolean;
@@ -123,6 +130,7 @@ export interface Voucher {
   dataLimit: number;
   speedLimit: number;
   batchId?: string;
+  usedBy?: { ipAddress: string; macAddress: string };
   usedAt?: string;
   expiresAt?: string;
   createdAt: string;

@@ -42,13 +42,13 @@ const navMain = [
 // Shown only to tenant admins/operators (not super admin)
 const navTenantConfig = [
   { label: "Portal Design", href: "/dashboard/portal", icon: Palette },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 // Shown only to super admin
 const navAdmin = [
   { label: "Tenants", href: "/dashboard/tenants", icon: Building2 },
   { label: "Users", href: "/dashboard/users", icon: Users },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
@@ -136,7 +136,7 @@ export function AdminSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter>
+     {/*  <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="px-2 py-1.5">
@@ -148,7 +148,7 @@ export function AdminSidebar() {
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   );
 }

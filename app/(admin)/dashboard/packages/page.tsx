@@ -31,6 +31,8 @@ const packageSchema = z.object({
 
 type DurationUnit = "minutes" | "hours" | "days" | "months";
 
+type DataLimitUnit = "GB" | "MB"
+
 type PackageForm = {
   name: string;
   description: string;
@@ -38,6 +40,7 @@ type PackageForm = {
   duration: string;
   durationUnit: DurationUnit;
   dataLimit: string;
+  dataLimitUnit: string;
   speedLimit: string;
   isPublic: boolean;
   isFree: boolean;
@@ -47,7 +50,7 @@ type PackageForm = {
 
 const DEFAULT_FORM: PackageForm = {
   name: "", description: "", price: 1000, duration: "", durationUnit: "hours", isFree: false,
-  dataLimit: "", speedLimit: "", isPublic: true, tenantId: "", routerIds: [],
+  dataLimit: "", speedLimit: "", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
 };
 
 function formatDuration(value: number, unit: string) {
@@ -61,9 +64,10 @@ function formatDuration(value: number, unit: string) {
   return `${Math.round(value / 1440)}d`;
 }
 
-function formatData(mb: number) {
+function formatData(mb: number, unit: string) {
   if (mb === 0) return "Unlimited";
-  if (mb >= 1024) return `${(mb / 1024).toFixed(0)}GB`;
+  if (unit === "GB") return `${mb}${unit}`
+  if (mb >= 1024 && unit === "MB") return `${(mb / 1024).toFixed(0)}GB`;
   return `${mb}MB`;
 }
 
@@ -147,6 +151,7 @@ export default function PackagesPage() {
       durationUnit: (pkg.durationUnit as DurationUnit) ?? "hours",
       dataLimit: String(pkg.dataLimit),
       speedLimit: String(pkg.speedLimit),
+      dataLimitUnit: (pkg.dataLimitUnit as DataLimitUnit) ?? "GB",
       isPublic: pkg.isPublic,
       tenantId: pkg.tenantId,
       routerIds: pkg.routerIds ?? [],
@@ -205,7 +210,7 @@ export default function PackagesPage() {
   const columns = [
     { key: "name", label: "Name" },
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
-    { key: "price", label: "Price (Tsh)", render: (v: unknown) => <span className="font-semibold">{v === 0 ? "Free": `Tsh ${Number(v).toLocaleString()}`}</span> },
+    { key: "price", label: "Price (Tsh)", render: (v: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `Tsh ${Number(v).toLocaleString()}`}</span> },
     {
       key: "duration", label: "Duration",
       render: (v: unknown, row: unknown) => {
@@ -213,7 +218,10 @@ export default function PackagesPage() {
         return formatDuration(Number(v), pkg.durationUnit ?? "minutes");
       }
     },
-    { key: "dataLimit", label: "Data", render: (v: unknown) => formatData(Number(v)) },
+    { key: "dataLimit", label: "Data", render: (v: unknown, row: unknown) => {
+       const pkg = row as unknown as Package;
+      return formatData(Number(v), pkg.dataLimitUnit); 
+    }},
     { key: "speedLimit", label: "Speed", render: (v: unknown) => formatSpeed(Number(v)) },
     {
       key: "routerIds", label: "Routers",
@@ -299,7 +307,7 @@ export default function PackagesPage() {
               <DropdownMenuItem onClick={() => openEdit(row as unknown as Package)}>
                 <Pencil className="mr-2 h-4 w-4" />Edit
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onClick={() => setPackageToDelete  (row as unknown as Package)}>
+              <DropdownMenuItem className="text-destructive" onClick={() => setPackageToDelete(row as unknown as Package)}>
                 <Trash2 className="mr-2 h-4 w-4" />Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -312,14 +320,24 @@ export default function PackagesPage() {
           <DialogHeader>
             <DialogTitle>{editTarget ? "Edit Package" : "Add Package"}</DialogTitle>
           </DialogHeader>
+
           <div className="grid grid-cols-2 gap-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label>Package Name</Label>
-              <Input placeholder="e.g. Daily 1GB" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
+              <Input
+                placeholder="e.g. Daily 1GB"
+                value={form.name}
+                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+              />
             </div>
+
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label>Description</Label>
-              <Input placeholder="Short description" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} />
+              <Input
+                placeholder="Short description"
+                value={form.description}
+                onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
+              />
             </div>
 
             {/* Tenant association (super admin only) */}
@@ -327,9 +345,13 @@ export default function PackagesPage() {
               <div className="col-span-2 flex flex-col gap-1.5">
                 <Label>Tenant</Label>
                 <Select value={form.tenantId} onValueChange={setFormTenantId}>
-                  <SelectTrigger><SelectValue placeholder="Select tenant" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tenant" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {tenants.map(t => <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>)}
+                    {tenants.map(t => (
+                      <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -337,14 +359,32 @@ export default function PackagesPage() {
 
             <div className="flex flex-col gap-1.5">
               <Label>Price (Tsh)</Label>
-              <Input type="number" placeholder="100" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: parseInt(e.target.value) }))} />
+              <Input
+                type="number"
+                placeholder="100"
+                value={form.price}
+                onChange={(e) => setForm(f => ({ ...f, price: parseInt(e.target.value) || 0 }))}
+              />
             </div>
+
+            {/* Duration - unchanged */}
             <div className="flex flex-col gap-1.5">
               <Label>Duration</Label>
               <div className="flex gap-2">
-                <Input type="number" placeholder="1" value={form.duration} onChange={(e) => setForm(f => ({ ...f, duration: e.target.value }))} className="flex-1 min-w-0" />
-                <Select value={form.durationUnit} onValueChange={(v) => setForm(f => ({ ...f, durationUnit: v as DurationUnit }))}>
-                  <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                <Input
+                  type="number"
+                  placeholder="1"
+                  value={form.duration}
+                  onChange={(e) => setForm(f => ({ ...f, duration: e.target.value }))}
+                  className="flex-1 min-w-0"
+                />
+                <Select
+                  value={form.durationUnit}
+                  onValueChange={(v) => setForm(f => ({ ...f, durationUnit: v as DurationUnit }))}
+                >
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="minutes">Minutes</SelectItem>
                     <SelectItem value="hours">Hours</SelectItem>
@@ -354,28 +394,65 @@ export default function PackagesPage() {
                 </Select>
               </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Data Limit (MB, 0 = unlimited)</Label>
-              <Input type="number" placeholder="1024" value={form.dataLimit} onChange={(e) => setForm(f => ({ ...f, dataLimit: e.target.value }))} />
-            </div>
+
+            {/* Speed Limit - Now first (swapped position) */}
             <div className="flex flex-col gap-1.5">
               <Label>Speed Limit (Mbps, 0 = unlimited)</Label>
-              <Input type="number" placeholder="10" value={form.speedLimit} onChange={(e) => setForm(f => ({ ...f, speedLimit: e.target.value }))} />
+              <Input
+                type="number"
+                placeholder="10"
+                value={form.speedLimit}
+                onChange={(e) => setForm(f => ({ ...f, speedLimit: e.target.value }))}
+              />
             </div>
+
+            {/* Data Limit - Split into value + unit (GB/MB) */}
+            <div className="flex flex-col gap-1.5">
+              <Label>Data Limit (0 = unlimited)</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="1"
+                  value={form.dataLimit}
+                  onChange={(e) => setForm(f => ({ ...f, dataLimit: e.target.value }))}
+                  className="flex-1 min-w-0"
+                />
+                <Select
+                  value={form.dataLimitUnit || "GB"}
+                  onValueChange={(v) => setForm(f => ({ ...f, dataLimitUnit: v as "MB" | "GB" }))}
+                >
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MB">MB</SelectItem>
+                    <SelectItem value="GB">GB</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="col-span-2 flex items-center gap-6">
               <div className="flex items-center gap-3">
-                <Switch checked={form.isPublic} onCheckedChange={(v) => setForm(f => ({ ...f, isPublic: v }))} id="isPublic" />
+                <Switch
+                  checked={form.isPublic}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, isPublic: v }))}
+                  id="isPublic"
+                />
                 <Label htmlFor="isPublic">Let user see this package</Label>
               </div>
 
               <div className="flex items-center gap-3">
-                <Switch checked={form.isFree} onCheckedChange={(v) => setForm(f => ({ ...f, isFree: v, price: 0 }))} id="isFree" />
+                <Switch
+                  checked={form.isFree}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, isFree: v, price: 0 }))}
+                  id="isFree"
+                />
                 <Label htmlFor="isFree">Free package</Label>
               </div>
             </div>
 
-
-            {/* Router mapping */}
+            {/* Router mapping - unchanged */}
             <div className="col-span-2 flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <Label>Router Mapping</Label>
@@ -383,14 +460,20 @@ export default function PackagesPage() {
                   {form.routerIds.length === 0 ? "Shown on all routers" : `${form.routerIds.length} router(s) selected`}
                 </span>
               </div>
+
               {availableRouters.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-2">
-                  {isSuperAdmin && !form.tenantId ? "Select a tenant to see its routers." : "No routers available. Add routers first."}
+                  {isSuperAdmin && !form.tenantId
+                    ? "Select a tenant to see its routers."
+                    : "No routers available. Add routers first."}
                 </p>
               ) : (
                 <div className="rounded-md border border-border divide-y divide-border">
                   {availableRouters.map(router => (
-                    <label key={router._id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors">
+                    <label
+                      key={router._id}
+                      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+                    >
                       <Checkbox
                         checked={form.routerIds.includes(router._id)}
                         onCheckedChange={() => toggleRouter(router._id)}
@@ -404,13 +487,19 @@ export default function PackagesPage() {
                   ))}
                 </div>
               )}
+
               {availableRouters.length > 0 && (
-                <p className="text-xs text-muted-foreground">Leave unchecked to show this package on all routers.</p>
+                <p className="text-xs text-muted-foreground">
+                  Leave unchecked to show this package on all routers.
+                </p>
               )}
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleSubmit} disabled={submitting || !packageFormValid}>
               {submitting ? "Saving…" : editTarget ? "Update" : "Create"}
             </Button>
@@ -419,23 +508,23 @@ export default function PackagesPage() {
       </Dialog>
 
       {packageToDelete && (<ConfirmDialog
-              open={packageToDelete !== null}
-              title="Delete Package"
-              message={`Are you sure you want to delete ${packageToDelete!.name}? This action cannot be undone.`}
-              variant="destructive"
-              onCancel={() => setPackageToDelete(null)}
-              onConfirm={async () => {
-                const packageId = packageToDelete!._id;
-                setPackageToDelete(null);
-                try {
-                  const { message } = await apiClient.packages.delete(packageId);
-                  toast({ title: message });
-                  load();
-                } catch {
-                  toast({ title: "Error", description: "Failed to delete package.", variant: "destructive" });
-                }
-              }}
-            />)}
+        open={packageToDelete !== null}
+        title="Delete Package"
+        message={`Are you sure you want to delete ${packageToDelete!.name}? This action cannot be undone.`}
+        variant="destructive"
+        onCancel={() => setPackageToDelete(null)}
+        onConfirm={async () => {
+          const packageId = packageToDelete!._id;
+          setPackageToDelete(null);
+          try {
+            const { message } = await apiClient.packages.delete(packageId);
+            toast({ title: message });
+            load();
+          } catch {
+            toast({ title: "Error", description: "Failed to delete package.", variant: "destructive" });
+          }
+        }}
+      />)}
     </div>
   );
 }

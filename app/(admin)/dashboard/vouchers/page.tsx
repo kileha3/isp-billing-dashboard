@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Download, Printer, Filter } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Download, Printer, Filter, MoreHorizontal, Trash2, LockIcon, Lock } from "lucide-react";
 import type { Voucher, Package } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const generateSchema = z.object({
   packageId: z.string().min(1, "Select a package"),
@@ -21,25 +23,6 @@ const generateSchema = z.object({
   prefix: z.string().max(10, "Max 10 chars").optional(),
 });
 
-const MOCK_VOUCHERS: Voucher[] = Array.from({ length: 12 }, (_, i) => ({
-  _id: String(i + 1),
-  code: `NB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-  packageId: { _id: "2", name: "Daily 1GB" },
-  status: i < 8 ? "unused" : i < 10 ? "redeemed" : "expired",
-  duration: 1440,
-  dataLimit: 1024,
-  speedLimit: 20,
-  tenantId: "t1",
-  batchId: `BATCH-${Math.floor(i / 4) + 1}`,
-  createdAt: new Date(Date.now() - i * 3600000).toISOString(),
-  updatedAt: new Date().toISOString(),
-}));
-
-const MOCK_PACKAGES: Package[] = [
-  { _id: "1", name: "Hourly Unlimited", description: "", price: 50, duration: 60, durationUnit: "minutes", dataLimit: 0, speedLimit: 10, status: "active", isPublic: true, tenantId: "t1", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "2", name: "Daily 1GB", description: "", price: 100, duration: 1440, durationUnit: "minutes", dataLimit: 1024, speedLimit: 20, status: "active", isPublic: true, tenantId: "t1", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "3", name: "Weekly 5GB", description: "", price: 500, duration: 10080, durationUnit: "minutes", dataLimit: 5120, speedLimit: 50, status: "active", isPublic: true, tenantId: "t1", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
 
 export default function VouchersPage() {
   usePageTitle("Vouchers");
@@ -51,6 +34,8 @@ export default function VouchersPage() {
   const [form, setForm] = useState({ packageId: "", quantity: "10", prefix: "" });
   const [submitting, setSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [voucherToDelete, setVoucherToDelete] = useState<Voucher | null>(null)
+  const [voucherToRevoke, setVoucherToRevoke] = useState<Voucher | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -58,11 +43,11 @@ export default function VouchersPage() {
         apiClient.vouchers.list(),
         apiClient.packages.list(),
       ]);
-      setVouchers(vData.vouchers ?? vData);
-      setPackages(pData.packages ?? pData);
+      setVouchers(vData.data ?? vData);
+      setPackages(pData.data ?? pData);
     } catch {
-      setVouchers(MOCK_VOUCHERS);
-      setPackages(MOCK_PACKAGES);
+      setVouchers([]);
+      setPackages([]);
     } finally {
       setLoading(false);
     }
@@ -112,10 +97,23 @@ export default function VouchersPage() {
     }
   }
 
+
+
   const columns = [
     { key: "code", label: "Code", render: (v: unknown) => <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded font-semibold tracking-wider">{String(v)}</code> },
     { key: "packageId", label: "Package", render: (v: unknown) => (v as { name: string })?.name ?? "—" },
-    { key: "batchId", label: "Batch" },
+    {
+      key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => {
+        const voucher = row as unknown as Voucher;
+        return voucher.usedBy?.ipAddress ?? "-"
+      }
+    },
+    {
+      key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => {
+        const voucher = row as unknown as Voucher;
+        return voucher.usedBy?.macAddress ?? "-"
+      }
+    },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
     { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
   ];
@@ -123,11 +121,7 @@ export default function VouchersPage() {
   const filteredVouchers = statusFilter === "all" ? vouchers : vouchers.filter(v => v.status === statusFilter);
   const generateValid = generateSchema.safeParse({ ...form }).success;
 
-  const stats = {
-    total: vouchers.length,
-    unused: vouchers.filter(v => v.status === "unused").length,
-    redeemed: vouchers.filter(v => v.status === "redeemed").length,
-  };
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -135,7 +129,7 @@ export default function VouchersPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Vouchers</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-medium text-foreground">{stats.unused}</span> unused &middot; <span className="font-medium text-foreground">{stats.redeemed}</span> redeemed &middot; <span className="font-medium text-foreground">{stats.total}</span> total
+            Create vochers for your customer to consume
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -173,6 +167,26 @@ export default function VouchersPage() {
             </SelectContent>
           </Select>
         }
+        actions={(row) => {
+          const voucher = row as unknown as Voucher;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {voucher.status === "used" && (<DropdownMenuItem onClick={() => setVoucherToRevoke(row as unknown as Voucher)}>
+                  <Lock className="mr-2 h-4 w-4" />Revoke Access
+                </DropdownMenuItem>)}
+               {voucher.status !== "used" && ( <DropdownMenuItem className="text-destructive" onClick={() => setVoucherToDelete(row as unknown as Voucher)}>
+                  <Trash2 className="mr-2 h-4 w-4" />Delete
+                </DropdownMenuItem>)}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        }}
       />
 
       <Dialog open={showGenerate} onOpenChange={setShowGenerate}>
@@ -186,7 +200,7 @@ export default function VouchersPage() {
               <Select value={form.packageId} onValueChange={(v) => setForm(f => ({ ...f, packageId: v }))}>
                 <SelectTrigger><SelectValue placeholder="Select package…" /></SelectTrigger>
                 <SelectContent>
-                  {packages.map(p => <SelectItem key={p._id} value={p._id}>{p.name} — KES {p.price}</SelectItem>)}
+                  {packages.map(p => <SelectItem key={p._id} value={p._id}>{p.name} — Tsh {p.price}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -194,20 +208,59 @@ export default function VouchersPage() {
               <Label>Quantity</Label>
               <Input type="number" min="1" max="500" value={form.quantity} onChange={(e) => setForm(f => ({ ...f, quantity: e.target.value }))} />
             </div>
-            <div className="flex flex-col gap-1.5">
+            {/* <div className="flex flex-col gap-1.5">
               <Label>Code Prefix (optional)</Label>
               <Input placeholder="e.g. NB" maxLength={6} value={form.prefix} onChange={(e) => setForm(f => ({ ...f, prefix: e.target.value.toUpperCase() }))} />
-            </div>
+            </div> */}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowGenerate(false)}>Cancel</Button>
-              <Button onClick={handleGenerate} disabled={submitting || !generateValid}>
+            <Button onClick={handleGenerate} disabled={submitting || !generateValid}>
               <Printer className="h-4 w-4 mr-2" />
               {submitting ? "Generating…" : `Generate ${form.quantity}`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {voucherToDelete && (<ConfirmDialog
+        open={voucherToDelete !== null}
+        title="Delete Voucher"
+        message={`Are you sure you want to delete ${voucherToDelete!.code}? This action cannot be undone.`}
+        variant="destructive"
+        onCancel={() => setVoucherToDelete(null)}
+        onConfirm={async () => {
+          const id = voucherToDelete!._id;
+          setVoucherToDelete(null);
+          try {
+            const { message } = await apiClient.vouchers.delete(id);
+            toast({ title: message });
+            load();
+          } catch {
+            toast({ title: "Error", description: "Failed to delete a voucher.", variant: "destructive" });
+          }
+        }}
+      />)}
+
+
+      {voucherToRevoke && (<ConfirmDialog
+        open={voucherToRevoke !== null}
+        title="Revoke Access"
+        message={`Are you sure you want to revoke clients with code ${voucherToDelete!.code} access?`}
+        variant="destructive"
+        onCancel={() => setVoucherToRevoke(null)}
+        onConfirm={async () => {
+          const id = voucherToRevoke!._id;
+          setVoucherToRevoke(null);
+          try {
+            const { message } = await apiClient.vouchers.revoke(id);
+            toast({ title: message });
+            load();
+          } catch {
+            toast({ title: "Error", description: "Failed to revoke access.", variant: "destructive" });
+          }
+        }}
+      />)}
     </div>
   );
 }

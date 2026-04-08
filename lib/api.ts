@@ -180,7 +180,8 @@ export const apiClient = {
 
   notifications: {
     list: () => req<{ data: Array<Notification> }>("/notifications"),
-    markAllRead: () => req<any>("/notifications/mark-all-read", { method: "PATCH" }),
+    markAllRead: () =>
+      req<any>("/notifications/mark-all-read", { method: "PATCH" }),
   },
 
   routers: {
@@ -190,7 +191,7 @@ export const apiClient = {
       ),
 
     create: (data: Partial<RouterDevice>) =>
-      req<{ data: RouterDevice  }>("/routers", {
+      req<{ data: RouterDevice }>("/routers", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -202,7 +203,7 @@ export const apiClient = {
       }),
 
     update: (id: string, data: Partial<RouterDevice>) =>
-      req<{ data: RouterDevice  }>(`/routers/${id}`, {
+      req<{ data: RouterDevice }>(`/routers/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -237,16 +238,22 @@ export const apiClient = {
 
   vouchers: {
     list: (params?: Record<string, string>) =>
-      req<{ vouchers: Voucher[] }>(
+      req<{ data: Voucher[] }>(
         `/vouchers${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
+
+    delete: (id: string) =>
+      req<{ message: string }>(`/vouchers/${id}`, { method: "DELETE" }),
+
+    revoke: (id: string) =>
+      req<{ message: string }>(`/vouchers/${id}/revoke`, { method: "PATCH" }),
 
     generate: (data: {
       packageId: string;
       quantity: number;
       prefix?: string;
     }) =>
-      req<{ vouchers: Voucher[] }>("/vouchers/generate", {
+      req<{ vouchers: Voucher[] }>("/vouchers", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -299,9 +306,13 @@ export const apiClient = {
 
     getPortalSettings: (tenantId?: string) =>
       req<{ data: TenantPortalSettings }>(
-        tenantId ? `/tenants/${tenantId}/portal` : "/tenant/portal",
+        tenantId ? `/tenants/${tenantId}/portal` : "/tenants/portal",
       ),
 
+    updatePaymentSettings: (setting: any) =>
+      req<{ data: TenantPortalSettings }>(`/tenants/settings`, {
+        method: "PATCH", body: JSON.stringify({paymentGateway: setting})
+      }),
     updatePortalSettings: (data: TenantPortalSettings, tenantId?: string) =>
       req<TenantPortalSettings>(
         tenantId ? `/tenants/${tenantId}/portal` : "/tenant/portal",
@@ -314,14 +325,14 @@ export const apiClient = {
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const url = tenantId
         ? `${BASE}/tenants/${tenantId}/portal/logo`
-        : `${BASE}/tenant/portal/logo`;
+        : `${BASE}/tenants/portal/logo`;
       return fetch(url, { method: "POST", headers, body: formData }).then((r) =>
         r.json(),
       ) as Promise<{ url: string }>;
     },
 
     updateSettings: (data: { currency?: string; timezone?: string }) =>
-      req<{ message: string }>("/tenant/settings", {
+      req<{ message: string }>("/tenants/settings", {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
