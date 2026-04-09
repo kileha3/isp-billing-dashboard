@@ -38,6 +38,7 @@ export interface TenantPortalSettings {
     termsUrl: string;
     showPoweredBy: boolean;
   };
+  currency: string;
 }
 
 export interface Tenant {

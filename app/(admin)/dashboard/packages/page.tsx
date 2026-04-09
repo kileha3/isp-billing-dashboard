@@ -31,6 +31,22 @@ const packageSchema = z.object({
 
 type DurationUnit = "minutes" | "hours" | "days" | "months";
 
+export const formatDuration = (value: number, unit: string) => {
+  return `${value} ${unit}`;
+}
+
+export const formatData = (mb: number, unit: string) => {
+  if (mb === 0) return "Unlimited";
+  if (unit === "GB") return `${mb}${unit}`
+  if (mb >= 1024 && unit === "MB") return `${(mb / 1024).toFixed(0)}GB`;
+  return `${mb}MB`;
+}
+
+export const formatSpeed = (mb: number) => {
+  if (mb === 0) return "Unlimited";
+  return `${mb}Mbps`;
+}
+
 type DataLimitUnit = "GB" | "MB"
 
 type PackageForm = {
@@ -52,29 +68,6 @@ const DEFAULT_FORM: PackageForm = {
   name: "", description: "", price: 1000, duration: "", durationUnit: "hours", isFree: false,
   dataLimit: "", speedLimit: "", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
 };
-
-function formatDuration(value: number, unit: string) {
-  if (unit === "minutes") return value < 60 ? `${value}m` : `${Math.round(value / 60)}h`;
-  if (unit === "hours") return `${value}h`;
-  if (unit === "days") return `${value}d`;
-  if (unit === "months") return `${value} mo`;
-  // Legacy: treat as raw minutes
-  if (value < 60) return `${value}m`;
-  if (value < 1440) return `${Math.round(value / 60)}h`;
-  return `${Math.round(value / 1440)}d`;
-}
-
-function formatData(mb: number, unit: string) {
-  if (mb === 0) return "Unlimited";
-  if (unit === "GB") return `${mb}${unit}`
-  if (mb >= 1024 && unit === "MB") return `${(mb / 1024).toFixed(0)}GB`;
-  return `${mb}MB`;
-}
-
-function formatSpeed(mb: number) {
-  if (mb === 0) return "Unlimited";
-  return `${mb}Mbps`;
-}
 
 export default function PackagesPage() {
   const { isRole, user } = useAuth();
@@ -389,6 +382,7 @@ export default function PackagesPage() {
                     <SelectItem value="minutes">Minutes</SelectItem>
                     <SelectItem value="hours">Hours</SelectItem>
                     <SelectItem value="days">Days</SelectItem>
+                    <SelectItem value="weeks">Weeks</SelectItem>
                     <SelectItem value="months">Months</SelectItem>
                   </SelectContent>
                 </Select>

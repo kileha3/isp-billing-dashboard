@@ -311,7 +311,8 @@ export const apiClient = {
 
     updatePaymentSettings: (setting: any) =>
       req<{ data: TenantPortalSettings }>(`/tenants/settings`, {
-        method: "PATCH", body: JSON.stringify({paymentGateway: setting})
+        method: "PATCH",
+        body: JSON.stringify({ paymentGateway: setting }),
       }),
     updatePortalSettings: (data: TenantPortalSettings, tenantId?: string) =>
       req<TenantPortalSettings>(
@@ -429,28 +430,45 @@ export const apiClient = {
   },
 
   portal: {
-    getConfig: (routerId: string) =>
-      req<TenantPortalSettings>(`/portal/config?router=${routerId}`),
+    getConfig: (nasname: string, token: string) =>
+      req<{ data: TenantPortalSettings }>(
+        `/tenants/config?nasname=${nasname}&token=${token}`,
+      ),
 
-    getPackages: (routerId: string) =>
-      req<{ packages: Package[] }>(`/portal/packages?router=${routerId}`),
+    getPackages: (nasname: string, token: string) =>
+      req<{ data: Package[] }>(
+        `/packages/portal?nasname=${nasname}&token=${token}`,
+      ),
 
-    redeemVoucher: (data: { code: string; routerId: string; mac: string }) =>
-      req<{ package?: Package; session: object }>("/portal/voucher", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    redeemVoucher: (data: {
+      code: string;
+      deviceIp: string;
+      deviceMac: string;
+      nasName: string;
+      authToken: string;
+    }) =>
+      req<{ package?: Package; session: object }>(
+        `/payments/voucher?nasname=${data.nasName}&x-token=${data.authToken}`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      ),
 
     initiatePayment: (data: {
       packageId: string;
-      routerId: string;
-      mac: string;
-      phone: string;
-      paymentMethod: string;
+      deviceIp: string;
+      deviceMac: string;
+      nasName: string;
+      authToken: string;
+      phoneNumber: string;
     }) =>
-      req<{ transactionId: string; message: string }>("/portal/payment", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      req<{ transactionId: string; message: string }>(
+        `/payments/mno?nasname=${data.nasName}&x-token=${data.authToken}`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      ),
   },
 };

@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Package } from "@/lib/types";
 import { Wifi, Clock, Database, Zap, ChevronUp } from "lucide-react";
+import { formatData, formatDuration, formatSpeed } from "@/app/(admin)/dashboard/packages/page";
 
 interface PackageGridProps {
   packages: Package[];
-  routerId: string;
-  mac: string;
   primaryColor: string;
+  currency: string;
   onPay: (params: { pkg: Package; phone: string }) => void;
 }
 
@@ -21,25 +21,8 @@ const phoneSchema = z
   .min(1, "Phone number is required")
   .regex(/^\+?[\d\s\-(]{10,15}$/, "Enter a valid phone number (e.g. 0712 345 678)");
 
-function formatDuration(duration: number, unit: string): string {
-  if (unit === "months") return `${duration} month${duration !== 1 ? "s" : ""}`;
-  if (unit === "days") return `${duration} day${duration !== 1 ? "s" : ""}`;
-  if (unit === "hours") return `${duration} hour${duration !== 1 ? "s" : ""}`;
-  if (unit === "minutes") {
-    if (duration >= 1440) return `${Math.round(duration / 1440)} day${Math.round(duration / 1440) !== 1 ? "s" : ""}`;
-    if (duration >= 60) return `${Math.round(duration / 60)} hour${Math.round(duration / 60) !== 1 ? "s" : ""}`;
-    return `${duration} min`;
-  }
-  return `${duration} ${unit}`;
-}
 
-function formatData(mb: number): string {
-  if (mb === 0) return "Unlimited";
-  if (mb >= 1024) return `${(mb / 1024).toFixed(0)} GB`;
-  return `${mb} MB`;
-}
-
-export function PackageGrid({ packages, primaryColor, onPay }: PackageGridProps) {
+export function PackageGrid({ packages, primaryColor, onPay, currency }: PackageGridProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
 
@@ -96,22 +79,21 @@ export function PackageGrid({ packages, primaryColor, onPay }: PackageGridProps)
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Database className="h-3 w-3" />
-                    {formatData(pkg.dataLimit)}
+                    {formatData(pkg.dataLimit, pkg.dataLimitUnit)}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Zap className="h-3 w-3" />
-                    {pkg.speedLimit} Mbps
+                    {formatSpeed(pkg.speedLimit)}
                   </span>
                 </div>
               </div>
 
               <div className="flex flex-col items-end gap-2 shrink-0">
                 <div
-                  className="rounded-lg px-3 py-1.5 text-center"
-                  style={{ background: `${primaryColor}15` }}
+                  className="px-3 py-1.5 text-center"
+
                 >
-                  <p className="text-xs font-medium leading-none mb-0.5" style={{ color: primaryColor }}>KES</p>
-                  <p className="text-xl font-bold leading-none" style={{ color: primaryColor }}>{pkg.price}</p>
+                  <p className="text-xl font-bold leading-none" style={{ color: primaryColor }}><span className="text-xs font-medium leading-none mb-0.5" style={{ color: primaryColor }}>{currency}</span> {pkg.price.toLocaleString()}</p>
                 </div>
                 <Button
                   size="sm"
@@ -136,7 +118,7 @@ export function PackageGrid({ packages, primaryColor, onPay }: PackageGridProps)
               >
                 <p className="text-xs font-semibold text-foreground">
                   Paying for: <span style={{ color: primaryColor }}>{pkg.name}</span>
-                  <span className="text-muted-foreground font-normal"> — KES {pkg.price}</span>
+                  <span className="text-muted-foreground font-normal"> - {currency} {pkg.price.toLocaleString()}</span>
                 </p>
 
                 {/* Phone input */}
@@ -144,12 +126,16 @@ export function PackageGrid({ packages, primaryColor, onPay }: PackageGridProps)
                   <Label className="text-xs font-medium">Phone Number</Label>
                   <Input
                     type="tel"
-                    placeholder="0712 345 678"
+                    placeholder="0712 XXX XXX"
                     value={phone}
                     autoFocus
                     onChange={(e) => setPhone(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && canPay && onPay({ pkg, phone })}
-                    className="h-10"
+                    className="h-10 focus-visible:outline-none focus-visible:ring-2"
+                    style={{
+                      borderColor: primaryColor,
+                      boxShadow: `0 0 0 2px ${primaryColor}33`,
+                    }}
                   />
                   {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
                 </div>
@@ -158,9 +144,9 @@ export function PackageGrid({ packages, primaryColor, onPay }: PackageGridProps)
                   onClick={() => onPay({ pkg, phone })}
                   disabled={!canPay}
                   className="w-full h-11 font-semibold text-sm"
-                  style={canPay ? { background: primaryColor, color: "#fff" } : undefined}
+                  style={canPay ? { background: primaryColor, color: "#fff" } : { background: `${primaryColor}2a`, color: "#000" }}
                 >
-                  {`Pay Now — KES ${pkg.price}`}
+                  {`Pay Now ${currency} ${pkg.price.toLocaleString()}`}
                 </Button>
               </div>
             )}
