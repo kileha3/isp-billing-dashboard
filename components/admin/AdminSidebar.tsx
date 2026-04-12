@@ -26,6 +26,7 @@ import {
   Users,
   Palette,
   Network,
+  DollarSignIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { appName } from "@/lib/utils";
@@ -33,10 +34,9 @@ import { appName } from "@/lib/utils";
 const navMain = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Routers", href: "/dashboard/routers", icon: Router },
-  { label: "Packages", href: "/dashboard/packages", icon: Package },
-  { label: "Vouchers", href: "/dashboard/vouchers", icon: Ticket },
   { label: "Transactions", href: "/dashboard/transactions", icon: CreditCard },
   { label: "Sessions", href: "/dashboard/sessions", icon: Activity },
+  { label: "Invoices", href: "/dashboard/invoices", icon: DollarSignIcon },
 ];
 
 // Shown only to tenant admins/operators (not super admin)
@@ -54,6 +54,7 @@ const navAdmin = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const { user, isRole } = useAuth();
+  const isSuperAdmin = isRole("super_admin");
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -86,20 +87,21 @@ export function AdminSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarMenu>
-            {navMain.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
-                  <Link href={item.href}>
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {(isSuperAdmin ? navMain : navMain.toSpliced(2, 0, { label: "Packages", href: "/dashboard/packages", icon: Package },
+              { label: "Vouchers", href: "/dashboard/vouchers", icon: Ticket })).map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
           </SidebarMenu>
         </SidebarGroup>
 
-        {!isRole("super_admin") && (
+        {!isSuperAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Configuration</SidebarGroupLabel>
             <SidebarMenu>
@@ -117,7 +119,7 @@ export function AdminSidebar() {
           </SidebarGroup>
         )}
 
-        {isRole("super_admin") && (
+        {isSuperAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarMenu>
@@ -136,7 +138,7 @@ export function AdminSidebar() {
         )}
       </SidebarContent>
 
-     {/*  <SidebarFooter>
+      {/*  <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="px-2 py-1.5">

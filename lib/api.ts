@@ -9,6 +9,8 @@ import type {
   HotspotSession,
   Peer,
   Notification,
+  Tenant,
+  Invoice,
 } from "@/lib/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
@@ -236,6 +238,23 @@ export const apiClient = {
       req<{ message: string }>(`/packages/${id}`, { method: "DELETE" }),
   },
 
+  invoices: {
+    list: (params?: Record<string, string>) =>
+      req<{ data: Invoice[] }>(
+        `/invoices${params ? "?" + new URLSearchParams(params) : ""}`,
+      ),
+    update: (id: string, status: string) =>
+      req<{ success: boolean; message: string  }>(`/invoices/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    pay: (id: string, phoneNumber: string) =>
+      req<{ success: boolean; message: string  }>(`/invoices/${id}/pay`, {
+        method: "POST",
+        body: JSON.stringify({ phoneNumber}),
+      }),
+  },
+
   vouchers: {
     list: (params?: Record<string, string>) =>
       req<{ data: Voucher[] }>(
@@ -300,40 +319,31 @@ export const apiClient = {
 
   tenant: {
     get: (tenantId?: string) =>
-      req<{ data: import("@/lib/types").Tenant }>(
-        `/tenants/${tenantId || "current"}`,
-      ),
+      req<{ data: Tenant }>(`/tenants/${tenantId || "current"}`),
 
     getPortalSettings: (tenantId?: string) =>
       req<{ data: TenantPortalSettings }>(
         tenantId ? `/tenants/${tenantId}/portal` : "/tenants/portal",
       ),
 
-    updatePaymentSettings: (setting: any) =>
-      req<{ data: TenantPortalSettings }>(`/tenants/settings`, {
+    updatePortalSettings: (data: TenantPortalSettings, tenantId: string) =>
+      req<TenantPortalSettings>(`/tenants/${tenantId}/portal`, {
         method: "PATCH",
-        body: JSON.stringify({ paymentGateway: setting }),
+        body: JSON.stringify(data),
       }),
-    updatePortalSettings: (data: TenantPortalSettings, tenantId?: string) =>
-      req<TenantPortalSettings>(
-        tenantId ? `/tenants/${tenantId}/portal` : "/tenant/portal",
-        { method: "PATCH", body: JSON.stringify(data) },
-      ),
 
-    uploadLogo: (formData: FormData, tenantId?: string) => {
+    uploadLogo: (formData: FormData, tenantId: string) => {
       const token = tokenManager.getToken();
       const headers: Record<string, string> = {};
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      const url = tenantId
-        ? `${BASE}/tenants/${tenantId}/portal/logo`
-        : `${BASE}/tenants/portal/logo`;
+      const url = `${BASE}/tenants/${tenantId}/portal/logo`;
       return fetch(url, { method: "POST", headers, body: formData }).then((r) =>
         r.json(),
       ) as Promise<{ url: string }>;
     },
 
-    updateSettings: (data: { currency?: string; timezone?: string }) =>
-      req<{ message: string }>("/tenants/settings", {
+    updateSettings: (data: any, tenantId: string) =>
+      req<{ message: string }>(`/tenants/${tenantId}/settings`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -343,10 +353,13 @@ export const apiClient = {
     list: () => req<{ data: import("@/lib/types").Tenant[] }>("/tenants"),
 
     create: (data: { name: string; adminName: string; adminEmail: string }) =>
-      req<{ data: import("@/lib/types").Tenant }>("/tenants", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      req<{ data: { message: string; success: boolean; tenantId: string } }>(
+        "/tenants",
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      ),
 
     update: (id: string, data: Partial<import("@/lib/types").Tenant>) =>
       req<{ tenant: import("@/lib/types").Tenant }>(`/tenants/${id}`, {
@@ -447,7 +460,7 @@ export const apiClient = {
       nasName: string;
       authToken: string;
     }) =>
-      req<{ package?: Package; session: object }>(
+      req<{ success: boolean, message: string}>(
         `/payments/voucher?nasname=${data.nasName}&x-token=${data.authToken}`,
         {
           method: "POST",

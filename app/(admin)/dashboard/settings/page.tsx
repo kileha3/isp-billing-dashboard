@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,14 +17,21 @@ import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 
-export default function SettingsPage() {
+export default function SettingsPage({ tenantId }: { tenantId: string }) {
   const { toast } = useToast();
   const { user } = useAuth();
-
   const [general, setGeneral] = useState({
     currency: "TZS",
     timezone: "Africa/Dar_es_Salaam",
   });
+
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await apiClient.tenant.get(tenantId);
+      setGeneral(data.settings)
+    } catch {}
+  }, [tenantId]);
 
   const [profile, setProfile] = useState({
     name: "",
@@ -54,12 +61,14 @@ export default function SettingsPage() {
     }
   }, [user]);
 
+  useEffect(() => { load(); }, [load]);
+
   async function handleSaveGeneral() {
     setSaving(true);
     try {
-      await apiClient.tenant.updateSettings(general);
+      await apiClient.tenant.updateSettings(general, user!._id);
       toast({ title: "General settings saved" });
-    } catch (error){
+    } catch (error) {
       console.error(error)
       toast({ title: "Saved locally", variant: "destructive" });
     } finally {
@@ -83,7 +92,7 @@ export default function SettingsPage() {
   async function handleSavePayment() {
     setSavingPayment(true);
     try {
-      await apiClient.tenant.updatePaymentSettings(payment);
+      await apiClient.tenant.updateSettings({ paymentGateway: payment }, user!._id);
       toast({ title: "Gateway settings saved" });
     } catch {
       toast({ title: "Error saving gateway settings", variant: "destructive" });
@@ -211,84 +220,84 @@ export default function SettingsPage() {
         {/* Payment */}
 
         <Card className="col-span-6 md:col-span-3">
-        <CardHeader>
-          <CardTitle className="text-base">Payment & Gateway</CardTitle>
-          <CardDescription>
-            Configure your payment provider credentials
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label>Gateway</Label>
-            <select
-              className="border rounded-md h-10 px-3 text-sm"
-              value={payment.gateway}
-              onChange={(e) =>
-                setPayment((p) => ({ ...p, gateway: e.target.value }))
-              }
-            >
-              <option value="">Select gateway</option>
-              <option value="selcom">Selcom</option>
-              <option value="palmpesa">PalmPesa</option>
-              <option value="azampesa">AzamPesa</option>
-            </select>
-          </div>
+          <CardHeader>
+            <CardTitle className="text-base">Payment & Gateway</CardTitle>
+            <CardDescription>
+              Configure your payment provider credentials
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Gateway</Label>
+              <select
+                className="border rounded-md h-10 px-3 text-sm"
+                value={payment.gateway}
+                onChange={(e) =>
+                  setPayment((p) => ({ ...p, gateway: e.target.value }))
+                }
+              >
+                <option value="">Select gateway</option>
+                <option value="selcom">Selcom</option>
+                <option value="palmpesa">PalmPesa</option>
+                <option value="azampesa">AzamPesa</option>
+              </select>
+            </div>
 
-          {payment.gateway && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <Label>Username / Account ID</Label>
-                <Input
-                  value={payment.account}
-                  onChange={(e) =>
-                    setPayment((p) => ({
-                      ...p,
-                      account: e.target.value,
-                    }))
-                  }
-                />
-              </div>
+            {payment.gateway && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Username / Account ID</Label>
+                  <Input
+                    value={payment.account}
+                    onChange={(e) =>
+                      setPayment((p) => ({
+                        ...p,
+                        account: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Password</Label>
-                <Input
-                  type="password"
-                  value={payment.password}
-                  onChange={(e) =>
-                    setPayment((p) => ({
-                      ...p,
-                      password: e.target.value,
-                    }))
-                  }
-                />
-              </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Password</Label>
+                  <Input
+                    type="password"
+                    value={payment.password}
+                    onChange={(e) =>
+                      setPayment((p) => ({
+                        ...p,
+                        password: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Token</Label>
-                <Input
-                  value={payment.token}
-                  onChange={(e) =>
-                    setPayment((p) => ({
-                      ...p,
-                      token: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-            </>
-          )}
+                <div className="flex flex-col gap-1.5">
+                  <Label>Token</Label>
+                  <Input
+                    value={payment.token}
+                    onChange={(e) =>
+                      setPayment((p) => ({
+                        ...p,
+                        token: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </>
+            )}
 
-          <div className="flex justify-end">
-            <Button onClick={handleSavePayment} disabled={savingPayment}>
-              <Save className="h-4 w-4 mr-2" />
-              {savingPayment ? "Saving…" : "Save Payment Settings"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex justify-end">
+              <Button onClick={handleSavePayment} disabled={savingPayment}>
+                <Save className="h-4 w-4 mr-2" />
+                {savingPayment ? "Saving…" : "Save Payment Settings"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      
+
     </div>
   );
 }

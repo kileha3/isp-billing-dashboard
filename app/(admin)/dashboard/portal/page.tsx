@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Save, Upload, Eye, RefreshCw, Wifi, Phone, Mail, MessageCircle } from "lucide-react";
+import { Save, Upload, Eye, Wifi, Phone, Mail, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Tenant, TenantPortalSettings } from "@/lib/types";
+import type { TenantPortalSettings } from "@/lib/types";
 import { appName, imageUrl } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 const DEFAULT_SETTINGS: TenantPortalSettings = {
   branding: {
@@ -27,7 +28,7 @@ const DEFAULT_SETTINGS: TenantPortalSettings = {
     phone: "",
     email: "",
     whatsapp: "",
-    showOnPortal: true,
+    showOnPortal: false,
   },
   portalSettings: {
     displayMode: "both",
@@ -35,6 +36,7 @@ const DEFAULT_SETTINGS: TenantPortalSettings = {
     termsUrl: "",
     showPoweredBy: true,
   },
+  currency:"TZS"
 };
 
 const PRESET_COLORS = [
@@ -44,9 +46,26 @@ const PRESET_COLORS = [
   { label: "Rose", primary: "#F43F5E", secondary: "#881337" },
   { label: "Amber", primary: "#F59E0B", secondary: "#78350F" },
   { label: "Slate", primary: "#475569", secondary: "#0F172A" },
+
+  // New ones
+  { label: "Teal", primary: "#14B8A6", secondary: "#134E4A" },
+  { label: "Sky", primary: "#0EA5E9", secondary: "#075985" },
+  { label: "Indigo", primary: "#6366F1", secondary: "#312E81" },
+  { label: "Lime", primary: "#84CC16", secondary: "#365314" },
+  { label: "Orange", primary: "#F97316", secondary: "#7C2D12" },
+  { label: "Red", primary: "#EF4444", secondary: "#7F1D1D" },
+  { label: "Pink", primary: "#EC4899", secondary: "#831843" },
+  { label: "Cyan", primary: "#06B6D4", secondary: "#164E63" },
+  { label: "Cool Gray", primary: "#6B7280", secondary: "#111827" },
+
+  // Slightly more unique / brand-like
+  { label: "Deep Purple", primary: "#7C3AED", secondary: "#2E1065" },
+  { label: "Forest Green", primary: "#15803D", secondary: "#052E16" },
+  { label: "Sunset", primary: "#FB7185", secondary: "#7F1D1D" },
+  { label: "Midnight Blue", primary: "#1E3A8A", secondary: "#020617" },
 ];
 
-export default function PortalCustomizationPage({ tenantId }: { tenantId?: string }) {
+export default function PortalCustomizationPage({ tenantId }: { tenantId: string }) {
   const { toast } = useToast();
   const router = useRouter();
   const [settings, setSettings] = useState<TenantPortalSettings>(DEFAULT_SETTINGS);
@@ -55,12 +74,14 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isRole } = useAuth();
+  const isSuperAdmin = isRole("super_admin");
 
   const load = useCallback(async () => {
     try {
       const { data } = await apiClient.tenant.get(tenantId);
       if(!data.portalSettings.termsUrl) data.portalSettings.termsUrl = "https://isp.easypay.co.tz/terms-and-conditions";
-      setSettings(data);
+      setSettings(data as any);
       if (settings.branding.logo) setLogoPreview(settings.branding.logo);
     } catch {
       setSettings(DEFAULT_SETTINGS);
@@ -95,7 +116,6 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
         logoUrl = uploadData.url;
       }
       const _settings = { ...settings, branding: { ...settings.branding, logo: logoUrl }};
-      if(!_settings.support.showOnPortal) delete (_settings as any).support;
       await apiClient.tenant.updatePortalSettings(_settings, tenantId);
       toast({ title: "Portal settings saved", description: "Your captive portal has been updated." });
       router.back();
@@ -116,13 +136,13 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
     setSettings(s => ({ ...s, portalSettings: { ...s.portalSettings, [key]: value } }));
   }
 
-  if (loading) {
+  /* if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+        <Progress />
       </div>
     );
-  }
+  } */
 
   // Live preview styles
   const previewStyle = {
@@ -170,9 +190,9 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
                       <Upload className="h-3.5 w-3.5 mr-1.5" />
                       Upload Logo
                     </Button>
-                    <p className="text-xs text-muted-foreground">PNG, SVG or JPG up to 2MB</p>
+                    <p className="text-xs text-muted-foreground">PNG, JPG up to 2MB</p>
                   </div>
-                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                  <input ref={fileInputRef} type="file" accept="image/jpg, image/png" className="hidden" onChange={handleLogoChange} />
                 </div>
               </div>
 
@@ -328,14 +348,14 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId?: strin
                 <Label>Terms of Service URL (optional)</Label>
                 <Input placeholder="https://myisp.com/terms" value={settings.portalSettings.termsUrl} onChange={(e) => setPortal("termsUrl", e.target.value)} />
               </div>
-              <div className="flex items-center gap-3">
+              {isSuperAdmin && (<div className="flex items-center gap-3">
                 <Switch
                   id="showPoweredBy"
                   checked={settings.portalSettings.showPoweredBy}
                   onCheckedChange={(v) => setPortal("showPoweredBy", v)}
                 />
                 <Label htmlFor="showPoweredBy">Show "Powered by {appName}"</Label>
-              </div>
+              </div>)}
             </CardContent>
           </Card>
         </div>

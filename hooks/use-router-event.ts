@@ -8,14 +8,14 @@ export interface RouterEvent {
   event: string;
 }
 
-export function useRouterEvents(event: string) {
+export function useRouterEvents(event: string, broadcast: boolean = false) {
   const [routerEvent, setRouterEvent] = useState<RouterEvent | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
     const handleMessage = (data: RouterEvent) => {
-      if (user && data.tenantId === user.tenantId) setRouterEvent(data);
+      if ((user && data.tenantId === user.tenantId) || broadcast) setRouterEvent(data);
     };
 
     // Connect to socket if not connected

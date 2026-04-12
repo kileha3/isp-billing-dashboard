@@ -6,15 +6,15 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wifi, AlertCircle, Eye, EyeOff, CheckCircle2, Shield, Zap, Users, Globe } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, CheckCircle2, Shield, Zap, Users, Globe } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { z } from "zod";
 import { appName } from "@/lib/utils";
 
 const signupSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
-  name: z.string().min(2, "Full name is required"),
-  email: z.string().email("Enter a valid email address"),
+  adminName: z.string().min(2, "Full name is required"),
+  adminEmail: z.string().email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -24,8 +24,8 @@ const signupSchema = z.object({
 
 type SignupForm = {
   businessName: string;
-  name: string;
-  email: string;
+  adminName: string;
+  adminEmail: string;
   password: string;
   confirmPassword: string;
 };
@@ -34,8 +34,8 @@ type FormErrors = Partial<Record<keyof SignupForm, string>>;
 
 const DEFAULT_FORM: SignupForm = {
   businessName: "",
-  name: "",
-  email: "",
+  adminName: "",
+  adminEmail: "",
   password: "",
   confirmPassword: "",
 };
@@ -92,10 +92,10 @@ export default function SignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessName: form.businessName,
-          name: form.name,
-          email: form.email,
-          password: form.password,
+          name: form.businessName,
+          adminName: form.adminName,
+          adminEmail: form.adminEmail,
+          password: form.password
         }),
       });
       const data = await res.json();
@@ -167,28 +167,28 @@ export default function SignupPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name">Your Full Name</Label>
+              <Label htmlFor="adminName">Your Full Name</Label>
               <Input
-                id="name"
-                placeholder="John Kamau"
-                value={form.name}
-                onChange={(e) => setField("name", e.target.value)}
-                autoComplete="name"
+                id="adminName"
+                placeholder="John Doe"
+                value={form.adminName}
+                onChange={(e) => setField("adminName", e.target.value)}
+                autoComplete="adminName"
               />
-              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+              {errors.adminName && <p className="text-xs text-destructive">{errors.adminName}</p>}
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="adminEmail">Email</Label>
               <Input
-                id="email"
+                id="adminEmail"
                 type="email"
                 placeholder="your.email@example.com"
-                value={form.email}
-                onChange={(e) => setField("email", e.target.value)}
-                autoComplete="email"
+                value={form.adminEmail}
+                onChange={(e) => setField("adminEmail", e.target.value)}
+                autoComplete="adminEmail"
               />
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+              {errors.adminEmail && <p className="text-xs text-destructive">{errors.adminEmail}</p>}
             </div>
 
             <div className="flex flex-col gap-1.5">

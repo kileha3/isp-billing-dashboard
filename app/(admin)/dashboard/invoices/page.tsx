@@ -1,0 +1,182 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { apiClient } from "@/lib/api";
+import { DataTable } from "@/components/admin/DataTable";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Filter, MoreHorizontal, Trash2, Lock, DollarSign, List } from "lucide-react";
+import type { Invoice } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useAuth } from "@/lib/auth-context";
+import { useRouterEvents } from "@/hooks/use-router-event";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { phoneSchema } from "@/components/portal/PackageGrid";
+
+
+export default function InvoicesPage() {
+  usePageTitle("Invoices");
+  const { toast } = useToast();
+  const { isRole } = useAuth();
+  const isSuperAdmin = isRole("super_admin")
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showClearInvoice, setShowClearInvoice] = useState<Invoice | null>(null);
+  const [invoiceToUpdate, setInvoiceToUpdate] = useState<Invoice | null>(null);
+  const { routerEvent, isConnected } = useRouterEvents("invoice_status_change", isSuperAdmin);
+  const [phone, setPhone] = useState("");
+  const phoneResult = phoneSchema.safeParse(phone);
+  const phoneError = phone.length > 0 && !phoneResult.success
+    ? phoneResult.error.errors[0]?.message
+    : "";
+
+  const load = useCallback(async () => {
+    try {
+      const invoices = await apiClient.invoices.list();
+      setInvoices(invoices.data ?? invoices);
+    } catch {
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (routerEvent) load();
+  }, [routerEvent, isConnected]);
+
+
+  const columns = [
+    isSuperAdmin ? { key: "tenant", label: "Tenant", render: (v: unknown) => v } : null,
+    { key: "amount", label: "Amount", render: (v: unknown) => v },
+    { key: "description", label: "Description", render: (v: unknown) => v },
+    { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
+    { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
+    { key: "dueDate", label: "Due Date", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
+  ].filter(Boolean);
+
+  const filteredInvoices = statusFilter === "all" ? invoices : invoices.filter(v => v.status === statusFilter);
+
+  const changeInvoiceStatus = (invoice: Invoice, status: any) => setInvoiceToUpdate({ ...invoice, status })
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Invoices that must be paid for service offering
+          </p>
+        </div>
+      </div>
+
+      <DataTable
+        data={filteredInvoices as unknown as Record<string, unknown>[]}
+        columns={columns as never}
+        loading={loading}
+        searchable
+        searchKeys={["code", "batchId"] as never}
+        searchPlaceholder="invoices"
+        emptyMessage="No invoices yet."
+        pageSize={10}
+        filterSlot={
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
+            <SelectTrigger className="h-10 w-40 bg-background">
+              <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+        actions={(row) => {
+          const invoice = row as unknown as Invoice;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {invoice.status === "pending" && !isSuperAdmin && (<DropdownMenuItem onClick={() => setShowClearInvoice(row as unknown as Invoice)}>
+                  <DollarSign className="mr-2 h-4 w-4" />Clear Invoice
+                </DropdownMenuItem>)}
+
+                {invoice.status === "pending" && isSuperAdmin && (<DropdownMenuItem onClick={() => changeInvoiceStatus(row as unknown as Invoice, "paid")}>
+                  <Lock className="mr-2 h-4 w-4" />Clear Invoice
+                </DropdownMenuItem>)}
+
+                {["overdue", "expired", "paid"].includes(invoice.status) && (<DropdownMenuItem className="text-destructive" onClick={() => changeInvoiceStatus(row as unknown as Invoice, "pending")}>
+                  <List className="mr-2 h-4 w-4" />Reactivate Invoice
+                </DropdownMenuItem>)}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        }}
+      />
+
+      <Dialog open={showClearInvoice != null} onOpenChange={() => setShowClearInvoice(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Pay up this invoice</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-6 px-7">
+            <Label className="text-xs font-medium">Phone Number</Label>
+            <Input
+              type="tel"
+              placeholder="0712 XXX XXX"
+              value={phone}
+              autoFocus
+              onChange={(e) => setPhone(e.target.value)}
+              className="h-10 focus-visible:outline-none focus-visible:ring-2"
+            />
+            {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowClearInvoice(null)}>Cancel</Button>
+            <Button onClick={async () => {
+              const { message } = await apiClient.invoices.pay(showClearInvoice!._id, phone);
+              setShowClearInvoice(null);
+              toast({ title: "Invoice payment", description: message })
+            }} disabled={phoneResult.success === false}>
+              Pay now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {invoiceToUpdate && (<ConfirmDialog
+        open={invoiceToUpdate !== null}
+        title="Status update"
+        message={`Are you sure you want to this invoice status?`}
+        variant="destructive"
+        onCancel={() => setInvoiceToUpdate(null)}
+        onConfirm={async () => {
+          const { _id: id, status } = invoiceToUpdate!;
+          setInvoiceToUpdate(null);
+          try {
+            const { message } = await apiClient.invoices.update(id, status);
+            toast({ title: message });
+          } catch {
+            toast({ title: "Error", description: "Failed to delete a voucher.", variant: "destructive" });
+          }
+        }}
+      />)}
+    </div>
+  );
+}

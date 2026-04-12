@@ -138,6 +138,18 @@ export interface Voucher {
   updatedAt: string;
 }
 
+export interface Invoice {
+  _id: string;
+  tenantName: string;
+  status: "pending"| "paid" | "overdue" | "expired";
+  type: string;
+  description: string;
+  amount: number;
+  dueDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Transaction ──────────────────────────────────────────────────────────────
 
 export interface Transaction {

@@ -92,7 +92,7 @@ function PaymentOverlay({
         backdropFilter: "blur(6px)",
       }}
     >
-      {isProcessing && !isVoucher &&  (
+      {isProcessing && !isVoucher && (
         <div className="flex flex-col items-center gap-6">
           <SpinnerRing color={primaryColor} />
           <div className="flex flex-col gap-2">
@@ -247,16 +247,16 @@ export function CaptivePortalClient() {
       setPayState("processing");
 
       try {
-        await apiClient.portal.redeemVoucher({
+        const { success } = await apiClient.portal.redeemVoucher({
           code: voucher,
           nasName,
           deviceIp,
           deviceMac,
           authToken,
         });
-        setPayState("success");
+        setPayState(success ? "success": "failure");
 
-        setTimeout(() => resetUi, 4000);
+        setTimeout(() => resetUi, 5000);
       } catch (err: unknown) {
         setPayCtx((c) => ({
           ...c,
@@ -373,7 +373,7 @@ export function CaptivePortalClient() {
             <Tabs defaultValue="packages">
               <TabsList className="w-full">
                 <TabsTrigger value="packages" className="flex-1">
-                  Buy Access
+                  Buy Package
                 </TabsTrigger>
                 <TabsTrigger value="voucher" className="flex-1">
                   Have a Voucher?

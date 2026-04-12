@@ -22,25 +22,16 @@ const tenantSchema = z.object({
   name: z.string().min(2, "Business name must be at least 2 characters"),
   adminName: z.string().min(2, "Admin name is required"),
   adminEmail: z.string().email("Enter a valid email address"),
-  chargingMode: z.enum(["revenue_share", "fixed"]),
-  revenueSharePercent: z.number().min(1).max(100).optional(),
-  fixedAmount: z.number().min(1).optional(),
-  fixedDuration: z.enum(["monthly", "quarterly", "annually"]).optional(),
 });
 
 type TenantForm = {
   name: string;
   adminName: string;
   adminEmail: string;
-  chargingMode: "revenue_share" | "fixed";
-  revenueSharePercent: string;
-  fixedAmount: string;
-  fixedDuration: "monthly" | "quarterly" | "annually";
 };
 
 const DEFAULT_FORM: TenantForm = {
-  name: "", adminName: "", adminEmail: "",
-  chargingMode: "revenue_share", revenueSharePercent: "10", fixedAmount: "", fixedDuration: "monthly",
+  name: "", adminName: "", adminEmail: ""
 };
 
 export default function TenantsPage() {
@@ -74,10 +65,8 @@ export default function TenantsPage() {
   function validate(): boolean {
     const payload = {
       name: form.name, adminName: form.adminName,
-      adminEmail: form.adminEmail, chargingMode: form.chargingMode,
-      revenueSharePercent: form.chargingMode === "revenue_share" ? Number(form.revenueSharePercent) : undefined,
-      fixedAmount: form.chargingMode === "fixed" ? Number(form.fixedAmount) : undefined,
-      fixedDuration: form.chargingMode === "fixed" ? form.fixedDuration : undefined,
+      adminEmail: form.adminEmail
+
     };
     const result = tenantSchema.safeParse(payload);
     if (!result.success) {
@@ -96,8 +85,6 @@ export default function TenantsPage() {
   function isFormValid(): boolean {
     const base = form.name.length >= 2 && form.adminName.length >= 2 && form.adminEmail.includes("@")
     if (!base) return false;
-    if (form.chargingMode === "revenue_share") return Number(form.revenueSharePercent) > 0 && Number(form.revenueSharePercent) <= 100;
-    if (form.chargingMode === "fixed") return Number(form.fixedAmount) > 0;
     return true;
   }
 
@@ -105,17 +92,18 @@ export default function TenantsPage() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const {data} = await apiClient.tenants.create({
-        name: form.name,adminName: form.adminName, adminEmail: form.adminEmail,
+      const { data: { message, success, tenantId } } = await apiClient.tenants.create({
+        name: form.name, adminName: form.adminName, adminEmail: form.adminEmail,
       });
 
-      const newTenant = data;
-      toast({ title: "Tenant created", description: `${form.name} has been added.` });
-      setShowDialog(false);
-      setForm(DEFAULT_FORM);
-      load();
+      toast({ title: "New tenant", description: message });
       // Auto-redirect to portal design page
-      router.push(`/dashboard/tenants/${newTenant._id}/portal`);
+      if (success) {
+        setShowDialog(false);
+        setForm(DEFAULT_FORM);
+        load();
+        router.push(`/dashboard/tenants/${tenantId}/portal`);
+      }
     } catch {
       toast({ title: "Error", description: "Failed to create tenant.", variant: "destructive" });
     } finally {
@@ -151,6 +139,7 @@ export default function TenantsPage() {
   }
 
   const columns = [
+    { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
     { key: "name", label: "Business Name" },
     {
       key: "branding", label: "Brand Color",
@@ -164,8 +153,18 @@ export default function TenantsPage() {
         );
       }
     },
+    {
+      key: "currency", label: "Currency", render: (v: unknown, row: any) => {
+        return (row as Tenant).settings.currency;
+      }
+    },
+    {
+      key: "timezone", label: "TimeZone", render: (v: unknown, row: any) => {
+        return (row as Tenant).settings.timezone;
+      }
+    },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
-    { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
+
   ];
 
   return (
@@ -264,7 +263,7 @@ export default function TenantsPage() {
                 />
                 {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
               </div>
-              
+
             </div>
 
             {/* Admin account */}
@@ -280,77 +279,7 @@ export default function TenantsPage() {
                 <Input type="email" placeholder="admin@fastnet.com" value={form.adminEmail} onChange={(e) => setField("adminEmail", e.target.value)} />
                 {errors.adminEmail && <p className="text-xs text-destructive">{errors.adminEmail}</p>}
               </div>
-             
-            </div>
 
-            {/* Charging mode */}
-            <div className="flex flex-col gap-3 border-t border-border pt-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Charging Mode</p>
-              <div className="grid grid-cols-2 gap-2">
-                {(["revenue_share", "fixed"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setField("chargingMode", mode)}
-                    className={`flex flex-col items-start gap-1 rounded-lg border-2 p-3 text-left transition-colors ${form.chargingMode === mode ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
-                  >
-                    <span className={`text-sm font-semibold ${form.chargingMode === mode ? "text-primary" : "text-foreground"}`}>
-                      {mode === "revenue_share" ? "Revenue Share" : "Fixed Fee"}
-                    </span>
-                    <span className="text-xs text-muted-foreground leading-relaxed">
-                      {mode === "revenue_share" ? "Charge a % of each transaction" : "Charge a flat fee per billing period"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {form.chargingMode === "revenue_share" && (
-                <div className="flex flex-col gap-1.5">
-                  <Label>Revenue Share Percentage <span className="text-destructive">*</span></Label>
-                  <div className="flex items-center gap-0">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={100}
-                      placeholder="10"
-                      value={form.revenueSharePercent}
-                      onChange={(e) => setField("revenueSharePercent", e.target.value)}
-                      className="rounded-r-none border-r-0"
-                    />
-                    <span className="flex items-center h-10 px-3 rounded-r-md border border-border bg-muted text-sm text-muted-foreground">%</span>
-                  </div>
-                  {errors.revenueSharePercent && <p className="text-xs text-destructive">{errors.revenueSharePercent}</p>}
-                </div>
-              )}
-
-              {form.chargingMode === "fixed" && (
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Fixed Amount (TZS) <span className="text-destructive">*</span></Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      placeholder="e.g. 5000"
-                      value={form.fixedAmount}
-                      onChange={(e) => setField("fixedAmount", e.target.value)}
-                    />
-                    {errors.fixedAmount && <p className="text-xs text-destructive">{errors.fixedAmount}</p>}
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Billing Period <span className="text-destructive">*</span></Label>
-                    <Select value={form.fixedDuration} onValueChange={(v) => setField("fixedDuration", v as TenantForm["fixedDuration"])}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="quarterly">Quarterly</SelectItem>
-                        <SelectItem value="annually">Annually</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

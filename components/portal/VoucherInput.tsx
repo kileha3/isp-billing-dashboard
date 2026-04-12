@@ -44,7 +44,7 @@ export function VoucherInput({ primaryColor, onRedeem, loading }: VoucherInputPr
       <Button
         onClick={() => onRedeem(code)}
         disabled={loading || !code.trim() || code.length < 6}
-        className="w-full font-semibold"
+        className="w-full h-11 font-semibold text-sm"
         style={{ background: primaryColor, color: "white" }}
       >
         {loading ? "Checking…" : "Redeem Voucher"}

@@ -114,6 +114,7 @@ export default function UsersPage() {
   const userFormValid = userSchema.safeParse(form).success;
 
   const columns = [
+    { key: "createdAt", label: "Joined", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
     { key: "name", label: "Name" },
     { key: "email", label: "Email", render: (v: unknown) => <span className="text-muted-foreground text-sm">{String(v)}</span> },
     {
@@ -125,7 +126,6 @@ export default function UsersPage() {
       )
     },
     { key: "tenantId", label: "Tenant", render: (v: unknown) => getTenantName(String(v === null || v === undefined ? "" : v)) },
-    { key: "createdAt", label: "Joined", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
   ];
 
   return (

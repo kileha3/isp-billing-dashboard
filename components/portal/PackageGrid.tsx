@@ -16,10 +16,10 @@ interface PackageGridProps {
   onPay: (params: { pkg: Package; phone: string }) => void;
 }
 
-const phoneSchema = z
+export const phoneSchema = z
   .string()
-  .min(1, "Phone number is required")
-  .regex(/^\+?[\d\s\-(]{10,15}$/, "Enter a valid phone number (e.g. 0712 345 678)");
+  .min(10, "Phone number is required")
+  .regex(/^\+?[\d\s\-(]{10,15}$/, "Enter a valid phone number (e.g. 0712 XXX XXX)");
 
 
 export function PackageGrid({ packages, primaryColor, onPay, currency }: PackageGridProps) {
