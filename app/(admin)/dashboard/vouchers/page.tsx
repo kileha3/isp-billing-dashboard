@@ -253,7 +253,7 @@ export default function VouchersPage() {
       {voucherToRevoke && (<ConfirmDialog
         open={voucherToRevoke !== null}
         title="Revoke Access"
-        message={`Are you sure you want to revoke clients with code ${voucherToDelete!.code} access?`}
+        message={`Are you sure you want to revoke clients with code ${voucherToRevoke!.code} access?`}
         variant="destructive"
         onCancel={() => setVoucherToRevoke(null)}
         onConfirm={async () => {

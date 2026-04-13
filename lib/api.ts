@@ -474,11 +474,7 @@ export const apiClient = {
       authToken: string;
     }) =>
       req<{ success: boolean; message: string; voucher: string | null }>(
-        `/payments/session?nasname=${data.nasName}&token=${data.authToken}`,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
+        `/payments/session?nasname=${data.nasName}&token=${data.authToken}&deviceMac=${data.deviceMac}`,
       ),
 
     initiatePayment: (data: {
