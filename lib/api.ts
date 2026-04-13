@@ -460,7 +460,7 @@ export const apiClient = {
       nasName: string;
       authToken: string;
     }) =>
-      req<{ success: boolean; message: string }>(
+      req<{ success: boolean; message: string , appliedVoucher: string}>(
         `/payments/voucher?nasname=${data.nasName}&token=${data.authToken}`,
         {
           method: "POST",

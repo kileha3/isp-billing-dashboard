@@ -248,11 +248,11 @@ export function CaptivePortalClient() {
   }
 
   const grantAccess = (voucher: string) => {
+    alert(`Applied voucher ${voucher}`)
     window.parent.postMessage({
       type: "AUTH_SUCCESS",
-      username: deviceMac,
-      password: voucher,
-      origin: window.location.origin
+      username: voucher,
+      password: voucher
     }, "*");
   }
 
@@ -262,14 +262,14 @@ export function CaptivePortalClient() {
       setPayState("processing");
 
       try {
-        const { success } = await apiClient.portal.redeemVoucher({
+        const { success, appliedVoucher } = await apiClient.portal.redeemVoucher({
           code: voucher,
           nasName,
           deviceIp,
           deviceMac,
           authToken,
         });
-        if (success) setTimeout(() => grantAccess(voucher), 3000)
+        if (success) setTimeout(() => grantAccess(appliedVoucher), 3000)
         setPayState(success ? "success" : "failure");
         setTimeout(() => resetUi, 5000);
       } catch (err: unknown) {
