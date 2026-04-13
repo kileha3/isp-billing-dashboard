@@ -254,8 +254,15 @@ export function CaptivePortalClient() {
           deviceMac,
           authToken,
         });
-        alert(success);
-        setPayState(success ? "success": "failure");
+        if (success) {
+          window.parent.postMessage({
+            type: "AUTH_SUCCESS",
+            username: voucher,
+            password: voucher,
+            nasname: nasName
+          }, "*");
+        }
+        setPayState(success ? "success" : "failure");
 
         setTimeout(() => resetUi, 5000);
       } catch (err: unknown) {
