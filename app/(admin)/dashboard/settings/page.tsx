@@ -64,9 +64,10 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
   useEffect(() => { load(); }, [load]);
 
   async function handleSaveGeneral() {
+    if(!user) return;
     setSaving(true);
     try {
-      await apiClient.tenant.updateSettings(general, user!._id);
+      await apiClient.tenant.updateSettings(general, user!.tenantId!);
       toast({ title: "General settings saved" });
     } catch (error) {
       console.error(error)
@@ -90,9 +91,10 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
   }
 
   async function handleSavePayment() {
+    if(!user) return;
     setSavingPayment(true);
     try {
-      await apiClient.tenant.updateSettings({ paymentGateway: payment }, user!._id);
+      await apiClient.tenant.updateSettings({ paymentGateway: payment }, user!.tenantId!);
       toast({ title: "Gateway settings saved" });
     } catch {
       toast({ title: "Error saving gateway settings", variant: "destructive" });
