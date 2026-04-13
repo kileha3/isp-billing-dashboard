@@ -219,12 +219,17 @@ export function CaptivePortalClient() {
   });
 
   useEffect(() => {
-    async function init() {
+    const init = async () => {
       try {
-        const [cfg, pkgs] = await Promise.all([
+        const [cfg, pkgs, session] = await Promise.all([
           apiClient.portal.getConfig(nasName, authToken),
           apiClient.portal.getPackages(nasName, authToken),
+          apiClient.portal.checkSession({ deviceMac, nasName, authToken }),
         ]);
+        if (session.success && session.voucher) {
+          grantAccess(session.voucher);
+          return;
+        }
         setConfig(cfg.data ?? cfg);
         setPackages(pkgs.data ?? pkgs);
       } catch {
@@ -241,6 +246,16 @@ export function CaptivePortalClient() {
     document.body.style.transition = "opacity 1s";
     document.body.style.opacity = "0";
   }
+
+  const grantAccess = (voucher: string) => {
+    window.parent.postMessage({
+      type: "AUTH_SUCCESS",
+      username: deviceMac,
+      password: voucher,
+      origin: window.location.origin
+    }, "*");
+  }
+
   const handleRedeem = useCallback(
     async (voucher: string) => {
       setIsVoucher(true);
@@ -254,16 +269,8 @@ export function CaptivePortalClient() {
           deviceMac,
           authToken,
         });
-        if (success) {
-          window.parent.postMessage({
-            type: "AUTH_SUCCESS",
-            username: voucher,
-            password: voucher,
-            nasname: nasName
-          }, "*");
-        }
+        if (success) setTimeout(() => grantAccess(voucher), 3000)
         setPayState(success ? "success" : "failure");
-
         setTimeout(() => resetUi, 5000);
       } catch (err: unknown) {
         setPayCtx((c) => ({

@@ -244,14 +244,14 @@ export const apiClient = {
         `/invoices${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
     update: (id: string, status: string) =>
-      req<{ success: boolean; message: string  }>(`/invoices/${id}`, {
+      req<{ success: boolean; message: string }>(`/invoices/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
     pay: (id: string, phoneNumber: string) =>
-      req<{ success: boolean; message: string  }>(`/invoices/${id}/pay`, {
+      req<{ success: boolean; message: string }>(`/invoices/${id}/pay`, {
         method: "POST",
-        body: JSON.stringify({ phoneNumber}),
+        body: JSON.stringify({ phoneNumber }),
       }),
   },
 
@@ -460,8 +460,21 @@ export const apiClient = {
       nasName: string;
       authToken: string;
     }) =>
-      req<{ success: boolean, message: string}>(
+      req<{ success: boolean; message: string }>(
         `/payments/voucher?nasname=${data.nasName}&token=${data.authToken}`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      ),
+
+    checkSession: (data: {
+      deviceMac: string;
+      nasName: string;
+      authToken: string;
+    }) =>
+      req<{ success: boolean; message: string; voucher: string | null }>(
+        `/payments/session?nasname=${data.nasName}&token=${data.authToken}`,
         {
           method: "POST",
           body: JSON.stringify(data),

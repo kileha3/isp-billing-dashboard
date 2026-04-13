@@ -106,7 +106,7 @@ export default function VouchersPage() {
 
 
   const columns = [
-    { key: "code", label: "Code", render: (v: unknown) => <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded font-semibold tracking-wider">{String(v)}</code> },
+    { key: "code", label: "Code", render: (v: unknown) => String(v) },
     { key: "packageId", label: "Package", render: (v: unknown) => (v as { name: string })?.name ?? "—" },
     {
       key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => {
@@ -121,6 +121,7 @@ export default function VouchersPage() {
       }
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
+    { key: "usedAt", label: "Used At", render: (v: unknown) => v ? new Date(String(v)).toLocaleDateString() : "-" },
     { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
   ];
 

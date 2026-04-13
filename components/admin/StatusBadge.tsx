@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Clock, XCircle, RefreshCw, WifiOff, MinusCircle, Languages, Globe, GlobeX, GlobeLock, Users, UserX } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, RefreshCw, WifiOff, MinusCircle, Languages, Globe, GlobeX, GlobeLock, Users, UserX, ClockCheck } from "lucide-react";
 
 interface StatusConfig {
   classes: string;
@@ -13,9 +13,9 @@ const STATUS_MAP: Record<string, StatusConfig> = {
   connected:    { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" /> },
   paid:         { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" />, label: "Paid" },
   success:      { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" /> },
-  unused:       { classes: "bg-muted text-muted-foreground border-border", icon: <CheckCircle2 className="h-3 w-3" /> },
+  used:         { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <ClockCheck className="h-3 w-3" /> },
+  unused:       { classes: "bg-muted text-muted-foreground border-border", icon: <Clock className="h-3 w-3" /> },
   pending:      { classes: "bg-[oklch(0.78_0.17_75)]/12 text-[oklch(0.52_0.17_60)] border-[oklch(0.78_0.17_75)]/30", icon: <Clock className="h-3 w-3" /> },
-  used:     { classes: "bg-primary/10 text-primary border-primary/20", icon: <CheckCircle2 className="h-3 w-3" /> },
   offline:      { classes: "bg-destructive/10 text-destructive border-destructive/20", icon: <WifiOff className="h-3 w-3" /> },
   suspended:    { classes: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-3 w-3" /> },
   failed:       { classes: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-3 w-3" /> },
