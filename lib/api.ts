@@ -461,7 +461,7 @@ export const apiClient = {
       authToken: string;
     }) =>
       req<{ success: boolean, message: string}>(
-        `/payments/voucher?nasname=${data.nasName}&x-token=${data.authToken}`,
+        `/payments/voucher?nasname=${data.nasName}&token=${data.authToken}`,
         {
           method: "POST",
           body: JSON.stringify(data),
@@ -477,7 +477,7 @@ export const apiClient = {
       phoneNumber: string;
     }) =>
       req<{ transactionId: string; message: string }>(
-        `/payments/mno?nasname=${data.nasName}&x-token=${data.authToken}`,
+        `/payments/mno?nasname=${data.nasName}&token=${data.authToken}`,
         {
           method: "POST",
           body: JSON.stringify(data),

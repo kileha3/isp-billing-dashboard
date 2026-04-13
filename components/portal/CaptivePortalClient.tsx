@@ -254,6 +254,7 @@ export function CaptivePortalClient() {
           deviceMac,
           authToken,
         });
+        alert(success);
         setPayState(success ? "success": "failure");
 
         setTimeout(() => resetUi, 5000);

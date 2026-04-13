@@ -118,7 +118,7 @@ export default function RoutersPage() {
   const [scriptCopied, setScriptCopied] = useState(false);
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
-  const { routerEvent, isConnected } = useRouterEvents("queue_router_status");
+  const { routerEvent, isConnected } = useRouterEvents("router_status_check");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
 
