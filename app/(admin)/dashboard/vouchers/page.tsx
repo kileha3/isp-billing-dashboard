@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useRouterEvents } from "@/hooks/use-router-event";
 
 const generateSchema = z.object({
   packageId: z.string().min(1, "Select a package"),
@@ -36,6 +37,7 @@ export default function VouchersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [voucherToDelete, setVoucherToDelete] = useState<Voucher | null>(null)
   const [voucherToRevoke, setVoucherToRevoke] = useState<Voucher | null>(null)
+   const { routerEvent, isConnected } = useRouterEvents("voucher_consumed_status");
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +56,11 @@ export default function VouchersPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    //if (routerEvent && routerEvent) load();
+    console.log("kileha", routerEvent)
+  }, [routerEvent, isConnected]);
 
   async function handleGenerate() {
     setSubmitting(true);
