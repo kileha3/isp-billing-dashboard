@@ -58,8 +58,7 @@ export default function VouchersPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    //if (routerEvent && routerEvent) load();
-    console.log("kileha", routerEvent)
+    if (routerEvent) load();
   }, [routerEvent, isConnected]);
 
   async function handleGenerate() {
