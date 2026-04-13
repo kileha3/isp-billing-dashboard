@@ -465,7 +465,7 @@ export default function RoutersPage() {
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
-                {r.isActive  && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
+                {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Sync Device
                 </DropdownMenuItem>)}
@@ -774,7 +774,7 @@ export default function RoutersPage() {
                 {!loading && (<Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "interfaces", canClose: true }))}>
                   Back
                 </Button>)}
-                {!loading && (<Button onClick={() => {
+                {!loading && (<Button disabled={(wizard.selectedInterface?.interfaces || []).length == 0} onClick={() => {
                   updateInterfaces();
                 }}>
                   <Check className="h-4 w-4 mr-1.5" />
