@@ -248,7 +248,6 @@ export function CaptivePortalClient() {
   }
 
   const grantAccess = (voucher: string) => {
-    alert(`Applied voucher ${voucher}`)
     window.parent.postMessage({
       type: "AUTH_SUCCESS",
       username: voucher,
