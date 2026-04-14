@@ -465,7 +465,7 @@ export default function RoutersPage() {
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
-                {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
+                {r.isActive  && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Sync Device
                 </DropdownMenuItem>)}

@@ -12,6 +12,7 @@ const STATUS_MAP: Record<string, StatusConfig> = {
   online:       { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" /> },
   connected:    { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" /> },
   paid:         { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" />, label: "Paid" },
+  completed:         { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" />},
   success:      { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" /> },
   used:         { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <ClockCheck className="h-3 w-3" /> },
   unused:       { classes: "bg-muted text-muted-foreground border-border", icon: <Clock className="h-3 w-3" /> },

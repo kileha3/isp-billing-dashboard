@@ -141,7 +141,7 @@ export interface Voucher {
 export interface Invoice {
   _id: string;
   tenantName: string;
-  status: "pending"| "paid" | "overdue" | "expired";
+  status: "pending" | "paid" | "overdue" | "expired";
   type: string;
   description: string;
   amount: number;
@@ -154,13 +154,23 @@ export interface Invoice {
 
 export interface Transaction {
   _id: string;
-  tenantId: string;
-  routerId: string;
-  packageId: string | { _id: string; name: string };
+  tenant: { id: string; name: string } | null;
+  router: { id: string; name: string; location: string } | null;
+  package: {
+    id: string;
+    name: string;
+    duration: number;
+    durationUnit?: string;
+    dataLimit?: number;
+    dataLimitUnit?: string;
+  } | null;
+  customer: string;
   amount: number;
   status: TransactionStatus;
-  customerPhone?: string;
-  paymentMethod: "mpesa" | "airtel" | "voucher";
+  voucherApplied: string;
+  source: string;
+  currency: string;
+  paymentMethod: string;
   reference?: string;
   createdAt: string;
   updatedAt: string;

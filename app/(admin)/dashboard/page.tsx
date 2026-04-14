@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { apiClient } from "@/lib/api";
@@ -25,8 +25,10 @@ import {
   Ticket,
   Package,
   TrendingUp,
+  Settings,
 } from "lucide-react";
-import SocketClient from "@/lib/socket.util";
+import { formatCurrency } from "./transactions/page";
+import { Transaction } from "@/lib/types";
 
 interface DashboardStats {
   routers: { total: number; online: number; offline: number };
@@ -50,42 +52,6 @@ interface DashboardStats {
   }[];
 }
 
-const MOCK_STATS: DashboardStats = {
-  routers: { total: 12, online: 9, offline: 3 },
-  packages: { total: 8 },
-  vouchers: { total: 340, unused: 120 },
-  transactions: { total: 1420, revenue: 284000, todayRevenue: 12400 },
-  sessions: { active: 47 },
-  revenueChart: [
-    { date: "Mar 14", amount: 9200 },
-    { date: "Mar 15", amount: 11400 },
-    { date: "Mar 16", amount: 8700 },
-    { date: "Mar 17", amount: 13200 },
-    { date: "Mar 18", amount: 10800 },
-    { date: "Mar 19", amount: 15600 },
-    { date: "Mar 20", amount: 12400 },
-  ],
-  sessionChart: [
-    { date: "Mar 14", count: 38 },
-    { date: "Mar 15", count: 52 },
-    { date: "Mar 16", count: 41 },
-    { date: "Mar 17", count: 63 },
-    { date: "Mar 18", count: 45 },
-    { date: "Mar 19", count: 71 },
-    { date: "Mar 20", count: 47 },
-  ],
-  recentTransactions: [
-    { _id: "1", amount: 500, status: "paid", customerPhone: "+254712345678", createdAt: new Date().toISOString(), packageId: { name: "Daily 1GB" }, routerId: { name: "Main Gateway" }, tenantName: "FastNet ISP" },
-    { _id: "2", amount: 1200, status: "paid", customerPhone: "+254798765432", createdAt: new Date(Date.now() - 3600000).toISOString(), packageId: { name: "Weekly 5GB" }, routerId: { name: "Westlands Hub" }, tenantName: "FastNet ISP" },
-    { _id: "3", amount: 200, status: "pending", customerPhone: "+254756789012", createdAt: new Date(Date.now() - 7200000).toISOString(), packageId: { name: "Hourly Unlimited" }, routerId: { name: "Kasarani Node" }, tenantName: "QuickConnect Ltd" },
-    { _id: "4", amount: 3000, status: "paid", customerPhone: "+254700123456", createdAt: new Date(Date.now() - 10800000).toISOString(), packageId: { name: "Monthly 30GB" }, routerId: { name: "Main Gateway" }, tenantName: "FastNet ISP" },
-    { _id: "5", amount: 500, status: "failed", customerPhone: "+254733456789", createdAt: new Date(Date.now() - 14400000).toISOString(), packageId: { name: "Daily 1GB" }, routerId: { name: "Westlands Hub" }, tenantName: "QuickConnect Ltd" },
-  ],
-};
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 }).format(amount);
-}
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" });
@@ -109,19 +75,46 @@ function ChartTooltip({ active, payload, label, formatter }: {
 
 export default function DashboardPage() {
   usePageTitle("Dashboard");
-  const { user, loading: authLoading } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const { user, loading: authLoading, isRole } = useAuth();
+  const [routerStats, setRouterStats] = useState<any>(null);
+  const [voucherStats, setVoucherStats] = useState<any>(null);
+  const [packageStats, setPackageStats] = useState<any>(null);
+  const [paymentStats, setPaymentStats] = useState<any>(null);
+  const [currency, setCurrency] = useState<string>("TZS");
+  const [session, setSession] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const isSuperAdmin = isRole("super_admin");
+  const [recentTransactions, setRecentTransaction] = useState<Array<Transaction>>([])
+  const [transReport, setTransReport] = useState<any>(null)
 
+
+  const load = useCallback(async () => {
+    try {
+      const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, { data: transactions }, report] = await Promise.all([
+        apiClient.dashboard.getStats(),
+        isSuperAdmin ? { data: { settings: { currency: "TZS" } } } : apiClient.tenant.get(user?.tenantId),
+        apiClient.transactions.recent(),
+        apiClient.dashboard.paymentReports()
+      ]);
+      setSession(sessions)
+      setTransReport(report);
+      setRouterStats(routers);
+      setVoucherStats(vouchers);
+      setPackageStats(packages);
+      setCurrency(currency);
+      setPaymentStats(payments);
+      setRecentTransaction(transactions);
+
+    } catch {
+
+    } finally {
+      setLoading(false);
+    }
+  }, []);
   useEffect(() => {
     if (authLoading || !user) return;
-    apiClient.dashboard.getStats()
-      .then(setStats)
-      .catch(() => setStats(MOCK_STATS))
-      .finally(() => setLoading(false));
+    load();
   }, [authLoading, user]);
-
-  const s = stats ?? MOCK_STATS;
 
   return (
     <div className="flex flex-col gap-6">
@@ -133,47 +126,49 @@ export default function DashboardPage() {
 
       {/* Stat cards — middle card is "hero" (navy fill) to match DashboardDesign */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard
+        {routerStats && (<StatCard
           label="Routers"
-          value={loading ? "—" : s.routers.total}
+          value={loading ? "—" : routerStats!.total}
           icon={Router}
-          change={`${s.routers.online} online`}
+          change={`${routerStats!.online} online`}
           changePositive
-        />
+        />)}
         <StatCard
           label="Active Sessions"
-          value={loading ? "—" : s.sessions.active}
+          value={loading ? "—" : session}
           icon={Activity}
           change="Live"
           changePositive
         />
-        <StatCard
+        {paymentStats && (<StatCard
           label="Total Revenue"
-          value={loading ? "—" : formatCurrency(s.transactions.revenue)}
+          value={loading ? "—" : formatCurrency(paymentStats.totalEarnings, currency)}
           icon={TrendingUp}
-          change={`${s.transactions.total} txns`}
+          change={`${paymentStats.totalTransactions} txns`}
           changePositive
           hero
-        />
-        <StatCard
+        />)}
+        {paymentStats && (<StatCard
           label="Today Revenue"
-          value={loading ? "—" : formatCurrency(s.transactions.todayRevenue)}
+          value={loading ? "—" : formatCurrency(paymentStats.todayEarnings, currency)}
           icon={CreditCard}
-          change="+KES"
+          change={`${paymentStats.todayTransactions} txns`}
           changePositive
-        />
-        <StatCard
+        />)}
+        {packageStats && (<StatCard
           label="Packages"
-          value={loading ? "—" : s.packages.total}
+          value={loading ? "—" : packageStats.total}
           icon={Package}
-        />
-        <StatCard
-          label="Vouchers"
-          value={loading ? "—" : s.vouchers.unused}
-          icon={Ticket}
-          change={`${s.vouchers.total} total`}
+          change={`${packageStats.bestPerforming.length} best perfoming`}
           changePositive
-        />
+        />)}
+        {voucherStats && (<StatCard
+          label="Vouchers"
+          value={loading ? "—" : voucherStats.total}
+          icon={Ticket}
+          change={`${voucherStats.unused} unused`}
+          changePositive
+        />)}
       </div>
 
       {/* Charts row */}
@@ -185,12 +180,12 @@ export default function DashboardPage() {
               <h3 className="text-sm font-semibold text-foreground">Revenue — Last 7 Days</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Daily transaction totals</p>
             </div>
-            <span className="text-xs font-semibold text-[oklch(0.42_0.18_142)] bg-[oklch(0.65_0.2_142)]/12 border border-[oklch(0.65_0.2_142)]/25 rounded-full px-2.5 py-0.5">
-              +15%
-            </span>
+            {transReport && transReport.data.length > 0 && (<span className="text-xs font-semibold text-[oklch(0.42_0.18_142)] bg-[oklch(0.65_0.2_142)]/12 border border-[oklch(0.65_0.2_142)]/25 rounded-full px-2.5 py-0.5">
+              {transReport.summary.isPositiveGrowth ? "+":"-"}{transReport.summary.growthPercentage}
+            </span>)}
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={s.revenueChart} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+          {transReport && transReport.data.length > 0 && (<ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={transReport.data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="oklch(0.52 0.22 260)" stopOpacity={0.2} />
@@ -200,10 +195,12 @@ export default function DashboardPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 260)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
-              <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v)} />} />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v, currency)} />} />
               <Area type="monotone" dataKey="amount" stroke="oklch(0.52 0.22 260)" strokeWidth={2.5} fill="url(#revGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
             </AreaChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer>)}
+
+          {transReport && transReport.data.length === 0 && (<h3 className="text-sm font-semibold text-foreground text-center py-20 px-10">No revenue report</h3>)}
         </div>
 
         {/* Sessions chart */}
@@ -217,7 +214,7 @@ export default function DashboardPage() {
               +10%
             </span>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
+          {/* <ResponsiveContainer width="100%" height={200}>
             <BarChart data={s.sessionChart} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 260)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
@@ -225,12 +222,12 @@ export default function DashboardPage() {
               <Tooltip content={<ChartTooltip formatter={(v) => `${v} sessions`} />} />
               <Bar dataKey="count" fill="oklch(0.52 0.22 260)" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer> */}
         </div>
       </div>
 
       {/* Recent transactions */}
-      <div className="rounded-xl border border-border bg-card">
+      {recentTransactions && (<div className="rounded-xl border border-border bg-card">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Recent Transactions</h3>
@@ -239,22 +236,22 @@ export default function DashboardPage() {
           <Users className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="divide-y divide-border/60">
-          {s.recentTransactions.map((tx) => (
+          {recentTransactions.map((tx) => (
             <div key={tx._id} className="flex items-center justify-between px-5 py-3.5 gap-4 hover:bg-muted/20 transition-colors">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-sm font-medium tabular-nums">{tx.customerPhone}</span>
+                <span className="text-sm font-medium tabular-nums">{tx.customer}</span>
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  <span className="text-xs text-muted-foreground">{tx.packageId?.name ?? "Voucher"}</span>
-                  {tx.routerId?.name && (
+                  <span className="text-xs text-muted-foreground">{tx.package?.name ?? "Voucher"}</span>
+                  {tx.router && (
                     <>
                       <span className="text-xs text-muted-foreground/40">&middot;</span>
-                      <span className="text-xs text-muted-foreground">{tx.routerId.name}</span>
+                      <span className="text-xs text-muted-foreground">{tx.router.name}</span>
                     </>
                   )}
-                  {tx.tenantName && (
+                  {tx.tenant && (
                     <>
                       <span className="text-xs text-muted-foreground/40">&middot;</span>
-                      <span className="text-xs text-muted-foreground">{tx.tenantName}</span>
+                      <span className="text-xs text-muted-foreground">{tx.tenant.name}</span>
                     </>
                   )}
                   <span className="text-xs text-muted-foreground/40">&middot;</span>
@@ -263,12 +260,13 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <StatusBadge status={tx.status} />
-                <span className="text-sm font-bold tabular-nums">{formatCurrency(tx.amount)}</span>
+                <span className="text-sm font-bold tabular-nums">{formatCurrency(tx.amount, currency)}</span>
               </div>
             </div>
           ))}
+          {recentTransactions.length === 0 && (<h3 className="text-sm font-semibold text-foreground text-center py-20 px-10">No transaction data</h3>)}
         </div>
-      </div>
+      </div>)}
     </div>
   );
 }

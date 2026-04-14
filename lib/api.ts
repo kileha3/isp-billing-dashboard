@@ -177,7 +177,12 @@ export const apiClient = {
   },
 
   dashboard: {
-    getStats: () => req<DashboardStats>("/dashboard"),
+    getStats: () =>
+      req<{ routers: any; vouchers: any; packages: any; payments: any, sessions: any }>(
+        "/dashboard",
+      ),
+    paymentReports: () =>
+      req<{data: Array<{ date: string; amount: number }>, summary: {growthPercentage: string; isPositiveGrowth: boolean}}>("/dashboard/report"),
   },
 
   notifications: {
@@ -290,9 +295,13 @@ export const apiClient = {
       const clean = Object.fromEntries(
         Object.entries(params ?? {}).filter(([, v]) => v !== undefined),
       ) as Record<string, string>;
-      return req<{ transactions: Transaction[] }>(
-        `/transactions${Object.keys(clean).length ? "?" + new URLSearchParams(clean) : ""}`,
+      return req<{ data: Transaction[] }>(
+        `/payments${Object.keys(clean).length ? "?" + new URLSearchParams(clean) : ""}`,
       );
+    },
+
+    recent: () => {
+      return req<{ data: Transaction[] }>(`/payments/recent`);
     },
   },
 
@@ -460,7 +469,7 @@ export const apiClient = {
       nasName: string;
       authToken: string;
     }) =>
-      req<{ success: boolean; message: string , appliedVoucher: string}>(
+      req<{ success: boolean; message: string; appliedVoucher: string }>(
         `/payments/voucher?nasname=${data.nasName}&token=${data.authToken}`,
         {
           method: "POST",
