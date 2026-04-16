@@ -14,8 +14,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
 import {
   Router,
@@ -25,32 +23,9 @@ import {
   Ticket,
   Package,
   TrendingUp,
-  Settings,
 } from "lucide-react";
 import { formatCurrency } from "./transactions/page";
 import { Transaction } from "@/lib/types";
-
-interface DashboardStats {
-  routers: { total: number; online: number; offline: number };
-  packages: { total: number };
-  vouchers: { total: number; unused: number };
-  transactions: { total: number; revenue: number; todayRevenue: number };
-  sessions: { active: number };
-  revenueChart: { date: string; amount: number }[];
-  sessionChart: { date: string; count: number }[];
-  recentTransactions: {
-    _id: string;
-    amount: number;
-    status: string;
-    customerPhone: string;
-    createdAt: string;
-    packageId?: { name: string };
-    routerId?: { name: string };
-    tenantId?: { name: string } | string;
-    tenantName?: string;
-    routerName?: string;
-  }[];
-}
 
 
 function formatTime(iso: string) {

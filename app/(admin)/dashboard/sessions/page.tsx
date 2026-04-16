@@ -10,36 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import type { HotspotSession, Package } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { StatCard } from "@/components/admin/StatCard";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Activity, Wifi, Clock } from "lucide-react";
+import { HotspotSession } from "@/lib/types";
 
-const SESSION_STATUSES: HotspotSession["status"][] = ["active", "active", "active", "active", "active", "active", "disconnected", "disconnected", "disconnected", "expired", "expired", "expired", "disconnected", "active", "expired"];
-const MOCK_SESSIONS: HotspotSession[] = Array.from({ length: 15 }, (_, i) => ({
-  _id: String(i + 1),
-  macAddress: Array.from({ length: 6 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join(":"),
-  ipAddress: `192.168.${Math.floor(i / 5) + 1}.${(i % 5) + 10}`,
-  routerId: { _id: "r1", name: i < 7 ? "Main Gateway" : i < 12 ? "Westlands Hub" : "Kasarani Node" },
-  packageId: { _id: ["p1", "p2", "p3"][i % 3], name: ["Hourly Unlimited", "Daily 1GB", "Weekly 5GB"][i % 3] },
-  status: SESSION_STATUSES[i],
-  startTime: new Date(Date.now() - (i + 1) * 900000).toISOString(),
-  endTime: SESSION_STATUSES[i] !== "active" ? new Date(Date.now() - i * 600000).toISOString() : undefined,
-  dataUsed: Math.floor(Math.random() * 800),
-  tenantId: "t1",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-}));
 
-const MOCK_PACKAGES: Package[] = [
-  { _id: "p1", name: "Hourly Unlimited", description: "", price: 50, duration: 1, durationUnit: "hours", dataLimit: 0, speedLimit: 10, status: "active", isPublic: true, tenantId: "t1", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "p2", name: "Daily 1GB", description: "", price: 100, duration: 1, durationUnit: "days", dataLimit: 1024, speedLimit: 20, status: "active", isPublic: true, tenantId: "t1", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "p3", name: "Weekly 5GB", description: "", price: 500, duration: 7, durationUnit: "days", dataLimit: 5120, speedLimit: 50, status: "active", isPublic: true, tenantId: "t1", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { _id: "p4", name: "Monthly 30GB", description: "", price: 2000, duration: 1, durationUnit: "months", dataLimit: 30720, speedLimit: 100, status: "active", isPublic: true, tenantId: "t1", routerIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
-function formatBytes(mb: number) {
+function formatBytes(octate: number) {
+  const mb: number = parseFloat((octate / 1048576).toFixed(2));
   if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
   return `${mb} MB`;
 }
@@ -64,7 +43,6 @@ export default function SessionsPage() {
   usePageTitle("Sessions");
   const { toast } = useToast();
   const [sessions, setSessions] = useState<HotspotSession[]>([]);
-  const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [actionState, setActionState] = useState<ActionState | null>(null);
@@ -73,17 +51,10 @@ export default function SessionsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [sessData, pkgData] = await Promise.allSettled([
-        apiClient.sessions.list(),
-        apiClient.packages.list(),
-      ]);
-      if (sessData.status === "fulfilled") setSessions(sessData.value.sessions ?? sessData.value);
-      else setSessions(MOCK_SESSIONS);
-      if (pkgData.status === "fulfilled") setPackages(pkgData.value.packages ?? pkgData.value);
-      else setPackages(MOCK_PACKAGES);
+      const _sessions = await apiClient.sessions.list();
+      setSessions(_sessions)
     } catch {
-      setSessions(MOCK_SESSIONS);
-      setPackages(MOCK_PACKAGES);
+      setSessions([]);
     } finally {
       setLoading(false);
     }
@@ -95,7 +66,7 @@ export default function SessionsPage() {
     if (!actionState) return;
     setActing(true);
     const { type, session, selectedPackageId } = actionState;
-    try {
+   /*  try {
       if (type === "kick") {
         await apiClient.sessions.disconnect(session._id);
         toast({ title: "User kicked out", description: `Session for ${session.macAddress} disconnected.` });
@@ -113,19 +84,22 @@ export default function SessionsPage() {
       toast({ title: "Error", description: "Action failed. Please try again.", variant: "destructive" });
     } finally {
       setActing(false);
-    }
+    } */
   }
 
   const active = sessions.filter(s => s.status === "active");
-  const totalData = sessions.reduce((sum, s) => sum + (s.dataUsed ?? 0), 0);
+  const totalData = sessions.reduce((sum, s) => sum + (s.usage.output ?? 0), 0);
 
   const columns = [
-    { key: "macAddress", label: "MAC Address", render: (v: unknown) => <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{String(v)}</code> },
-    { key: "ipAddress", label: "IP Address", render: (v: unknown) => <code className="text-xs font-mono">{String(v)}</code> },
-    { key: "routerId", label: "Router", render: (v: unknown) => (v as { name: string })?.name ?? "—" },
-    { key: "packageId", label: "Package", render: (v: unknown) => (v as { name: string })?.name ?? "—" },
-    { key: "startTime", label: "Duration", render: (v: unknown, row: unknown) => formatDuration(String(v), (row as HotspotSession).endTime) },
-    { key: "dataUsed", label: "Data Used", render: (v: unknown) => formatBytes(Number(v)) },
+    { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{(row as HotspotSession).network.mac}</code> },
+    { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => <code className="text-xs font-mono">{(row as HotspotSession).network.ip}</code> },
+    { key: "routerId", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name}(${(row as HotspotSession).nas.ip})`},
+    { key: "packageId", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name},
+    { key: "startTime", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
+    { key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
+      const sess = row as HotspotSession;
+      return formatBytes(Number(sess.usage.output + sess.usage.input)) 
+    }},
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
   ];
 
@@ -162,8 +136,8 @@ export default function SessionsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="disconnected">Disconnected</SelectItem>
+                <SelectItem value="online">Online</SelectItem>
+                <SelectItem value="offline">Offline</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
             </Select>
@@ -175,7 +149,7 @@ export default function SessionsPage() {
         }
         actions={(row) => {
           const s = row as unknown as HotspotSession;
-          if (s.status !== "active") return null;
+          //if (s.status !== "active") return null;
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -185,7 +159,7 @@ export default function SessionsPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={() => setActionState({ type: "change_package", session: s, selectedPackageId: typeof s.packageId === "object" ? (s.packageId as { _id: string })._id : s.packageId })}
+                  onClick={() => setActionState({ type: "change_package", session: s, selectedPackageId: s.package.id})}
                 >
                   <PackageOpen className="mr-2 h-4 w-4" />
                   Change Package
@@ -216,7 +190,7 @@ export default function SessionsPage() {
               <DialogHeader>
                 <DialogTitle>Kick Out User</DialogTitle>
                 <DialogDescription>
-                  This will immediately disconnect the session for <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.macAddress}</code>.
+                  This will immediately disconnect the session for <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.network.mac}</code>.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -233,7 +207,7 @@ export default function SessionsPage() {
               <DialogHeader>
                 <DialogTitle>Clear MAC Address</DialogTitle>
                 <DialogDescription>
-                  This removes <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.macAddress}</code> from the router&apos;s ARP and hotspot binding tables. The device will need to reconnect.
+                  This removes <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.network.mac}</code> from the router&apos;s ARP and hotspot binding tables. The device will need to reconnect.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -250,7 +224,7 @@ export default function SessionsPage() {
               <DialogHeader>
                 <DialogTitle>Change Package</DialogTitle>
                 <DialogDescription>
-                  Select a new package for <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.macAddress}</code>. The change takes effect immediately.
+                  Select a new package for <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.network.ip}</code>. The change takes effect immediately.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-2">
@@ -261,11 +235,11 @@ export default function SessionsPage() {
                 >
                   <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
                   <SelectContent>
-                    {packages.map(p => (
+                   {/*  {[].map(p: any => (
                       <SelectItem key={p._id} value={p._id}>
                         {p.name} — KES {p.price.toLocaleString()}
                       </SelectItem>
-                    ))}
+                    ))} */}
                   </SelectContent>
                 </Select>
               </div>

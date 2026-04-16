@@ -1,16 +1,15 @@
 import type {
   User,
   TenantPortalSettings,
-  DashboardStats,
   RouterDevice,
   Package,
   Voucher,
   Transaction,
-  HotspotSession,
   Peer,
   Notification,
   Tenant,
   Invoice,
+  HotspotSession,
 } from "@/lib/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
@@ -307,7 +306,7 @@ export const apiClient = {
 
   sessions: {
     list: (params?: Record<string, string>) =>
-      req<{ sessions: HotspotSession[] }>(
+      req<Array<HotspotSession> >(
         `/sessions${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
 

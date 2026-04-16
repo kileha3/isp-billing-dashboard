@@ -180,20 +180,26 @@ export interface Transaction {
 
 export interface HotspotSession {
   _id: string;
-  tenantId: string;
-  routerId: string | { _id: string; name: string };
-  packageId?: string | { _id: string; name: string };
-  macAddress: string;
-  ipAddress?: string;
-  status: SessionStatus;
-  startTime: string;
-  endTime?: string;
-  dataUsed: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  lastUpdateAt: Date;
+  nas: { ip: string; name: string; location: string };
+  network: { ip: string; mac: string };
+  package: { id: string; name: string; price: number };
+  session: {
+    id: string;
+    start: Date;
+    stop: null;
+    duration: number;
+  };
+  status: string;
+  tenant: { id: string; name: string };
+  timeLapse: string;
+  updatedAt: Date;
+  usage: { input: number; output: number };
+  username: string;
 }
 
-// ─── IP Manager ───────────────────────────────────────────────────────────────
+export interface Tenant {}
 
 export type PeerStatus = "assigned" | "available" | "reserved" | "blocked";
 
