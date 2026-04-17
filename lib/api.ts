@@ -177,11 +177,18 @@ export const apiClient = {
 
   dashboard: {
     getStats: () =>
-      req<{ routers: any; vouchers: any; packages: any; payments: any, sessions: any }>(
-        "/dashboard",
-      ),
+      req<{
+        routers: any;
+        vouchers: any;
+        packages: any;
+        payments: any;
+        sessions: any;
+      }>("/dashboard"),
     paymentReports: () =>
-      req<{data: Array<{ date: string; amount: number }>, summary: {growthPercentage: string; isPositiveGrowth: boolean}}>("/dashboard/report"),
+      req<{
+        data: Array<{ date: string; amount: number }>;
+        summary: { growthPercentage: string; isPositiveGrowth: boolean };
+      }>("/dashboard/report"),
   },
 
   notifications: {
@@ -306,7 +313,7 @@ export const apiClient = {
 
   sessions: {
     list: (params?: Record<string, string>) =>
-      req<Array<HotspotSession> >(
+      req<Array<HotspotSession>>(
         `/sessions${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
 
@@ -485,6 +492,15 @@ export const apiClient = {
         `/payments/session?nasname=${data.nasName}&token=${data.authToken}&deviceMac=${data.deviceMac}`,
       ),
 
+    checkStatus: (data: {
+      transactionId: string;
+      nasName: string;
+      authToken: string;
+    }) =>
+      req<{ success: boolean; message: string; voucher: string | null }>(
+        `/payments/${data.transactionId}/status?nasname=${data.nasName}&token=${data.authToken}`,
+      ),
+
     initiatePayment: (data: {
       packageId: string;
       deviceIp: string;
@@ -493,7 +509,7 @@ export const apiClient = {
       authToken: string;
       phoneNumber: string;
     }) =>
-      req<{ transactionId: string; message: string }>(
+      req<{ transactionId: string; message: string; success: boolean }>(
         `/payments/mno?nasname=${data.nasName}&token=${data.authToken}`,
         {
           method: "POST",

@@ -114,6 +114,7 @@ export interface Package {
   status: "active" | "inactive";
   isPublic: boolean;
   isFree: boolean;
+  currency: string;
   routerIds: string[];
   createdAt: string;
   updatedAt: string;

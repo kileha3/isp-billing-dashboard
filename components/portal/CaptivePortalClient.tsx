@@ -10,6 +10,7 @@ import { SupportInfo } from "@/components/portal/SupportInfo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
+import { Polling } from "@/lib/pooling";
 
 const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
@@ -35,14 +36,6 @@ const DEFAULT_CONFIG: TenantPortalSettings = {
 };
 
 type PayState = "idle" | "processing" | "success" | "failure";
-
-interface PayContext {
-  pkgName: string;
-  amount: number;
-  phone: string;
-  message?: string;
-  error?: string;
-}
 
 function SpinnerRing({ color }: { color: string }) {
   return (
@@ -92,18 +85,18 @@ function PaymentOverlay({
         backdropFilter: "blur(6px)",
       }}
     >
-      {isProcessing && !isVoucher && (
+      {isProcessing && (
         <div className="flex flex-col items-center gap-6">
           <SpinnerRing color={primaryColor} />
           <div className="flex flex-col gap-2">
             <p className="text-lg font-bold text-foreground">
-              Processing Payment
+              {isVoucher ? "Processing Voucher" : "Processing Payment"}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              A payment push has been initialized
+              {isVoucher ? "Redeeming your voucher" : "A payment push has been initialized"}
             </p>
             <p className="text-xs text-muted-foreground">
-              Enter your PIN on your phone to confirm.
+              {isVoucher ? "Please wait for confirmation..." : "Enter your PIN on your phone to confirm."}
             </p>
           </div>
         </div>
@@ -175,10 +168,10 @@ function PaymentOverlay({
 
           <div className="flex flex-col gap-2">
             <p className="text-2xl font-bold text-foreground">
-              Payment Failed
+              {isVoucher ? "Failed to redeem" : "Payment Failed"}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              {"Something went wrong. Please try again."}
+              {isVoucher ? "Failed to redeem your voucher" : "Failed to pay for your package"}, try again later.
             </p>
           </div>
 
@@ -190,7 +183,7 @@ function PaymentOverlay({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Returning to packages…
+            {isVoucher ? "Return to voucher page..." : "Returning to packages…"}
           </p>
         </div>
       )}
@@ -210,13 +203,27 @@ export function CaptivePortalClient() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [isVoucher, setIsVoucher] = useState(false);
-
+  const [transactionId, setTransactionId] = useState<string | null>(null);
   const [payState, setPayState] = useState<PayState>("idle");
-  const [payCtx, setPayCtx] = useState<PayContext>({
-    pkgName: "",
-    amount: 0,
-    phone: "",
+
+  const polling = new Polling({
+    interval: 40 * 1000,
+    timeout: 120 * 1000,
+
+    task: async () => {
+      const res = await apiClient.portal.checkStatus({ transactionId: transactionId!, nasName, authToken });
+      return res;
+    },
+    backoff: { enabled: false },
+    isSuccess: (res) => res.success === true && res.voucher !== null,
   });
+
+  const reflectOnUI = (success: boolean, voucher: string | null | undefined) => {
+    if (success && voucher) setTimeout(() => grantAccess(voucher), 3000)
+    setPayState(success && voucher ? "success" : "failure");
+    setTimeout(() => resetUi, 4000);
+  }
+
 
   useEffect(() => {
     const init = async () => {
@@ -268,17 +275,8 @@ export function CaptivePortalClient() {
           deviceMac,
           authToken,
         });
-        if (success) setTimeout(() => grantAccess(appliedVoucher), 3000)
-        setPayState(success ? "success" : "failure");
-        setTimeout(() => resetUi, 5000);
+        reflectOnUI(success, appliedVoucher)
       } catch (err: unknown) {
-        setPayCtx((c) => ({
-          ...c,
-          error:
-            err instanceof Error
-              ? err.message
-              : "Voucher redeeming failed. Please try again.",
-        }));
         setPayState("failure");
       }
     },
@@ -288,17 +286,9 @@ export function CaptivePortalClient() {
   const handlePay = useCallback(
     async ({ pkg, phone }: { pkg: Package; phone: string }) => {
       setIsVoucher(false);
-      const ctx: PayContext = {
-        pkgName: pkg.name,
-        amount: pkg.price,
-        phone,
-      };
-
-      setPayCtx(ctx);
       setPayState("processing");
-
       try {
-        await apiClient.portal.initiatePayment({
+        const { transactionId, success } = await apiClient.portal.initiatePayment({
           packageId: pkg._id,
           nasName,
           deviceIp,
@@ -306,27 +296,19 @@ export function CaptivePortalClient() {
           authToken,
           phoneNumber: phone,
         });
-
-        setPayCtx((c) => ({
-          ...c,
-          message: `${pkg.name} activated! Enjoy your browsing.`,
-        }));
-        setPayState("success");
-
-        setTimeout(() => resetUi, 4000);
+        if (success) {
+          setTransactionId(transactionId);
+          const { result } = await polling.startAsync();
+          reflectOnUI(result?.success === true, result?.voucher)
+        }
       } catch (err: unknown) {
-        setPayCtx((c) => ({
-          ...c,
-          error:
-            err instanceof Error
-              ? err.message
-              : "Payment failed. Please try again.",
-        }));
         setPayState("failure");
+        polling.stop();
       }
     },
     [nasName, deviceMac]
   );
+
 
   const handleDismissFailure = useCallback(() => {
     setPayState("idle");

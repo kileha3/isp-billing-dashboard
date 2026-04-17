@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { StatCard } from "@/components/admin/StatCard";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Activity, Wifi, Clock } from "lucide-react";
-import { HotspotSession } from "@/lib/types";
+import { HotspotSession, Package } from "@/lib/types";
 
 
 function formatBytes(octate: number) {
@@ -23,13 +23,6 @@ function formatBytes(octate: number) {
   return `${mb} MB`;
 }
 
-function formatDuration(startIso: string, endIso?: string) {
-  const start = new Date(startIso).getTime();
-  const end = endIso ? new Date(endIso).getTime() : Date.now();
-  const mins = Math.floor((end - start) / 60000);
-  if (mins < 60) return `${mins}m`;
-  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-}
 
 type ActionType = "kick" | "clear_mac" | "change_package";
 
@@ -46,13 +39,15 @@ export default function SessionsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [actionState, setActionState] = useState<ActionState | null>(null);
+  const [packages, setPackages] = useState<Package[]>([]);
   const [acting, setActing] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (forceLoad: boolean = true) => {
+    if(forceLoad) setLoading(true);
     try {
-      const _sessions = await apiClient.sessions.list();
-      setSessions(_sessions)
+      const [_sessions, {data: _packages}] = await Promise.all([apiClient.sessions.list(), apiClient.packages.list()]);
+      setSessions(_sessions);
+      setPackages(_packages);
     } catch {
       setSessions([]);
     } finally {
@@ -66,6 +61,7 @@ export default function SessionsPage() {
     if (!actionState) return;
     setActing(true);
     const { type, session, selectedPackageId } = actionState;
+    toast({description: "Comming soon...."})
    /*  try {
       if (type === "kick") {
         await apiClient.sessions.disconnect(session._id);
@@ -85,15 +81,16 @@ export default function SessionsPage() {
     } finally {
       setActing(false);
     } */
+   setActionState(null);
   }
 
-  const active = sessions.filter(s => s.status === "active");
-  const totalData = sessions.reduce((sum, s) => sum + (s.usage.output ?? 0), 0);
+  const active = sessions.filter(s => s.status === "online");
+  const totalData = sessions.reduce((sum, s) => sum + ((s.usage.output + s.usage.input)), 0);
 
   const columns = [
-    { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{(row as HotspotSession).network.mac}</code> },
+    { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac },
     { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => <code className="text-xs font-mono">{(row as HotspotSession).network.ip}</code> },
-    { key: "routerId", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name}(${(row as HotspotSession).nas.ip})`},
+    { key: "routerId", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})`},
     { key: "packageId", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name},
     { key: "startTime", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
     { key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
@@ -141,7 +138,7 @@ export default function SessionsPage() {
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={load} disabled={loading} className="h-10">
+            <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
@@ -235,11 +232,11 @@ export default function SessionsPage() {
                 >
                   <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
                   <SelectContent>
-                   {/*  {[].map(p: any => (
+                    {packages.map(p => (
                       <SelectItem key={p._id} value={p._id}>
-                        {p.name} — KES {p.price.toLocaleString()}
+                        {p.name} — {p.currency ?? "TZS"}{p.price.toLocaleString()}
                       </SelectItem>
-                    ))} */}
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

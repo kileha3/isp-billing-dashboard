@@ -203,7 +203,7 @@ export default function PackagesPage() {
   const columns = [
     { key: "name", label: "Name" },
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
-    { key: "price", label: "Price (Tsh)", render: (v: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `Tsh ${Number(v).toLocaleString()}`}</span> },
+    { key: "price", label: "Price", render: (v: unknown, row: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `${(row as Package).currency ?? "TZS"} ${Number(v).toLocaleString()}`}</span> },
     {
       key: "duration", label: "Duration",
       render: (v: unknown, row: unknown) => {
