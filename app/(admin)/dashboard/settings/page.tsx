@@ -16,22 +16,19 @@ import { Separator } from "@/components/ui/separator";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { GatewayConfig } from "@/lib/types";
 
 export default function SettingsPage({ tenantId }: { tenantId: string }) {
   const { toast } = useToast();
   const { user } = useAuth();
+
   const [general, setGeneral] = useState({
     currency: "TZS",
     timezone: "Africa/Dar_es_Salaam",
   });
 
-
-  const load = useCallback(async () => {
-    try {
-      const { data } = await apiClient.tenant.get(tenantId);
-      setGeneral(data.settings)
-    } catch {}
-  }, [tenantId]);
+  const [gateways, setGateways] = useState<Array<GatewayConfig>>([]);
+  const [activeGateway, setActiveGateway] = useState<string | null | undefined>(null)
 
   const [profile, setProfile] = useState({
     name: "",
@@ -40,16 +37,29 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
     newPassword: "",
   });
 
-  const [payment, setPayment] = useState({
+  const [payment, setPayment] = useState<{
+    gateway: string;
+    values: Record<string, string>;
+  }>({
     gateway: "",
-    account: "",
-    password: "",
-    token: "",
+    values: {},
   });
 
   const [saving, setSaving] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [{ data }, remoteGateway] = await Promise.all([
+        apiClient.tenant.get(tenantId),
+        apiClient.transactions.gateways(),
+      ]);
+      setActiveGateway(remoteGateway.find(g => g.gateway.id === data.paymentGateway.gateway)?.gateway.name)
+      setGeneral(data.settings);
+      setGateways(remoteGateway);
+    } catch { }
+  }, [tenantId]);
 
   useEffect(() => {
     if (user) {
@@ -61,16 +71,18 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
     }
   }, [user]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function handleSaveGeneral() {
-    if(!user) return;
+    if (!user) return;
     setSaving(true);
     try {
       await apiClient.tenant.updateSettings(general, user!.tenantId!);
       toast({ title: "General settings saved" });
     } catch (error) {
-      console.error(error)
+      console.error(error);
       toast({ title: "Saved locally", variant: "destructive" });
     } finally {
       setSaving(false);
@@ -82,7 +94,11 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
     try {
       await apiClient.auth.updateProfile(profile);
       toast({ title: "Profile updated" });
-      setProfile((p) => ({ ...p, currentPassword: "", newPassword: "" }));
+      setProfile((p) => ({
+        ...p,
+        currentPassword: "",
+        newPassword: "",
+      }));
     } catch {
       toast({ title: "Error updating profile", variant: "destructive" });
     } finally {
@@ -90,14 +106,68 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
     }
   }
 
+  const selectedGateway = gateways.find(
+    (g) => g.gateway.id === payment.gateway
+  );
+
+  function isPaymentValid(): boolean {
+    if (!selectedGateway) return false;
+
+    return selectedGateway.fields.every((field) => {
+      const value = payment.values[field.name];
+      return typeof value === "string" && value.trim().length > 0;
+    });
+  }
+
+  function handleGatewayChange(gatewayId: string) {
+    const gw = gateways.find((g) => g.gateway.id === gatewayId);
+
+    const initialValues: Record<string, string> = {};
+
+    gw?.fields.forEach((f) => {
+      initialValues[f.name] = "";
+    });
+
+    setPayment({
+      gateway: gatewayId,
+      values: initialValues,
+    });
+  }
+
   async function handleSavePayment() {
-    if(!user) return;
+    if (!user) return;
+
+    if (!isPaymentValid()) {
+      toast({
+        title: "Please fill all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSavingPayment(true);
+
     try {
-      await apiClient.tenant.updateSettings({ paymentGateway: payment }, user!.tenantId!);
+      await apiClient.tenant.updateSettings(
+        {
+          paymentGateway: {
+            gateway: payment.gateway,
+            auths: payment.values,
+          },
+        },
+        user!.tenantId!
+      );
+      setPayment({
+        gateway: "",
+        values: {},
+      });
+      load();
       toast({ title: "Gateway settings saved" });
     } catch {
-      toast({ title: "Error saving gateway settings", variant: "destructive" });
+      toast({
+        title: "Error saving gateway settings",
+        variant: "destructive",
+      });
     } finally {
       setSavingPayment(false);
     }
@@ -112,9 +182,8 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
         </p>
       </div>
 
-      {/* 6-column layout */}
       <div className="grid grid-cols-6 gap-6">
-        {/* General */}
+        {/* GENERAL */}
         <Card className="col-span-6 md:col-span-3">
           <CardHeader>
             <CardTitle className="text-base">General</CardTitle>
@@ -122,6 +191,7 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
               Currency and timezone preferences
             </CardDescription>
           </CardHeader>
+
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Currency</Label>
@@ -160,12 +230,13 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
           </CardContent>
         </Card>
 
-        {/* Profile */}
+        {/* PROFILE */}
         <Card className="col-span-6 md:col-span-3">
           <CardHeader>
             <CardTitle className="text-base">Profile</CardTitle>
             <CardDescription>Your personal account details</CardDescription>
           </CardHeader>
+
           <CardContent className="flex flex-col gap-4">
             <Input
               placeholder="Full Name"
@@ -174,6 +245,7 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
                 setProfile((p) => ({ ...p, name: e.target.value }))
               }
             />
+
             <Input
               type="email"
               placeholder="Email"
@@ -219,78 +291,59 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
           </CardContent>
         </Card>
 
-        {/* Payment */}
-
+        {/* PAYMENT */}
         <Card className="col-span-6 md:col-span-3">
           <CardHeader>
             <CardTitle className="text-base">Payment & Gateway</CardTitle>
             <CardDescription>
-              Configure your payment provider credentials
+              Configure your payment provider credentials {activeGateway ? `, right now ${activeGateway} is configured` : ""}
             </CardDescription>
           </CardHeader>
+
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Gateway</Label>
               <select
                 className="border rounded-md h-10 px-3 text-sm"
                 value={payment.gateway}
-                onChange={(e) =>
-                  setPayment((p) => ({ ...p, gateway: e.target.value }))
-                }
+                onChange={(e) => handleGatewayChange(e.target.value)}
               >
                 <option value="">Select gateway</option>
-                <option value="selcom">Selcom</option>
-                <option value="palmpesa">PalmPesa</option>
-                <option value="azampesa">AzamPesa</option>
+                {gateways.map((g) => (
+                  <option key={g.gateway.id} value={g.gateway.id}>
+                    {g.gateway.name}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {payment.gateway && (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <Label>Username / Account ID</Label>
+            {selectedGateway &&
+              selectedGateway.fields.map((field) => (
+                <div key={field.name} className="flex flex-col gap-1.5">
+                  <Label className="capitalize">{field.name}</Label>
                   <Input
-                    value={payment.account}
+                    placeholder={field.placeholder}
+                    value={payment.values[field.name] || ""}
                     onChange={(e) =>
                       setPayment((p) => ({
                         ...p,
-                        account: e.target.value,
+                        values: {
+                          ...p.values,
+                          [field.name]: e.target.value,
+                        },
                       }))
                     }
                   />
                 </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label>Password</Label>
-                  <Input
-                    type="password"
-                    value={payment.password}
-                    onChange={(e) =>
-                      setPayment((p) => ({
-                        ...p,
-                        password: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label>Token</Label>
-                  <Input
-                    value={payment.token}
-                    onChange={(e) =>
-                      setPayment((p) => ({
-                        ...p,
-                        token: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </>
-            )}
+              ))}
 
             <div className="flex justify-end">
-              <Button onClick={handleSavePayment} disabled={savingPayment}>
+              <Button
+                onClick={handleSavePayment}
+                disabled={
+                  savingPayment || !isPaymentValid() || !payment.gateway
+                }
+              >
                 <Save className="h-4 w-4 mr-2" />
                 {savingPayment ? "Saving…" : "Save Payment Settings"}
               </Button>
@@ -298,8 +351,6 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
           </CardContent>
         </Card>
       </div>
-
-
     </div>
   );
 }

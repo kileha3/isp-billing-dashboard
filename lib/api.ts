@@ -10,6 +10,7 @@ import type {
   Tenant,
   Invoice,
   HotspotSession,
+  GatewayConfig,
 } from "@/lib/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
@@ -309,6 +310,11 @@ export const apiClient = {
     recent: () => {
       return req<{ data: Transaction[] }>(`/payments/recent`);
     },
+
+    gateways: () => {
+      return req<Array<GatewayConfig>>(`/payments/gateways`);
+    },
+
   },
 
   sessions: {
@@ -421,40 +427,6 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify({ password }),
       }),
-  },
-
-  peers: {
-    list: (params?: Record<string, string>) =>
-      req<{ peers: Peer[] }>(
-        `/peers${params ? "?" + new URLSearchParams(params) : ""}`,
-      ),
-
-    create: (
-      data: Pick<Peer, "mac" | "ip" | "tenantId"> & {
-        hostname?: string;
-        routerId?: string;
-        status?: Peer["status"];
-      },
-    ) =>
-      req<{ peer: Peer }>("/peers", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-
-    update: (
-      id: string,
-      data: Partial<Omit<Peer, "_id" | "createdAt" | "updatedAt">>,
-    ) =>
-      req<{ peer: Peer }>(`/peers/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
-
-    delete: (id: string) =>
-      req<{ message: string }>(`/peers/${id}`, { method: "DELETE" }),
-
-    release: (id: string) =>
-      req<{ peer: Peer }>(`/peers/${id}/release`, { method: "POST" }),
   },
 
   portal: {

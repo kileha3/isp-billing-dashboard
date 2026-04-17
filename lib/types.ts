@@ -48,6 +48,7 @@ export interface Tenant {
   support: TenantPortalSettings["support"];
   portalSettings: TenantPortalSettings["portalSettings"];
   settings: { currency: string; timezone: string };
+  paymentGateway: { gateway: string };
   status: "active" | "suspended";
   createdAt: string;
   updatedAt: string;
@@ -200,8 +201,6 @@ export interface HotspotSession {
   username: string;
 }
 
-export interface Tenant {}
-
 export type PeerStatus = "assigned" | "available" | "reserved" | "blocked";
 
 export interface Peer {
@@ -240,4 +239,19 @@ export interface DashboardStats {
     createdAt: string;
     packageId?: { name: string };
   }[];
+}
+
+export interface GatewayField {
+  name: string;
+  placeholder: string;
+}
+
+export interface Gateway {
+  id: string;
+  name: string;
+}
+
+export interface GatewayConfig {
+  gateway: Gateway;
+  fields: GatewayField[];
 }
