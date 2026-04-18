@@ -317,6 +317,12 @@ export default function RoutersPage() {
     await apiClient.routers.checkStatus(routerId);
   }
 
+  async function resetDevice(routerId?: string) {
+    if (!routerId) return;
+    const { success } = await apiClient.routers.resetDevice(routerId);
+    toast({ description: success ? "The device has been reset successfully" : "Failed to reset the device, try again" })
+  }
+
   const isCombinedActive = selectedType === "Combined" || serviceInterfaces?.type === "combined";
 
   const handleSelectInterface = (ifaceName: string) => {
@@ -473,6 +479,10 @@ export default function RoutersPage() {
                 {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Sync Device
+                </DropdownMenuItem>)}
+                {r.isActive && r.status === "online" && (<DropdownMenuItem onClick={() => resetDevice(r._id)}>
+                  <RefreshCcwDot className="mr-2 h-4 w-4" />
+                  Reset Device
                 </DropdownMenuItem>)}
                 {isSuperAdmin && (<DropdownMenuItem onClick={() => handleChangeState(r)}>
                   {r.isActive ? (<X className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}

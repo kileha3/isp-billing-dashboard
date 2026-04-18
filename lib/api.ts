@@ -216,6 +216,12 @@ export const apiClient = {
         body: JSON.stringify({ id }),
       }),
 
+    resetDevice: (routerId: string) =>
+      req<{success: boolean}>("/routers/reset", {
+        method: "POST",
+        body: JSON.stringify({ routerId }),
+      }),
+
     update: (id: string, data: Partial<RouterDevice>) =>
       req<{ data: RouterDevice }>(`/routers/${id}`, {
         method: "PATCH",
