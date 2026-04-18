@@ -320,7 +320,7 @@ export default function RoutersPage() {
   async function resetDevice(routerId?: string) {
     if (!routerId) return;
     const { success } = await apiClient.routers.resetDevice(routerId);
-    toast({ description: success ? "The device has been reset successfully" : "Failed to reset the device, try again" })
+    toast({ title:`Device reset`, description: success ? "The device has been reset successfully" : "Failed to reset the device, try again" })
   }
 
   const isCombinedActive = selectedType === "Combined" || serviceInterfaces?.type === "combined";
@@ -813,7 +813,7 @@ export default function RoutersPage() {
           setRouterToDelete(null);
           try {
             const { message } = await apiClient.routers.delete(routerId);
-            toast({ title: message });
+            toast({title:"Device deletion", description: message });
             load();
           } catch {
             toast({ title: "Error", description: "Failed to delete router.", variant: "destructive" });

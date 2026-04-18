@@ -174,11 +174,11 @@ export default function PackagesPage() {
     try {
       if (editTarget) {
         await apiClient.packages.update(editTarget._id, payload);
-        toast({ title: "Package updated" });
+        toast({ title: "Package updates", description:"Package was updated successfully" });
         load();
       } else {
         await apiClient.packages.create(payload);
-        toast({ title: "Package created" });
+        toast({ title: "Package creation", description:"Package created successfully" });
       }
       setShowDialog(false);
       load();
@@ -512,7 +512,7 @@ export default function PackagesPage() {
           setPackageToDelete(null);
           try {
             const { message } = await apiClient.packages.delete(packageId);
-            toast({ title: message });
+            toast({ description: message , title:"Package deletion"});
             load();
           } catch {
             toast({ title: "Error", description: "Failed to delete package.", variant: "destructive" });
