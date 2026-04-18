@@ -210,6 +210,12 @@ export const apiClient = {
         body: JSON.stringify(data),
       }),
 
+    whileListAp: (data: {routerId: string ; name: string; mac: string;}) =>
+      req<{ data: RouterDevice }>("/routers/whitelist", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
     checkStatus: (id: string) =>
       req<any>("/routers/status", {
         method: "POST",

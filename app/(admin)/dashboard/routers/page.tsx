@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil, Network } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,11 @@ interface WizardState {
   pollingStatus: "waiting" | "connected" | "timeout";
   canClose: boolean;
 }
+
+type WhitelistForm = {
+  name: string;
+  mac: string;
+};
 
 const STEP_LABELS: Record<WizardStep, string> = {
   basic: "Details",
@@ -121,10 +126,52 @@ export default function RoutersPage() {
   const { routerEvent, isConnected } = useRouterEvents("router_status_check");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
-
+  const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
   const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "" });
   const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof typeof basicForm, string>>>({});
   const [submittingBasic, setSubmittingBasic] = useState(false);
+
+
+  const [whitelistForm, setWhitelistForm] = useState<WhitelistForm>({
+    name: "",
+    mac: "",
+  });
+
+  const [whitelistErrors, setWhitelistErrors] = useState<Partial<WhitelistForm>>(
+    {}
+  );
+
+  const isValidMac = (mac: string) =>
+    /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(mac);
+
+  const handleWhitelist = async () => {
+    const errors: Partial<WhitelistForm> = {};
+
+    if (!whitelistForm.name.trim()) {
+      errors.name = "Name is required";
+    }
+
+    if (!whitelistForm.mac.trim()) {
+      errors.mac = "MAC address is required";
+    } else if (!isValidMac(whitelistForm.mac)) {
+      errors.mac = "Invalid MAC address format";
+    }
+
+    setWhitelistErrors(errors);
+
+    if (Object.keys(errors).length > 0) return;
+
+    await apiClient.routers.whileListAp({routerId: routerToAddWhiteList!._id, ...whitelistForm})
+
+    // reset + close
+    setWhitelistForm({ name: "", mac: "" });
+    setRouterToAddWhiteList(null);
+    toast({title:"AP Whitelisting", description:'You have successfully whitelisted an access point'})
+  };
+
+  const isFormValid =
+    whitelistForm.name.trim().length > 0 &&
+    isValidMac(whitelistForm.mac);
 
   const [wizard, setWizard] = useState<WizardState>({
     step: "basic",
@@ -320,7 +367,7 @@ export default function RoutersPage() {
   async function resetDevice(routerId?: string) {
     if (!routerId) return;
     const { success } = await apiClient.routers.resetDevice(routerId);
-    toast({ title:`Device reset`, description: success ? "The device has been reset successfully" : "Failed to reset the device, try again" })
+    toast({ title: `Device reset`, description: success ? "The device has been reset successfully" : "Failed to reset the device, try again" })
   }
 
   const isCombinedActive = selectedType === "Combined" || serviceInterfaces?.type === "combined";
@@ -475,6 +522,10 @@ export default function RoutersPage() {
                 <DropdownMenuItem onClick={() => openWizardForSetup(r)}>
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRouterToAddWhiteList(r)}>
+                  <Router className="mr-2 h-4 w-4" />
+                  Whitelist AP
                 </DropdownMenuItem>
                 {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
@@ -802,6 +853,71 @@ export default function RoutersPage() {
         </DialogContent>
       </Dialog>
 
+
+      {routerToAddWhiteList && (<Dialog open={routerToAddWhiteList != null} onOpenChange={() => setRouterToAddWhiteList(null)}>
+        <DialogContent className="w-full max-w-3xl sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Whitelist Access Point</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Name */}
+            <div className="flex flex-col gap-1.5">
+              <Label>
+                AP Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="e.g. Main Gateway AP"
+                value={whitelistForm.name}
+                onChange={(e) => {
+                  setWhitelistForm((f) => ({ ...f, name: e.target.value }));
+                  setWhitelistErrors((er) => ({ ...er, name: undefined }));
+                }}
+              />
+              {whitelistErrors.name && (
+                <p className="text-xs text-destructive">
+                  {whitelistErrors.name}
+                </p>
+              )}
+            </div>
+
+            {/* MAC */}
+            <div className="flex flex-col gap-1.5">
+              <Label>
+                MAC Address <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="e.g. 9C:E5:49:62:DC:9C"
+                value={whitelistForm.mac}
+                onChange={(e) => {
+                  setWhitelistForm((f) => ({ ...f, mac: e.target.value }));
+                  setWhitelistErrors((er) => ({ ...er, mac: undefined }));
+                }}
+              />
+              {whitelistErrors.mac && (
+                <p className="text-xs text-destructive">
+                  {whitelistErrors.mac}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setRouterToAddWhiteList(null)}
+            >
+              Cancel
+            </Button>
+
+            <Button disabled={!isFormValid} onClick={handleWhitelist}>
+              Whitelist Now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>)}
+
       {routerToDelete && (<ConfirmDialog
         open={routerToDelete !== null}
         title="Delete Router"
@@ -813,7 +929,7 @@ export default function RoutersPage() {
           setRouterToDelete(null);
           try {
             const { message } = await apiClient.routers.delete(routerId);
-            toast({title:"Device deletion", description: message });
+            toast({ title: "Device deletion", description: message });
             load();
           } catch {
             toast({ title: "Error", description: "Failed to delete router.", variant: "destructive" });
