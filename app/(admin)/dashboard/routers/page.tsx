@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, WifiSync, BrushCleaning, Grid2X2Plus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -520,11 +520,11 @@ export default function RoutersPage() {
                   Edit Router
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => openWizardForSetup(r)}>
-                  <Settings2 className="mr-2 h-4 w-4" />
+                  <Workflow className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
                 {r.isActive && r.status === "online" && (<DropdownMenuItem onClick={() => setRouterToAddWhiteList(r)}>
-                  <Router className="mr-2 h-4 w-4" />
+                  <Grid2X2Plus className="mr-2 h-4 w-4" />
                   Whitelist AP
                 </DropdownMenuItem>)}
                 {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
@@ -532,11 +532,11 @@ export default function RoutersPage() {
                   Sync Device
                 </DropdownMenuItem>)}
                 {r.isActive && r.status === "online" && (<DropdownMenuItem onClick={() => resetDevice(r._id)}>
-                  <RefreshCcwDot className="mr-2 h-4 w-4" />
+                  <BrushCleaning className="mr-2 h-4 w-4" />
                   Reset Device
                 </DropdownMenuItem>)}
                 {isSuperAdmin && (<DropdownMenuItem onClick={() => handleChangeState(r)}>
-                  {r.isActive ? (<X className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
+                  {r.isActive ? (<RouteOff className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
                   {r.isActive ? "Deactivate" : "Activate"}
                 </DropdownMenuItem>)}
                 {isSuperAdmin && (<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Download, Printer, Filter, MoreHorizontal, Trash2, LockIcon, Lock } from "lucide-react";
+import { Plus, Download, Printer, Filter, MoreHorizontal, Trash2, LockIcon, Lock, RefreshCw } from "lucide-react";
 import type { Voucher, Package } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -141,7 +141,8 @@ export default function VouchersPage() {
 
   const generateValid = generateSchema.safeParse(form).success;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading: boolean = true) => {
+    setLoading(showLoading);
     try {
       const [vData, pData] = await Promise.all([
         apiClient.vouchers.list(),
@@ -271,7 +272,8 @@ export default function VouchersPage() {
         emptyMessage="No vouchers yet. Generate some to get started."
         pageSize={10}
         filterSlot={
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
+          <div className="flex flex-row gap-2">
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
             <SelectTrigger className="h-10 w-40 bg-background">
               <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               <SelectValue />
@@ -283,6 +285,12 @@ export default function VouchersPage() {
               <SelectItem value="expired">Expired</SelectItem>
             </SelectContent>
           </Select>
+
+          <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                        Refresh
+                      </Button>
+          </div>
         }
         actions={(row) => {
           const voucher = row as unknown as Voucher;

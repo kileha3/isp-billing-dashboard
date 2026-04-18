@@ -15,7 +15,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LogOut, Settings, Bell, CheckCheck, WifiOff, Router, CreditCard, Package, AlertCircle } from "lucide-react";
+import { LogOut, Settings, Bell, CheckCheck, WifiOff, Router, CreditCard, Package, AlertCircle, SettingsIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api";
@@ -42,6 +42,7 @@ const notificationIconMap = {
   session_expired: <AlertCircle />,
   payment_success: <CreditCard />,
   payment_failed: <AlertCircle />,
+  setup_complete: <SettingsIcon/>
 }
 
 export function AdminHeader() {
