@@ -523,10 +523,10 @@ export default function RoutersPage() {
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setRouterToAddWhiteList(r)}>
+                {r.isActive && r.status === "online" && (<DropdownMenuItem onClick={() => setRouterToAddWhiteList(r)}>
                   <Router className="mr-2 h-4 w-4" />
                   Whitelist AP
-                </DropdownMenuItem>
+                </DropdownMenuItem>)}
                 {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Sync Device
