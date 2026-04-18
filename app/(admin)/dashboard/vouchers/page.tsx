@@ -17,12 +17,102 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useRouterEvents } from "@/hooks/use-router-event";
+import { pdf, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
 const generateSchema = z.object({
   packageId: z.string().min(1, "Select a package"),
   quantity: z.coerce.number().int().min(1, "At least 1").max(500, "Max 500"),
   prefix: z.string().max(10, "Max 10 chars").optional(),
 });
+
+const VoucherPDF = ({
+  vouchers,
+  columns = 4,
+  rowsPerPage = 15,
+}: {
+  vouchers: Voucher[];
+  columns?: number;
+  rowsPerPage?: number;
+}) => {
+  const safeColumns = Math.min(Math.max(columns, 1), 8);
+  const safeRows = Math.min(Math.max(rowsPerPage, 1), 40);
+
+  const perPage = safeColumns * safeRows;
+
+  const pages: Voucher[][] = [];
+  for (let i = 0; i < vouchers.length; i += perPage) {
+    pages.push(vouchers.slice(i, i + perPage));
+  }
+
+  const BASE_COLUMNS = 5;
+  const BASE_ROWS = 28;
+  const BASE_FONT = 10;
+  const BASE_PADDING = 8;
+
+  const baseCells = BASE_COLUMNS * BASE_ROWS;
+  const currentCells = safeColumns * safeRows;
+  const density = currentCells / baseCells;
+
+  const fontSize = Math.min(14, Math.max(6, BASE_FONT / Math.sqrt(density)));
+  const padding = Math.min(13, Math.max(2, BASE_PADDING / Math.cbrt(density)));
+  const cellPadding = Math.max(1, padding * 0.6);
+
+  const cellWidth = `${100 / safeColumns}%`;
+
+  const styles = StyleSheet.create({
+    page: {
+      padding: 10,
+      flexDirection: "column",
+    },
+    row: {
+      flexDirection: "row",
+      width: "100%",
+    },
+    cell: {
+      width: cellWidth,
+      padding: cellPadding,
+    },
+    box: {
+      border: "1px solid #000",
+      padding,
+      textAlign: "center",
+    },
+    code: {
+      fontSize,
+      letterSpacing: 1,
+    },
+  });
+
+  return (
+    <Document>
+      {pages.map((page, pageIndex) => {
+        const rows: Voucher[][] = [];
+
+        for (let i = 0; i < page.length; i += safeColumns) {
+          rows.push(page.slice(i, i + safeColumns));
+        }
+
+        return (
+          <Page key={pageIndex} size="A4" style={styles.page}>
+            {rows.map((row, rIndex) => (
+              <View key={rIndex} style={styles.row}>
+                {row.map((v, i) => (
+                  <View key={i} style={styles.cell}>
+                    <View style={styles.box}>
+                      <Text style={styles.code}>
+                        {(v.code || "").toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </Page>
+        );
+      })}
+    </Document>
+  );
+};
 
 
 export default function VouchersPage() {
@@ -31,13 +121,25 @@ export default function VouchersPage() {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showGenerate, setShowGenerate] = useState(false);
   const [form, setForm] = useState({ packageId: "", quantity: "10", prefix: "" });
-  const [submitting, setSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [voucherToDelete, setVoucherToDelete] = useState<Voucher | null>(null)
   const [voucherToRevoke, setVoucherToRevoke] = useState<Voucher | null>(null)
-   const { routerEvent, isConnected } = useRouterEvents("voucher_consumed_status");
+  const { routerEvent, isConnected } = useRouterEvents("voucher_consumed_status");
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [printConfig, setPrintConfig] = useState({
+    columns: 4,
+    rowsPerPage: 16,
+  });
+
+  const totalPerPage =
+    (Number(printConfig.columns) || 5) *
+    (Number(printConfig.rowsPerPage) || 28);
+
+  const generateValid = generateSchema.safeParse(form).success;
 
   const load = useCallback(async () => {
     try {
@@ -79,30 +181,37 @@ export default function VouchersPage() {
     }
   }
 
-  async function handleExport() {
-    try {
-      const data = await apiClient.vouchers.export();
-      const blob = new Blob([data], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "vouchers.csv";
-      a.click();
-    } catch {
-      // fallback: CSV from mock
-      const csv = ["Code,Package,Status,Created",
-        ...vouchers.map(v => `${v.code},${(v.packageId as { name: string })?.name ?? ""},${v.status},${new Date(v.createdAt).toLocaleDateString()}`)
-      ].join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "vouchers.csv";
-      a.click();
-      toast({ title: "Exported vouchers as CSV" });
-    }
-  }
+  async function handlePrint() {
+    setShowPrintDialog(false);
 
+    const columns = Number(printConfig.columns) || 5;
+    const rowsPerPage = Number(printConfig.rowsPerPage) || 28;
+
+    const _vouchers = vouchers.filter((v) => v.status === "unused");
+
+    if (_vouchers.length === 0) {
+      toast({ description: "No vouchers to print" });
+      return;
+    }
+
+    const blob = await pdf(
+      <VoucherPDF
+        vouchers={_vouchers}
+        columns={columns}
+        rowsPerPage={rowsPerPage}
+      />
+    ).toBlob();
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "vouchers.pdf";
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    toast({ title: "PDF ready" });
+  }
 
 
   const columns = [
@@ -126,7 +235,6 @@ export default function VouchersPage() {
   ];
 
   const filteredVouchers = statusFilter === "all" ? vouchers : vouchers.filter(v => v.status === statusFilter);
-  const generateValid = generateSchema.safeParse({ ...form }).success;
 
 
 
@@ -140,9 +248,11 @@ export default function VouchersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
+         
+
+          <Button variant="outline" onClick={() => setShowPrintDialog(true)}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print Vouchers
           </Button>
           <Button onClick={() => setShowGenerate(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -187,7 +297,7 @@ export default function VouchersPage() {
                 {voucher.status === "used" && (<DropdownMenuItem onClick={() => setVoucherToRevoke(row as unknown as Voucher)}>
                   <Lock className="mr-2 h-4 w-4" />Revoke Access
                 </DropdownMenuItem>)}
-               {voucher.status !== "used" && ( <DropdownMenuItem className="text-destructive" onClick={() => setVoucherToDelete(row as unknown as Voucher)}>
+                {voucher.status !== "used" && (<DropdownMenuItem className="text-destructive" onClick={() => setVoucherToDelete(row as unknown as Voucher)}>
                   <Trash2 className="mr-2 h-4 w-4" />Delete
                 </DropdownMenuItem>)}
               </DropdownMenuContent>
@@ -253,7 +363,7 @@ export default function VouchersPage() {
       {voucherToRevoke && (<ConfirmDialog
         open={voucherToRevoke !== null}
         title="Revoke Access"
-        message={`Are you sure you want to revoke clients with code ${voucherToRevoke!.code} access?`}
+        message={`Are you sure you want to revoke clients with code ${voucherToDelete!.code} access?`}
         variant="destructive"
         onCancel={() => setVoucherToRevoke(null)}
         onConfirm={async () => {
@@ -268,6 +378,61 @@ export default function VouchersPage() {
           }
         }}
       />)}
+
+      <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Print Settings</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <div>
+              <Label>Columns</Label>
+              <Input
+                type="number"
+                value={printConfig.columns}
+                onChange={(e) =>
+                  setPrintConfig((p) => ({
+                    ...p,
+                    columns:
+                      e.target.value === ""
+                        ? ("" as any)
+                        : Number(e.target.value),
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Rows</Label>
+              <Input
+                type="number"
+                value={printConfig.rowsPerPage}
+                onChange={(e) =>
+                  setPrintConfig((p) => ({
+                    ...p,
+                    rowsPerPage:
+                      e.target.value === ""
+                        ? ("" as any)
+                        : Number(e.target.value),
+                  }))
+                }
+              />
+            </div>
+            <div className="text-right text-xs text-muted-foreground">
+              Total per page
+              <div className="text-sm font-medium text-foreground">
+                {totalPerPage} / Page
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+
+            <Button onClick={handlePrint}>Print</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

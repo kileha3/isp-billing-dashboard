@@ -314,7 +314,6 @@ export const apiClient = {
     gateways: () => {
       return req<Array<GatewayConfig>>(`/payments/gateways`);
     },
-
   },
 
   sessions: {
@@ -324,15 +323,15 @@ export const apiClient = {
       ),
 
     disconnect: (id: string) =>
-      req<{ message: string }>(`/sessions/${id}/disconnect`, {
+      req<{ success: boolean }>(`/sessions/${id}/disconnect`, {
         method: "POST",
       }),
 
     clearMac: (id: string) =>
-      req<{ message: string }>(`/sessions/${id}/clear-mac`, { method: "POST" }),
+      req<{ success: boolean }>(`/sessions/${id}/clearmac`, { method: "POST" }),
 
     changePackage: (id: string, packageId: string) =>
-      req<{ message: string }>(`/sessions/${id}/change-package`, {
+      req<{ success: boolean }>(`/sessions/${id}/changepackage`, {
         method: "POST",
         body: JSON.stringify({ packageId }),
       }),
@@ -374,7 +373,7 @@ export const apiClient = {
     list: () => req<{ data: import("@/lib/types").Tenant[] }>("/tenants"),
 
     create: (data: { name: string; adminName: string; adminEmail: string }) =>
-      req<{ data: { message: string; success: boolean; tenantId: string } }>(
+      req<{message: string; success: boolean; tenantId: string}>(
         "/tenants",
         {
           method: "POST",

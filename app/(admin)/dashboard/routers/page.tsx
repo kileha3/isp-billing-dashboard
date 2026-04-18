@@ -137,8 +137,9 @@ export default function RoutersPage() {
     canClose: true,
   });
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading: boolean = true) => {
     try {
+      setLoading(showLoading);
       const { data } = await apiClient.routers.list();
       const inProgressRouter = data.find(router => router._id === wizard.router?._id);
       if (showWizard && wizard.mode === "setup" && inProgressRouter) {
@@ -445,6 +446,10 @@ export default function RoutersPage() {
                 <SelectItem value="false">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
           </div>
         }
         actions={(row) => {
@@ -465,7 +470,7 @@ export default function RoutersPage() {
                   <Settings2 className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
-                {r.isActive  && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
+                {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Sync Device
                 </DropdownMenuItem>)}
@@ -473,10 +478,10 @@ export default function RoutersPage() {
                   {r.isActive ? (<X className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
                   {r.isActive ? "Deactivate" : "Activate"}
                 </DropdownMenuItem>)}
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>
+                {isSuperAdmin && (<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
-                </DropdownMenuItem>
+                </DropdownMenuItem>)}
               </DropdownMenuContent>
             </DropdownMenu>
           );

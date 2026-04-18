@@ -66,7 +66,7 @@ type PackageForm = {
 
 const DEFAULT_FORM: PackageForm = {
   name: "", description: "", price: 1000, duration: "", durationUnit: "hours", isFree: false,
-  dataLimit: "", speedLimit: "", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
+  dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
 };
 
 export default function PackagesPage() {

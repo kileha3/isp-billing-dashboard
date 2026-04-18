@@ -42,10 +42,10 @@ export default function SessionsPage() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [acting, setActing] = useState(false);
 
-  const load = useCallback(async (forceLoad: boolean = true) => {
-    if(forceLoad) setLoading(true);
+  const load = useCallback(async (showLoading: boolean = true) => {
+    setLoading(showLoading);
     try {
-      const [_sessions, {data: _packages}] = await Promise.all([apiClient.sessions.list(), apiClient.packages.list()]);
+      const [_sessions, { data: _packages }] = await Promise.all([apiClient.sessions.list(), apiClient.packages.list()]);
       setSessions(_sessions);
       setPackages(_packages);
     } catch {
@@ -61,18 +61,17 @@ export default function SessionsPage() {
     if (!actionState) return;
     setActing(true);
     const { type, session, selectedPackageId } = actionState;
-    toast({description: "Comming soon...."})
-   /*  try {
+    try {
       if (type === "kick") {
-        await apiClient.sessions.disconnect(session._id);
-        toast({ title: "User kicked out", description: `Session for ${session.macAddress} disconnected.` });
+        const { success } = await apiClient.sessions.disconnect(session._id);
+        toast({ title: success ? "User kicked out" : undefined, description: success ? `Session for ${session.network.ip} disconnected.` : "Failed to kick out user, try again" });
       } else if (type === "clear_mac") {
-        await apiClient.sessions.clearMac(session._id);
-        toast({ title: "MAC address cleared", description: `${session.macAddress} has been cleared from the router.` });
+        const { success } = await apiClient.sessions.clearMac(session._id);
+        toast({ title: success ? "MAC address cleared" : undefined, description: success ? `${session.network.mac} has been cleared from the router.` : "Failed to clear MAC address, try again later" });
       } else if (type === "change_package" && selectedPackageId) {
-        await apiClient.sessions.changePackage(session._id, selectedPackageId);
+        const { success } = await apiClient.sessions.changePackage(session._id, selectedPackageId);
         const pkg = packages.find(p => p._id === selectedPackageId);
-        toast({ title: "Package changed", description: `Switched to ${pkg?.name ?? selectedPackageId}.` });
+        toast({ title: success ? "Package changed" : undefined, description: success ? `Switched to ${pkg?.name ?? selectedPackageId}.` : "Failed to change package try again later" });
       }
       setActionState(null);
       load();
@@ -80,8 +79,8 @@ export default function SessionsPage() {
       toast({ title: "Error", description: "Action failed. Please try again.", variant: "destructive" });
     } finally {
       setActing(false);
-    } */
-   setActionState(null);
+    }
+    setActionState(null);
   }
 
   const active = sessions.filter(s => s.status === "online");
@@ -90,13 +89,15 @@ export default function SessionsPage() {
   const columns = [
     { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac },
     { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => <code className="text-xs font-mono">{(row as HotspotSession).network.ip}</code> },
-    { key: "routerId", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})`},
-    { key: "packageId", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name},
+    { key: "routerId", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})` },
+    { key: "packageId", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     { key: "startTime", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
-    { key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
-      const sess = row as HotspotSession;
-      return formatBytes(Number(sess.usage.output + sess.usage.input)) 
-    }},
+    {
+      key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
+        const sess = row as HotspotSession;
+        return formatBytes(Number(sess.usage.output + sess.usage.input))
+      }
+    },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
   ];
 
@@ -156,7 +157,7 @@ export default function SessionsPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={() => setActionState({ type: "change_package", session: s, selectedPackageId: s.package.id})}
+                  onClick={() => setActionState({ type: "change_package", session: s, selectedPackageId: s.package.id })}
                 >
                   <PackageOpen className="mr-2 h-4 w-4" />
                   Change Package
