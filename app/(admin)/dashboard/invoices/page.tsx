@@ -14,10 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAuth } from "@/lib/auth-context";
-import { useRouterEvents } from "@/hooks/use-socket-event";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { phoneSchema } from "@/components/portal/PackageGrid";
+import { useSocketEvents } from "@/hooks/use-socket-event";
 
 
 export default function InvoicesPage() {
@@ -30,7 +30,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showClearInvoice, setShowClearInvoice] = useState<Invoice | null>(null);
   const [invoiceToUpdate, setInvoiceToUpdate] = useState<Invoice | null>(null);
-  const { routerEvent, isConnected } = useRouterEvents("invoice_status_change", isSuperAdmin);
+  const { socketEvent, isConnected } = useSocketEvents("invoice_status_change",null, isSuperAdmin);
   const [phone, setPhone] = useState("");
   const phoneResult = phoneSchema.safeParse(phone);
   const phoneError = phone.length > 0 && !phoneResult.success
@@ -51,8 +51,8 @@ export default function InvoicesPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (routerEvent) load();
-  }, [routerEvent, isConnected]);
+    if (socketEvent) load();
+  }, [socketEvent, isConnected]);
 
 
   const columns = [
