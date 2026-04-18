@@ -10,14 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Download, Printer, Filter, MoreHorizontal, Trash2, LockIcon, Lock, RefreshCw } from "lucide-react";
+import { Plus, Printer, Filter, MoreHorizontal, Trash2, Lock, RefreshCw } from "lucide-react";
 import type { Voucher, Package } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useRouterEvents } from "@/hooks/use-router-event";
 import { pdf, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { useSocketEvents } from "@/hooks/use-socket-event";
 
 const generateSchema = z.object({
   packageId: z.string().min(1, "Select a package"),
@@ -125,7 +125,7 @@ export default function VouchersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [voucherToDelete, setVoucherToDelete] = useState<Voucher | null>(null)
   const [voucherToRevoke, setVoucherToRevoke] = useState<Voucher | null>(null)
-  const { routerEvent, isConnected } = useRouterEvents("voucher_consumed_status");
+  const { socketEvent, isConnected } = useSocketEvents("voucher_consumed_status");
   const [showGenerate, setShowGenerate] = useState(false);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -161,8 +161,8 @@ export default function VouchersPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (routerEvent) load();
-  }, [routerEvent, isConnected]);
+    if (socketEvent) load();
+  }, [socketEvent, isConnected]);
 
   async function handleGenerate() {
     setSubmitting(true);

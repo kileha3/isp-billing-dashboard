@@ -3,19 +3,27 @@ import { useAuth } from "@/lib/auth-context";
 import SocketClient from "@/lib/socket.util";
 import { useEffect, useState } from "react";
 
-export interface RouterEvent {
-  tenantId: string;
+export interface SocketEvent {
+  id: string;
   event: string;
+  data: any;
 }
 
-export function useRouterEvents(event: string, broadcast: boolean = false) {
-  const [routerEvent, setRouterEvent] = useState<RouterEvent | null>(null);
+export function useSocketEvents(
+  event: string,
+  id: string | null = null,
+  broadcast: boolean = false,
+) {
+  const [socketEvent, setSocketEvent] = useState<SocketEvent | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    const handleMessage = (data: RouterEvent) => {
-      if ((user && data.tenantId === user.tenantId) || broadcast) setRouterEvent(data);
+    const handleMessage = (data: SocketEvent) => {
+      const idToCheck = id ?? user?.tenantId;
+      if (broadcast || data.id === "*" || (idToCheck && data.id === idToCheck)) {
+        setSocketEvent(data);
+      }
     };
 
     // Connect to socket if not connected
@@ -29,5 +37,5 @@ export function useRouterEvents(event: string, broadcast: boolean = false) {
     };
   }, [event]);
 
-  return { routerEvent,isConnected };
+  return { socketEvent, isConnected };
 }

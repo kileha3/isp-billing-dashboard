@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
 import { Polling } from "@/lib/pooling";
+import { useSocketEvents } from "@/hooks/use-socket-event";
 
 const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
@@ -205,6 +206,7 @@ export function CaptivePortalClient() {
   const [isVoucher, setIsVoucher] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [payState, setPayState] = useState<PayState>("idle");
+  const {socketEvent, isConnected} = useSocketEvents("payment_state_changed",nasName);
 
   const polling = new Polling({
     interval: 40 * 1000,
@@ -223,6 +225,10 @@ export function CaptivePortalClient() {
     setPayState(success && voucher ? "success" : "failure");
     setTimeout(() => resetUi, 4000);
   }
+
+  useEffect(() => {
+    if(socketEvent && socketEvent.id === nasName) alert("Payment completed");
+  }, [socketEvent, isConnected]);
 
 
   useEffect(() => {

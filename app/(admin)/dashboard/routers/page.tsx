@@ -19,8 +19,8 @@ import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useRouterEvents } from "@/hooks/use-router-event";
 import { Progress } from "@radix-ui/react-progress";
+import { useSocketEvents } from "@/hooks/use-socket-event";
 
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
@@ -123,7 +123,7 @@ export default function RoutersPage() {
   const [scriptCopied, setScriptCopied] = useState(false);
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
-  const { routerEvent, isConnected } = useRouterEvents("router_status_check");
+  const { socketEvent, isConnected } = useSocketEvents("router_status_check");
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
@@ -161,12 +161,12 @@ export default function RoutersPage() {
 
     if (Object.keys(errors).length > 0) return;
 
-    await apiClient.routers.whileListAp({routerId: routerToAddWhiteList!._id, ...whitelistForm})
+    await apiClient.routers.whileListAp({ routerId: routerToAddWhiteList!._id, ...whitelistForm })
 
     // reset + close
     setWhitelistForm({ name: "", mac: "" });
     setRouterToAddWhiteList(null);
-    toast({title:"AP Whitelisting", description:'You have successfully whitelisted an access point'})
+    toast({ title: "AP Whitelisting", description: 'You have successfully whitelisted an access point' })
   };
 
   const isFormValid =
@@ -188,9 +188,10 @@ export default function RoutersPage() {
     try {
       setLoading(showLoading);
       const { data } = await apiClient.routers.list();
-      const inProgressRouter = data.find(router => router._id === wizard.router?._id);
+      const inProgressRouter = data.find(router => router._id === (wizard.router?._id || socketEvent?.id));
       if (showWizard && wizard.mode === "setup" && inProgressRouter) {
         updateStatus(inProgressRouter);
+        setWizard((prev) => ({ ...prev, router: inProgressRouter, step: "interfaces" }))
       }
       setRouters(data);
     } catch {
@@ -213,8 +214,8 @@ export default function RoutersPage() {
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
 
   useEffect(() => {
-    if ((!showWizard || showWizard && wizard.mode === "setup") && routerEvent) load();
-  }, [routerEvent, isConnected]);
+    if ((!showWizard || showWizard && wizard.mode === "setup") && socketEvent) load();
+  }, [socketEvent, isConnected]);
 
   async function openWizardForCreate() {
     setSetupTarget(null);

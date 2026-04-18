@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAuth } from "@/lib/auth-context";
-import { useRouterEvents } from "@/hooks/use-router-event";
+import { useRouterEvents } from "@/hooks/use-socket-event";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { phoneSchema } from "@/components/portal/PackageGrid";
