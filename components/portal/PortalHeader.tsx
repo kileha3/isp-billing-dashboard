@@ -1,5 +1,6 @@
 import { Wifi } from "lucide-react";
 import type { TenantPortalSettings } from "@/lib/types";
+import { BASE } from "@/lib/api";
 
 interface PortalHeaderProps {
   config: TenantPortalSettings;
@@ -15,8 +16,8 @@ export function PortalHeader({ config }: PortalHeaderProps) {
     >
       {/* Logo */}
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 shrink-0 overflow-hidden">
-        {logo ? (
-          <img src={logo} alt={businessName} className="h-10 w-10 object-contain" />
+        {logo && logo.length > 9 ? (
+          <img src={`${BASE.replace("v1",`logos/${logo}`)}`} alt={businessName} className="h-10 w-10 object-contain" />
         ) : (
           <Wifi className="h-6 w-6 text-white" />
         )}
