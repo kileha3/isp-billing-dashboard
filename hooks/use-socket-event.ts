@@ -1,36 +1,54 @@
-// hooks/useRoomEvents.ts
-import { useAuth } from "@/lib/auth-context";
+import { useEffect, useRef, useState } from "react";
 import SocketClient from "@/lib/socket.util";
-import { useEffect, useState } from "react";
 
-export interface SocketEvent {
+export interface SocketEvent<T = any> {
   event: string;
-  data: any;
+  data: T;
 }
 
-export function useSocketEvents(
+export function useSocketEvents<T = any>(
   eventType: string,
-  match?: (data: any) =>  boolean,
-  broadcast: boolean = false,
+  match?: (data: T) => boolean,
+  broadcast: boolean = false
 ) {
-  const [socketEvent, setSocketEvent] = useState<SocketEvent | null>(null);
+  const [socketEvent, setSocketEvent] = useState<SocketEvent<T> | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { user } = useAuth();
+
+  // Keep latest match function without re-subscribing
+  const matchRef = useRef(match);
+  matchRef.current = match;
+
+  const broadcastRef = useRef(broadcast);
+  broadcastRef.current = broadcast;
 
   useEffect(() => {
-    const handleMessage = (event: SocketEvent) => {
-      console.dir({label:"kileha-soclet", event})
-      const matched = (match && match(event) || broadcast || event.data === "*") && event.event === eventType;
-      if (matched) setSocketEvent(event);
+    let isMounted = true;
+
+    const handleMessage = (event: SocketEvent<T>) => {
+      if (event.event !== eventType) return;
+
+      const shouldMatch =
+        broadcastRef.current ||
+        event.data === "*" ||
+        (matchRef.current ? matchRef.current(event.data) : true);
+
+      if (shouldMatch) {
+        setSocketEvent(event);
+      }
     };
 
-    // Connect to socket if not connected
-    SocketClient.connect().then(() => {
+    const init = async () => {
+      await SocketClient.connect();
+      if (!isMounted) return;
+
       setIsConnected(true);
       SocketClient.on(eventType, handleMessage);
-    });
+    };
+
+    init();
 
     return () => {
+      isMounted = false;
       SocketClient.off(eventType, handleMessage);
     };
   }, [eventType]);

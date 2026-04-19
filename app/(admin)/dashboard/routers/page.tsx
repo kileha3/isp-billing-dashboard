@@ -123,7 +123,6 @@ export default function RoutersPage() {
   const [scriptCopied, setScriptCopied] = useState(false);
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
-  const { socketEvent, isConnected } = useSocketEvents("router_status_check", (data: any) => data.routerId === routerId || user?.tenantId === data.tenantId, true);
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
@@ -209,6 +208,14 @@ export default function RoutersPage() {
 
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
 
+  const routerEventFilter = (data: {routerId: string; tenantId: string}) => {
+    console.log("kileha-match", data, data.routerId === routerId, data.tenantId === user?.tenantId)
+    return data.routerId === routerId || data.tenantId === user?.tenantId;
+  };
+
+  const { socketEvent } = useSocketEvents("router_status_check",routerEventFilter , true);
+  
+
   useEffect(() => {
     console.log("kileha-ui", socketEvent, routerId);
     if (socketEvent) {
@@ -223,7 +230,7 @@ export default function RoutersPage() {
         setRouterId(null);
       })
     };
-  }, [socketEvent, isConnected, routerId]);
+  }, [socketEvent, routerId]);
 
   async function openWizardForCreate() {
     setSetupTarget(null);
