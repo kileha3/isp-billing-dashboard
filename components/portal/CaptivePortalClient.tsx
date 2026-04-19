@@ -206,7 +206,7 @@ export function CaptivePortalClient() {
   const [isVoucher, setIsVoucher] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [payState, setPayState] = useState<PayState>("idle");
-  const {socketEvent, isConnected} = useSocketEvents("payment_state_changed",nasName);
+  const {socketEvent, isConnected} = useSocketEvents("payment_state_changed",(data) => data.sourceId === nasName);
 
   const polling = new Polling({
     interval: 40 * 1000,
@@ -227,7 +227,7 @@ export function CaptivePortalClient() {
   }
 
   useEffect(() => {
-    if(socketEvent && socketEvent.id === nasName) alert("Payment completed");
+    if(socketEvent) alert("Payment completed");
   }, [socketEvent, isConnected]);
 
 

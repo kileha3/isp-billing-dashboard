@@ -123,7 +123,7 @@ export default function RoutersPage() {
   const [scriptCopied, setScriptCopied] = useState(false);
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
-  const { socketEvent, isConnected } = useSocketEvents("router_status_check",null,true);
+  const { socketEvent, isConnected } = useSocketEvents("router_status_check", (data: any) => data.routerId === routerId || user?.tenantId === data.tenantId, true);
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
@@ -210,16 +210,20 @@ export default function RoutersPage() {
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
 
   useEffect(() => {
-    if ((!showWizard || showWizard && wizard.mode === "setup") && socketEvent && socketEvent.id === routerId){ 
+    console.log("kileha-ui", socketEvent, routerId);
+    if (socketEvent) {
       load().then(() => {
+        const isNewRouter = routerId && showWizard && wizard.mode === "setup";
+        if (!isNewRouter) return;
         const router = routers.find(router => router._id === routerId);
-        if(!router) return;
+        if (!router) return;
         console.log("kileha", router);
         updateStatus(router);
         setWizard((prev) => ({ ...prev, router, step: "interfaces", canClose: false }));
+        setRouterId(null);
       })
     };
-  }, [socketEvent, isConnected]);
+  }, [socketEvent, isConnected, routerId]);
 
   async function openWizardForCreate() {
     setSetupTarget(null);

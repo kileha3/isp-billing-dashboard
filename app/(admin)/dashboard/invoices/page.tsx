@@ -30,7 +30,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showClearInvoice, setShowClearInvoice] = useState<Invoice | null>(null);
   const [invoiceToUpdate, setInvoiceToUpdate] = useState<Invoice | null>(null);
-  const { socketEvent, isConnected } = useSocketEvents("invoice_status_change",null, isSuperAdmin);
+  const { socketEvent, isConnected } = useSocketEvents("invoice_status_change",undefined, isSuperAdmin);
   const [phone, setPhone] = useState("");
   const phoneResult = phoneSchema.safeParse(phone);
   const phoneError = phone.length > 0 && !phoneResult.success
