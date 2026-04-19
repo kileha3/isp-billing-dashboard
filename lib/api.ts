@@ -205,7 +205,7 @@ export const apiClient = {
       ),
 
     create: (data: Partial<RouterDevice>) =>
-      req<{ data: RouterDevice }>("/routers", {
+      req<{ message: string; router: RouterDevice , success: boolean}>("/routers", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -229,7 +229,7 @@ export const apiClient = {
       }),
 
     update: (id: string, data: Partial<RouterDevice>) =>
-      req<{ data: RouterDevice }>(`/routers/${id}`, {
+      req<{ message: string; routerId: string, success: boolean}>(`/routers/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),

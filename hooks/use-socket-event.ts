@@ -21,6 +21,7 @@ export function useSocketEvents(
   useEffect(() => {
     const handleMessage = (data: SocketEvent) => {
       const idToCheck = id ?? user?.tenantId;
+      console.log("kileha-data", data)
       if (broadcast || data.id === "*" || (idToCheck && data.id === idToCheck)) {
         setSocketEvent(data);
       }

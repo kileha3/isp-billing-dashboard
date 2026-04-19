@@ -9,6 +9,8 @@ interface PortalHeaderProps {
 export function PortalHeader({ config }: PortalHeaderProps) {
   const { primaryColor, secondaryColor, logo, businessName } = config.branding;
 
+  const logoUrl = `${BASE.replace("v1",`logos/${logo}`)}`;
+
   return (
     <header
       className="w-full px-6 py-5 flex items-center gap-4"
@@ -17,7 +19,7 @@ export function PortalHeader({ config }: PortalHeaderProps) {
       {/* Logo */}
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 shrink-0 overflow-hidden">
         {logo && logo.length > 9 ? (
-          <img src={`${BASE.replace("v1",`logos/${logo}`)}`} alt={businessName} className="h-10 w-10 object-contain" />
+          <img src={logoUrl} alt={businessName} className="h-10 w-10 object-contain" />
         ) : (
           <Wifi className="h-6 w-6 text-white" />
         )}

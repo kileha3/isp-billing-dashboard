@@ -123,13 +123,14 @@ export default function RoutersPage() {
   const [scriptCopied, setScriptCopied] = useState(false);
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
-  const { socketEvent, isConnected } = useSocketEvents("router_status_check");
+  const { socketEvent, isConnected } = useSocketEvents("router_status_check",null,true);
   const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
   const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "" });
   const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof typeof basicForm, string>>>({});
   const [submittingBasic, setSubmittingBasic] = useState(false);
+  const [routerId, setRouterId] = useState<string | null>(null);
 
 
   const [whitelistForm, setWhitelistForm] = useState<WhitelistForm>({
@@ -188,11 +189,6 @@ export default function RoutersPage() {
     try {
       setLoading(showLoading);
       const { data } = await apiClient.routers.list();
-      const inProgressRouter = data.find(router => router._id === (wizard.router?._id || socketEvent?.id));
-      if (showWizard && wizard.mode === "setup" && inProgressRouter) {
-        updateStatus(inProgressRouter);
-        setWizard((prev) => ({ ...prev, router: inProgressRouter, step: "interfaces" }))
-      }
       setRouters(data);
     } catch {
       setRouters([]);
@@ -214,7 +210,15 @@ export default function RoutersPage() {
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
 
   useEffect(() => {
-    if ((!showWizard || showWizard && wizard.mode === "setup") && socketEvent) load();
+    if ((!showWizard || showWizard && wizard.mode === "setup") && socketEvent && socketEvent.id === routerId){ 
+      load().then(() => {
+        const router = routers.find(router => router._id === routerId);
+        if(!router) return;
+        console.log("kileha", router);
+        updateStatus(router);
+        setWizard((prev) => ({ ...prev, router, step: "interfaces", canClose: false }));
+      })
+    };
   }, [socketEvent, isConnected]);
 
   async function openWizardForCreate() {
@@ -321,20 +325,22 @@ export default function RoutersPage() {
 
       if (wizard.mode === "edit") {
         // Edit mode - just update and close
-        await apiClient.routers.update(setupTarget!._id, payload);
-        toast({ title: "Router updated successfully" });
+        const { message } = await apiClient.routers.update(setupTarget!._id, payload);
+        toast({ title: "Routers", description: message });
         closeWizard();
       } else {
         // Create mode - create router and proceed to script
-        const { data: router } = await apiClient.routers.create(payload);
+        const { router, message } = await apiClient.routers.create(payload);
+        toast({ title: "Routers", description: message });
         const { data: { script } } = await apiClient.routers.getScript(router._id);
         setSetupTarget(router);
+        setRouterId(router._id);
         setWizard(w => ({
           ...w,
           step: "vpn_script",
           mode: "setup",
-          router,
           vpnScript: script,
+          router,
           canClose: true
         }));
       }
