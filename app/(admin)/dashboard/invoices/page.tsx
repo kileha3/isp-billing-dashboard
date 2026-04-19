@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { phoneSchema } from "@/components/portal/PackageGrid";
-import { useSocketEvents } from "@/hooks/use-socket-event";
+import SocketClient from "@/lib/socket.util";
 
 
 export default function InvoicesPage() {
@@ -30,8 +30,8 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showClearInvoice, setShowClearInvoice] = useState<Invoice | null>(null);
   const [invoiceToUpdate, setInvoiceToUpdate] = useState<Invoice | null>(null);
-  const { socketEvent, isConnected } = useSocketEvents("invoice_status_change",undefined, isSuperAdmin);
   const [phone, setPhone] = useState("");
+  const { user } = useAuth();
   const phoneResult = phoneSchema.safeParse(phone);
   const phoneError = phone.length > 0 && !phoneResult.success
     ? phoneResult.error.errors[0]?.message
@@ -51,8 +51,16 @@ export default function InvoicesPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (socketEvent) load();
-  }, [socketEvent, isConnected]);
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      const event = SocketClient.event_invoice_sync;
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
 
 
   const columns = [

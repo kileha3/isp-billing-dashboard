@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "./transactions/page";
 import { Transaction } from "@/lib/types";
+import SocketClient from "@/lib/socket.util";
 
 
 function formatTime(iso: string) {
@@ -90,6 +91,18 @@ export default function DashboardPage() {
     if (authLoading || !user) return;
     load();
   }, [authLoading, user]);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      const event = SocketClient.event_dashboard_sync;
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -156,7 +169,7 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Daily transaction totals</p>
             </div>
             {transReport && transReport.data.length > 0 && (<span className="text-xs font-semibold text-[oklch(0.42_0.18_142)] bg-[oklch(0.65_0.2_142)]/12 border border-[oklch(0.65_0.2_142)]/25 rounded-full px-2.5 py-0.5">
-              {transReport.summary.isPositiveGrowth ? "+":"-"}{transReport.summary.growthPercentage}
+              {transReport.summary.isPositiveGrowth ? "+" : "-"}{transReport.summary.growthPercentage}
             </span>)}
           </div>
           {transReport && transReport.data.length > 0 && (<ResponsiveContainer width="100%" height={200}>

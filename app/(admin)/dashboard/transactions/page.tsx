@@ -4,17 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import type { Transaction } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuth } from "@/lib/auth-context";
+import SocketClient from "@/lib/socket.util";
 
 export const formatCurrency = (n: number, currency: string) => {
-    return `${currency} ${n.toLocaleString()}`;
-  }
+  return `${currency} ${n.toLocaleString()}`;
+}
 
 export default function TransactionsPage() {
   usePageTitle("Transactions");
@@ -38,9 +38,21 @@ export default function TransactionsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      const event = SocketClient.event_transaction_sync;
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
+
   const filtered = statusFilter === "all" ? transactions : transactions.filter(t => t.status === statusFilter);
 
-  
+
 
   const columns = [
     { key: "appliedVoucher", label: "Voucher" },
@@ -65,12 +77,12 @@ export default function TransactionsPage() {
     <div className="flex flex-col gap-6">
 
       <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-                <p className="text-sm text-muted-foreground mt-1">Collected payments from customers</p>
-              </div>
-              
-            </div>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
+          <p className="text-sm text-muted-foreground mt-1">Collected payments from customers</p>
+        </div>
+
+      </div>
 
       <DataTable
         data={filtered as unknown as Record<string, unknown>[]}

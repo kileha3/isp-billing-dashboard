@@ -17,7 +17,8 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { pdf, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import { useSocketEvents } from "@/hooks/use-socket-event";
+import SocketClient from "@/lib/socket.util";
+import { useAuth } from "@/lib/auth-context";
 
 const generateSchema = z.object({
   packageId: z.string().min(1, "Select a package"),
@@ -125,15 +126,16 @@ export default function VouchersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [voucherToDelete, setVoucherToDelete] = useState<Voucher | null>(null)
   const [voucherToRevoke, setVoucherToRevoke] = useState<Voucher | null>(null)
-  const { socketEvent, isConnected } = useSocketEvents("voucher_consumed_status");
   const [showGenerate, setShowGenerate] = useState(false);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
 
   const [printConfig, setPrintConfig] = useState({
     columns: 4,
     rowsPerPage: 16,
   });
+
 
   const totalPerPage =
     (Number(printConfig.columns) || 5) *
@@ -161,8 +163,16 @@ export default function VouchersPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (socketEvent) load();
-  }, [socketEvent, isConnected]);
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      const event = SocketClient.event_voucher_sync;
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
 
   async function handleGenerate() {
     setSubmitting(true);
@@ -249,7 +259,7 @@ export default function VouchersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-         
+
 
           <Button variant="outline" onClick={() => setShowPrintDialog(true)}>
             <Printer className="h-4 w-4 mr-2" />
@@ -274,22 +284,22 @@ export default function VouchersPage() {
         filterSlot={
           <div className="flex flex-row gap-2">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
-            <SelectTrigger className="h-10 w-40 bg-background">
-              <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="unused">Unused</SelectItem>
-              <SelectItem value="redeemed">Redeemed</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger className="h-10 w-40 bg-background">
+                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="unused">Unused</SelectItem>
+                <SelectItem value="redeemed">Redeemed</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">
-                        <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                        Refresh
-                      </Button>
+            <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
           </div>
         }
         actions={(row) => {

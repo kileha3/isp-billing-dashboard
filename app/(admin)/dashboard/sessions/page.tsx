@@ -15,6 +15,8 @@ import { StatCard } from "@/components/admin/StatCard";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Activity, Wifi, Clock } from "lucide-react";
 import { HotspotSession, Package } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
+import SocketClient from "@/lib/socket.util";
 
 
 function formatBytes(octate: number) {
@@ -41,6 +43,7 @@ export default function SessionsPage() {
   const [actionState, setActionState] = useState<ActionState | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
   const [acting, setActing] = useState(false);
+  const { user } = useAuth();
 
   const load = useCallback(async (showLoading: boolean = true) => {
     setLoading(showLoading);
@@ -56,6 +59,19 @@ export default function SessionsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!user) return;
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      const event = SocketClient.event_session_sync;
+      unsubscribe = await SocketClient.subscribe(event, event, (_) => load());
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
 
   async function executeAction() {
     if (!actionState) return;

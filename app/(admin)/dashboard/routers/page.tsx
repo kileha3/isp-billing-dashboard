@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, Settings2, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, WifiSync, BrushCleaning, Grid2X2Plus } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, WifiSync, BrushCleaning, Grid2X2Plus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { appName } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Progress } from "@radix-ui/react-progress";
-import { useSocketEvents } from "@/hooks/use-socket-event";
+import SocketClient from "@/lib/socket.util";
 
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
@@ -129,11 +129,6 @@ export default function RoutersPage() {
   const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "" });
   const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof typeof basicForm, string>>>({});
   const [submittingBasic, setSubmittingBasic] = useState(false);
-  const [routerId, setRouterId] = useState<string | null>(null);
-  const { socketEvent } = useSocketEvents<{ routerId: string; tenantId: string }>("router_status_check", (data) => {
-    console.log("kileha-match-fn", data, data.routerId === routerId, data.tenantId === user?.tenantId)
-    return data.routerId === routerId || data.tenantId === user?.tenantId;
-  }, true);
 
 
   const [whitelistForm, setWhitelistForm] = useState<WhitelistForm>({
@@ -177,6 +172,12 @@ export default function RoutersPage() {
     whitelistForm.name.trim().length > 0 &&
     isValidMac(whitelistForm.mac);
 
+
+  const isBasicInfoValid = () => {
+    const result = basicSchema.safeParse(basicForm);
+    return result.success;
+  }
+
   const [wizard, setWizard] = useState<WizardState>({
     step: "basic",
     mode: "create",
@@ -214,20 +215,16 @@ export default function RoutersPage() {
 
 
   useEffect(() => {
-    console.log("kileha-ui", socketEvent, routerId);
-    if (socketEvent) {
-      load().then(() => {
-        const isNewRouter = routerId && showWizard && wizard.mode === "setup";
-        if (!isNewRouter) return;
-        const router = routers.find(router => router._id === routerId);
-        if (!router) return;
-        console.log("kileha", router);
-        updateStatus(router);
-        setWizard((prev) => ({ ...prev, router, step: "interfaces", canClose: false }));
-        setRouterId(null);
-      })
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      const event = SocketClient.event_router_sync;
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
     };
-  }, [socketEvent, routerId]);
+  }, [user]);
 
   async function openWizardForCreate() {
     setSetupTarget(null);
@@ -299,7 +296,7 @@ export default function RoutersPage() {
     if (!wizard.canClose) return;
     setShowWizard(false);
     setSetupTarget(null);
-    load();
+    load(false);
   }
 
   function validateBasic() {
@@ -339,10 +336,13 @@ export default function RoutersPage() {
       } else {
         // Create mode - create router and proceed to script
         const { router, message } = await apiClient.routers.create(payload);
+        SocketClient.waitFor<RouterDevice>("status_changed", router._id, (data) => {
+          updateStatus(data);
+          setWizard((prev) => ({ ...prev, data, step: "interfaces", canClose: false }));
+        });
         toast({ title: "Routers", description: message });
         const { data: { script } } = await apiClient.routers.getScript(router._id);
         setSetupTarget(router);
-        setRouterId(router._id);
         setWizard(w => ({
           ...w,
           step: "vpn_script",
@@ -550,10 +550,10 @@ export default function RoutersPage() {
                   <BrushCleaning className="mr-2 h-4 w-4" />
                   Reset Device
                 </DropdownMenuItem>)}
-                {isSuperAdmin && (<DropdownMenuItem onClick={() => handleChangeState(r)}>
+                <DropdownMenuItem onClick={() => handleChangeState(r)}>
                   {r.isActive ? (<RouteOff className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
                   {r.isActive ? "Deactivate" : "Activate"}
-                </DropdownMenuItem>)}
+                </DropdownMenuItem>
                 {isSuperAdmin && (<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
@@ -621,7 +621,7 @@ export default function RoutersPage() {
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={closeWizard}>Cancel</Button>
-                <Button onClick={handleSaveBasic} disabled={submittingBasic}>
+                <Button onClick={handleSaveBasic} disabled={submittingBasic || !isBasicInfoValid()}>
                   {submittingBasic ? "Creating…" : "Save & Continue"}
                 </Button>
               </div>

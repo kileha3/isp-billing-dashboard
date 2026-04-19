@@ -2,57 +2,131 @@
 import { io, Socket } from "socket.io-client";
 
 class SocketClient {
-  private static socket: Socket
+  private static socket: Socket;
 
-  // initialize connection
-   static async connect(options: any = {}) {
+  static event_session_sync = "session_sync_completed";
+
+  static event_transaction_sync = "transaction_sync_completed";
+
+  static event_invoice_sync = "invoice_sync_completed";
+
+  static event_router_sync = "router_status_sync_completed";
+
+  static event_voucher_sync = "voucher_status_sync_completed";
+
+  static event_dashboard_sync = "dashboard_sync_triggered";
+
+  static async connect(options: any = {}): Promise<Socket | null> {
     const server = `${process.env.NEXT_PUBLIC_API_URL}`.split("/v")[0];
-    console.log("socket", server)
+    
     return new Promise((resolve) => {
-      if (!this.socket) {
+      if (this.socket?.connected) {
+        resolve(this.socket);
+        return;
+      }
+
       this.socket = io(server, {
         transports: ["websocket"],
         autoConnect: true,
         ...options,
-      })
+      });
 
-      this.socket.on("connect", () => {
-        console.log("socket","Connection established successfully")
-        resolve(this.socket)
-      })
+      this.socket.on("connect", () => resolve(this.socket));
+      this.socket.on("connect_error", () => resolve(null));
+    });
+  }
 
-      this.socket.on("disconnect", () => {
-        resolve(null)
-      })
+  static on(event: string, callback: (data: any) => void): void {
+    this.socket?.on(event, callback);
+  }
+
+  static off(event: string, callback?: (data: any) => void): void {
+    this.socket?.off(event, callback);
+  }
+
+  private static emit(event: string, data?: any): void {
+    this.socket?.emit(event, data);
+  }
+
+  private static join(id: string, type: string): void {
+    this.emit("join", { id, type });
+  }
+
+  private static leave(id: string, type: string): void {
+    this.emit("leave", { id, type });
+  }
+
+  static async waitFor<T = any>(
+    type: string,
+    id: string,
+    callback: (data: T) => void,
+    timeoutMs?: number
+  ): Promise<() => void> {
+    // Ensure connection first
+    if (!this.socket?.connected) {
+      const socket = await this.connect();
+      if (!socket) {
+        callback(null as any);
+        return () => {};
+      }
     }
-    })
+
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const handler = (data: any) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      callback(data);
+    };
+
+    this.socket!.once(type, handler);
+    this.join(id, type);
+
+    if (timeoutMs) {
+      timeoutId = setTimeout(() => {
+        this.socket?.off(type, handler);
+        callback(null as any);
+      }, timeoutMs);
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      this.socket?.off(type, handler);
+      this.leave(id, type);
+    };
   }
 
-  // get instance
-  static getSocket(): Socket | null {
-    if (!this.socket) return null;
-    return this.socket
+  /**
+   * Subscribe to ongoing events for a specific entity
+   * Returns unsubscribe function
+   */
+  static async subscribe(
+    type: string,
+    id: string,
+    callback: (data: any) => void
+  ): Promise<() => void> {
+    // Ensure connection first
+    if (!this.socket?.connected) {
+      const socket = await this.connect();
+      if (!socket) {
+        console.warn("Cannot subscribe: socket not connected");
+        return () => {};
+      }
+    }
+
+    // Listen to the event
+    this.socket!.on(type, callback);
+    this.join(id, type);
+
+    // Return unsubscribe function
+    return () => {
+      this.socket?.off(type, callback);
+      this.leave(id, type);
+    };
   }
 
-  // listen to event
-  static on(event: string, callback: (data: any) => void) {
-    this.getSocket()?.on(event, callback)
-  }
-
-  // stop listening
-  static off(event: string, callback?: (data: any) => void) {
-    this.getSocket()?.off(event, callback)
-  }
-
-  // emit event
-  static emit(event: string, data?: any) {
-    this.getSocket()?.emit(event, data)
-  }
-
-  // join room (optional pattern)
-  static join(room: string) {
-    this.emit("register", room)
+  static disconnect(): void {
+    this.socket?.disconnect();
   }
 }
 
-export default SocketClient
+export default SocketClient;
