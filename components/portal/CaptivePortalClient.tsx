@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
 import { Polling } from "@/lib/pooling";
-import { useSocketEvents } from "@/hooks/use-socket-event";
 
 const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
@@ -37,6 +36,11 @@ const DEFAULT_CONFIG: TenantPortalSettings = {
 };
 
 type PayState = "idle" | "processing" | "success" | "failure";
+
+export interface PayResult{
+  success: boolean; 
+  voucher: string | null | undefined
+}
 
 function SpinnerRing({ color }: { color: string }) {
   return (
@@ -206,19 +210,8 @@ export function CaptivePortalClient() {
   const [isVoucher, setIsVoucher] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [payState, setPayState] = useState<PayState>("idle");
-  const {socketEvent, isConnected} = useSocketEvents("payment_state_changed",(data) => data.sourceId === nasName);
 
-  const polling = new Polling({
-    interval: 40 * 1000,
-    timeout: 120 * 1000,
 
-    task: async () => {
-      const res = await apiClient.portal.checkStatus({ transactionId: transactionId!, nasName, authToken });
-      return res;
-    },
-    backoff: { enabled: false },
-    isSuccess: (res) => res.success === true && res.voucher !== null,
-  });
 
   const reflectOnUI = (success: boolean, voucher: string | null | undefined) => {
     if (success && voucher) setTimeout(() => grantAccess(voucher), 3000)
@@ -226,9 +219,18 @@ export function CaptivePortalClient() {
     setTimeout(() => resetUi, 4000);
   }
 
-  useEffect(() => {
-    if(socketEvent) alert("Payment completed");
-  }, [socketEvent, isConnected]);
+useEffect(() => {
+    if (!user) return;
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      unsubscribe = await SocketClient.subscribe<PayResult>(SocketClient.event_payment_completed, nasName, (data) => reflectOnUI(data.success, data.voucher));
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [nasName]);
+
 
 
   useEffect(() => {

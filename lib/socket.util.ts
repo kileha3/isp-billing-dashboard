@@ -16,6 +16,8 @@ class SocketClient {
 
   static event_dashboard_sync = "dashboard_sync_triggered";
 
+  static event_payment_completed = "payment_completed";
+
   static async connect(options: any = {}): Promise<Socket | null> {
     const server = `${process.env.NEXT_PUBLIC_API_URL}`.split("/v")[0];
     
