@@ -18,6 +18,8 @@ class SocketClient {
 
   static event_payment_completed = "payment_completed";
 
+  static event_router_setup_completed = "router_setup_completed";
+
   static async connect(options: any = {}): Promise<Socket | null> {
     const server = `${process.env.NEXT_PUBLIC_API_URL}`.split("/v")[0];
     
@@ -101,10 +103,10 @@ class SocketClient {
    * Subscribe to ongoing events for a specific entity
    * Returns unsubscribe function
    */
-  static async subscribe(
+  static async subscribe<T = any>(
     type: string,
     id: string,
-    callback: (data: any) => void
+    callback: (data: T) => void
   ): Promise<() => void> {
     // Ensure connection first
     if (!this.socket?.connected) {

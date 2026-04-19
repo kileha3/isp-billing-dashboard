@@ -336,7 +336,8 @@ export default function RoutersPage() {
       } else {
         // Create mode - create router and proceed to script
         const { router, message } = await apiClient.routers.create(payload);
-        SocketClient.waitFor<RouterDevice>("status_changed", router._id, (data) => {
+        load(false);
+        SocketClient.waitFor<RouterDevice>(SocketClient.event_router_setup_completed, router._id, (data) => {
           updateStatus(data);
           setWizard((prev) => ({ ...prev, data, step: "interfaces", canClose: false }));
         });
@@ -698,7 +699,7 @@ export default function RoutersPage() {
                       <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                       <div>
                         <p className="text-sm font-medium">Waiting for connection…</p>
-                        <p className="text-xs text-muted-foreground">Checking every 30 seconds</p>
+                        <p className="text-xs text-muted-foreground">It will automatically change when connection is up</p>
                       </div>
                     </>
                   )}

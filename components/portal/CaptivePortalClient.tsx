@@ -10,7 +10,7 @@ import { SupportInfo } from "@/components/portal/SupportInfo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
-import { Polling } from "@/lib/pooling";
+import SocketClient from "@/lib/socket.util";
 
 const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
@@ -37,8 +37,8 @@ const DEFAULT_CONFIG: TenantPortalSettings = {
 
 type PayState = "idle" | "processing" | "success" | "failure";
 
-export interface PayResult{
-  success: boolean; 
+export interface PayResult {
+  success: boolean;
   voucher: string | null | undefined
 }
 
@@ -208,7 +208,6 @@ export function CaptivePortalClient() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [isVoucher, setIsVoucher] = useState(false);
-  const [transactionId, setTransactionId] = useState<string | null>(null);
   const [payState, setPayState] = useState<PayState>("idle");
 
 
@@ -219,8 +218,8 @@ export function CaptivePortalClient() {
     setTimeout(() => resetUi, 4000);
   }
 
-useEffect(() => {
-    if (!user) return;
+  useEffect(() => {
+    if (!nasName) return;
     let unsubscribe: (() => void) | null = null;
     (async () => {
       unsubscribe = await SocketClient.subscribe<PayResult>(SocketClient.event_payment_completed, nasName, (data) => reflectOnUI(data.success, data.voucher));
@@ -305,13 +304,11 @@ useEffect(() => {
           phoneNumber: phone,
         });
         if (success) {
-          setTransactionId(transactionId);
-          const { result } = await polling.startAsync();
-          reflectOnUI(result?.success === true, result?.voucher)
+          SocketClient.waitFor<PayResult>(SocketClient.event_payment_completed, transactionId,
+            ({ success, voucher }) => reflectOnUI(success, voucher))
         }
       } catch (err: unknown) {
         setPayState("failure");
-        polling.stop();
       }
     },
     [nasName, deviceMac]
