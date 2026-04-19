@@ -55,7 +55,8 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
         apiClient.tenant.get(tenantId),
         apiClient.transactions.gateways(),
       ]);
-      setActiveGateway(remoteGateway.find(g => g.gateway.id === data.paymentGateway.gateway)?.gateway.name)
+      const active = remoteGateway.find(g => g.gateway.id === data.paymentGateway.gateway)?.gateway.name;
+      if(active) setActiveGateway(active);
       setGeneral(data.settings);
       setGateways(remoteGateway);
     } catch { }
@@ -292,11 +293,13 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
         </Card>
 
         {/* PAYMENT */}
-        <Card className="col-span-6 md:col-span-3">
+        {gateways.length > 0 && (<Card className="col-span-6 md:col-span-3">
           <CardHeader>
             <CardTitle className="text-base">Payment & Gateway</CardTitle>
             <CardDescription>
-              Configure your payment provider credentials {activeGateway ? `, right now ${activeGateway} is configured` : ""}
+              Configure your payment provider credentials {activeGateway ? `, right now` : ""}
+              <strong>{activeGateway ? ` ${activeGateway}` : ""}</strong>
+              {activeGateway ? ` is configured for payments` : ""}
             </CardDescription>
           </CardHeader>
 
@@ -349,7 +352,7 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
               </Button>
             </div>
           </CardContent>
-        </Card>
+        </Card>)}
       </div>
     </div>
   );

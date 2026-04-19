@@ -83,12 +83,13 @@ export default function SessionsPage() {
     setActionState(null);
   }
 
-  const active = sessions.filter(s => s.status === "online");
+  const active = sessions.filter(s => s.status === "active");
   const totalData = sessions.reduce((sum, s) => sum + ((s.usage.output + s.usage.input)), 0);
 
   const columns = [
+    { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
     { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac },
-    { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => <code className="text-xs font-mono">{(row as HotspotSession).network.ip}</code> },
+    { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.ip },
     { key: "routerId", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})` },
     { key: "packageId", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     { key: "startTime", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
