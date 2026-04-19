@@ -25,6 +25,7 @@ export function useSocketEvents<T = any>(
     let isMounted = true;
 
     const handleMessage = (event: SocketEvent<T>) => {
+      console.log("kileha-event", event)
       if (event.event !== eventType) return;
 
       const shouldMatch =
@@ -32,6 +33,7 @@ export function useSocketEvents<T = any>(
         event.data === "*" ||
         (matchRef.current ? matchRef.current(event.data) : true);
 
+        console.log("kileha-match", shouldMatch)
       if (shouldMatch) {
         setSocketEvent(event);
       }

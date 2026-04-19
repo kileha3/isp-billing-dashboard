@@ -130,6 +130,10 @@ export default function RoutersPage() {
   const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof typeof basicForm, string>>>({});
   const [submittingBasic, setSubmittingBasic] = useState(false);
   const [routerId, setRouterId] = useState<string | null>(null);
+  const { socketEvent } = useSocketEvents<{ routerId: string; tenantId: string }>("router_status_check", (data) => {
+    console.log("kileha-match-fn", data, data.routerId === routerId, data.tenantId === user?.tenantId)
+    return data.routerId === routerId || data.tenantId === user?.tenantId;
+  }, true);
 
 
   const [whitelistForm, setWhitelistForm] = useState<WhitelistForm>({
@@ -208,13 +212,6 @@ export default function RoutersPage() {
 
   useEffect(() => { load(); loadTenants(); }, [load, loadTenants]);
 
-  const routerEventFilter = (data: {routerId: string; tenantId: string}) => {
-    console.log("kileha-match", data, data.routerId === routerId, data.tenantId === user?.tenantId)
-    return data.routerId === routerId || data.tenantId === user?.tenantId;
-  };
-
-  const { socketEvent } = useSocketEvents("router_status_check",routerEventFilter , true);
-  
 
   useEffect(() => {
     console.log("kileha-ui", socketEvent, routerId);
