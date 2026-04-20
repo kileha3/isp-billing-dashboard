@@ -337,10 +337,6 @@ export default function RoutersPage() {
         // Create mode - create router and proceed to script
         const { router, message } = await apiClient.routers.create(payload);
         load(false);
-        SocketClient.waitFor<RouterDevice>(SocketClient.event_router_setup_completed, router._id, (data) => {
-          updateStatus(data);
-          setWizard((prev) => ({ ...prev, data, step: "interfaces", canClose: false }));
-        });
         toast({ title: "Routers", description: message });
         const { data: { script } } = await apiClient.routers.getScript(router._id);
         setSetupTarget(router);
@@ -383,6 +379,7 @@ export default function RoutersPage() {
   async function resetDevice(routerId?: string) {
     if (!routerId) return;
     const { success } = await apiClient.routers.resetDevice(routerId);
+    load(false);
     toast({ title: `Device reset`, description: success ? "The device has been reset successfully" : "Failed to reset the device, try again" })
   }
 
@@ -684,13 +681,19 @@ export default function RoutersPage() {
               <div className="flex items-start gap-3 rounded-lg border border-border p-3 bg-muted/30">
                 <Info className="h-4 w-4 mt-0.5 text-primary shrink-0" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Paste this script into your MikroTik router terminal. It will establish a VPN connection back to the {appName} server. Once connected, the status below will update automatically.
+                  Paste this script into your MikroTik router terminal. It will configure and establish a secure connection back to the {appName} server for other configrations.
                 </p>
               </div>
               <CopyableScript content={wizard.vpnScript} onCopy={() => {
-
                 setScriptCopied(true);
                 setWizard((prev) => ({ ...prev, pollingStatus: "waiting" }));
+                if (wizard.router) {
+                  SocketClient.waitFor<RouterDevice>(SocketClient.event_router_setup_completed, wizard.router._id, (data) => {
+                    updateStatus(data);
+                    setWizard((prev) => ({ ...prev, data, step: "interfaces", canClose: false }));
+                  });
+                }
+
               }} />
               {scriptCopied === true && (
                 <div className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${wizard.router.status === "online" ? "border-emerald-500/30 bg-emerald-500/5" : wizard.pollingStatus === "timeout" ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
@@ -699,7 +702,7 @@ export default function RoutersPage() {
                       <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                       <div>
                         <p className="text-sm font-medium">Waiting for connection…</p>
-                        <p className="text-xs text-muted-foreground">It will automatically change when connection is up</p>
+                        <p className="text-xs text-muted-foreground">It will automatically change step when connection is up</p>
                       </div>
                     </>
                   )}

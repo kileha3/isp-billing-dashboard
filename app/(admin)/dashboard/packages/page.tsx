@@ -318,20 +318,20 @@ export default function PackagesPage() {
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label>Package Name</Label>
               <Input
-                placeholder="e.g. Daily 1GB"
+                placeholder="e.g. Daily Unlimited Internet"
                 value={form.name}
                 onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
               />
             </div>
 
-            <div className="col-span-2 flex flex-col gap-1.5">
+            {/* <div className="col-span-2 flex flex-col gap-1.5">
               <Label>Description</Label>
               <Input
                 placeholder="Short description"
                 value={form.description}
                 onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
               />
-            </div>
+            </div> */}
 
             {/* Tenant association (super admin only) */}
             {isSuperAdmin && (
