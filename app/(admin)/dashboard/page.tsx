@@ -27,10 +27,11 @@ import {
 import { formatCurrency } from "./transactions/page";
 import { Transaction } from "@/lib/types";
 import SocketClient from "@/lib/socket.util";
+import { format } from 'timeago.js';
 
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" });
+export const formatAgoTime = (date: string) => {
+  return format(new Date(date));
 }
 
 // Custom tooltip for charts
@@ -244,7 +245,7 @@ export default function DashboardPage() {
                     </>
                   )}
                   <span className="text-xs text-muted-foreground/40">&middot;</span>
-                  <span className="text-xs text-muted-foreground">{formatTime(tx.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">{formatAgoTime(tx.createdAt)}</span>
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
