@@ -183,14 +183,13 @@ export default function SessionsPage() {
                   <Eraser className="mr-2 h-4 w-4" />
                   Clear MAC Address
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
+                {s.status !== "expired" && (<DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => setActionState({ type: "kick", session: s })}
                 >
                   <WifiOff className="mr-2 h-4 w-4" />
                   Kick Out User
-                </DropdownMenuItem>
+                </DropdownMenuItem>)}
               </DropdownMenuContent>
             </DropdownMenu>
           );
