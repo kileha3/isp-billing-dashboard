@@ -335,9 +335,10 @@ export default function RoutersPage() {
         closeWizard();
       } else {
         // Create mode - create router and proceed to script
-        const { router, message } = await apiClient.routers.create(payload);
+        const { router, message, success } = await apiClient.routers.create(payload);
+        toast({ title: "Add router", description: message });
+        if(!success) return;
         load(false);
-        toast({ title: "Routers", description: message });
         const { data: { script } } = await apiClient.routers.getScript(router._id);
         setSetupTarget(router);
         setWizard(w => ({

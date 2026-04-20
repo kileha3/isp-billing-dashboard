@@ -219,20 +219,6 @@ export function CaptivePortalClient() {
   }
 
   useEffect(() => {
-    if (!nasName) return;
-    let unsubscribe: (() => void) | null = null;
-    (async () => {
-      unsubscribe = await SocketClient.subscribe<PayResult>(SocketClient.event_payment_completed, nasName, (data) => reflectOnUI(data.success, data.voucher));
-    })();
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [nasName]);
-
-
-
-  useEffect(() => {
     const init = async () => {
       try {
         const [cfg, pkgs, session] = await Promise.all([
