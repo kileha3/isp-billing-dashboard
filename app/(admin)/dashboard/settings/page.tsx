@@ -55,10 +55,10 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
         apiClient.tenant.get(tenantId),
         apiClient.transactions.gateways(),
       ]);
-      const active = remoteGateway.find(g => g.gateway.id === data.paymentGateway.gateway)?.gateway.name;
-      if(active) setActiveGateway(active);
       setGeneral(data.settings);
       setGateways(remoteGateway);
+      const active = remoteGateway.find(g => g.gateway.id === data.paymentGateway.gateway)?.gateway.name;
+      if(active) setActiveGateway(active);
     } catch { }
   }, [tenantId]);
 

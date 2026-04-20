@@ -37,7 +37,8 @@ export default function InvoicesPage() {
     ? phoneResult.error.errors[0]?.message
     : "";
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading: boolean = true) => {
+    setLoading(showLoading);
     try {
       const invoices = await apiClient.invoices.list();
       setInvoices(invoices.data ?? invoices);
@@ -54,7 +55,7 @@ export default function InvoicesPage() {
     let unsubscribe: (() => void) | null = null;
     (async () => {
       const event = SocketClient.event_invoice_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {

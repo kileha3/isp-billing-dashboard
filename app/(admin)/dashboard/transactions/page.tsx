@@ -25,8 +25,9 @@ export default function TransactionsPage() {
   const { isRole, user } = useAuth();
   const isSuperAdmin = isRole("super_admin");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading: boolean = true) => {
     try {
+      setLoading(showLoading);
       const { data } = await apiClient.transactions.list({ status: statusFilter !== "all" ? statusFilter : undefined });
       setTransactions(data);
     } catch {
@@ -42,7 +43,7 @@ export default function TransactionsPage() {
     let unsubscribe: (() => void) | null = null;
     (async () => {
       const event = SocketClient.event_transaction_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {

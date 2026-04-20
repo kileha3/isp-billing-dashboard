@@ -64,7 +64,8 @@ export default function DashboardPage() {
   const [transReport, setTransReport] = useState<any>(null)
 
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading: boolean = true) => {
+    setLoading(showLoading);
     try {
       const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, { data: transactions }, report] = await Promise.all([
         apiClient.dashboard.getStats(),
@@ -96,7 +97,7 @@ export default function DashboardPage() {
     let unsubscribe: (() => void) | null = null;
     (async () => {
       const event = SocketClient.event_dashboard_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {

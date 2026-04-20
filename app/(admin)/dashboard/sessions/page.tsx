@@ -65,7 +65,7 @@ export default function SessionsPage() {
     let unsubscribe: (() => void) | null = null;
     (async () => {
       const event = SocketClient.event_session_sync;
-      unsubscribe = await SocketClient.subscribe(event, event, (_) => load());
+      unsubscribe = await SocketClient.subscribe(event, event, (_) => load(false));
     })();
 
     return () => {

@@ -166,7 +166,7 @@ export default function VouchersPage() {
     let unsubscribe: (() => void) | null = null;
     (async () => {
       const event = SocketClient.event_voucher_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {

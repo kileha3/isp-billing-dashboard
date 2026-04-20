@@ -218,7 +218,7 @@ export default function RoutersPage() {
     let unsubscribe: (() => void) | null = null;
     (async () => {
       const event = SocketClient.event_router_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {
@@ -380,7 +380,7 @@ export default function RoutersPage() {
     if (!routerId) return;
     const { success } = await apiClient.routers.resetDevice(routerId);
     load(false);
-    toast({ title: `Device reset`, description: success ? "The device has been reset successfully" : "Failed to reset the device, try again" })
+    toast({ title: `Device reset`, description: success ? "Your device will be reset shortly..." : "Failed to reset the device, try again" })
   }
 
   const isCombinedActive = selectedType === "Combined" || serviceInterfaces?.type === "combined";
