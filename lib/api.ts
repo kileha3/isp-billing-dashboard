@@ -202,6 +202,11 @@ export const apiClient = {
         `/routers${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
 
+    services: () =>
+      req<Array<string>>(
+        `/routers/services`,
+      ),
+
     create: (data: Partial<RouterDevice>) =>
       req<{ message: string; router: RouterDevice , success: boolean}>("/routers", {
         method: "POST",

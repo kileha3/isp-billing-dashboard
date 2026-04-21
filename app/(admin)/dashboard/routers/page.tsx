@@ -106,7 +106,6 @@ function CopyableScript({ content, label, onCopy }: { content: string; label?: s
   );
 }
 
-const SERVICES = ["Hotspot", "PPPoE", "Combined"] as const;
 
 export default function RoutersPage() {
   usePageTitle("Routers");
@@ -123,14 +122,14 @@ export default function RoutersPage() {
   const [scriptCopied, setScriptCopied] = useState(false);
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
-  const [selectedType, setSelectedType] = useState<typeof SERVICES[number]>("Hotspot");
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
   const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "" });
   const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof typeof basicForm, string>>>({});
   const [submittingBasic, setSubmittingBasic] = useState(false);
-
-
+  const [services, setServices] = useState<Array<string>>([]);
+  const [selectedType, setSelectedType] = useState<typeof services[number]>("Hotspot");
+  
   const [whitelistForm, setWhitelistForm] = useState<WhitelistForm>({
     name: "",
     mac: "",
@@ -192,8 +191,12 @@ export default function RoutersPage() {
   const load = useCallback(async (showLoading: boolean = true) => {
     try {
       setLoading(showLoading);
-      const { data } = await apiClient.routers.list();
+      const [{ data }, allowedServices] = await Promise.all([
+        apiClient.routers.list(),
+        apiClient.routers.services()
+      ]);
       setRouters(data);
+      setServices(allowedServices);
     } catch {
       setRouters([]);
     } finally {
@@ -401,7 +404,7 @@ export default function RoutersPage() {
     });
   };
 
-  const handleSelectService = (type: typeof SERVICES[number]) => {
+  const handleSelectService = (type: typeof services[number]) => {
     setSelectedType(type);
 
     setServiceInterfaces((prev: any) => {
@@ -751,7 +754,7 @@ export default function RoutersPage() {
                 <div className="flex flex-col gap-2 border rounded-lg p-3">
                   <p className="text-xs text-muted-foreground mb-1">Services</p>
 
-                  {SERVICES.map((type) => {
+                  {services.map((type) => {
                     const isActive = selectedType === type;
                     const disabled = false;
 
