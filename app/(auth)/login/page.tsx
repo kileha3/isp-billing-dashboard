@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wifi, AlertCircle, Eye, EyeOff, Router, CreditCard, BarChart3, Headphones } from "lucide-react";
+import { Network, AlertCircle, Eye, EyeOff, CreditCard, BarChart3, Headphones } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { z } from "zod";
@@ -22,7 +22,7 @@ type LoginForm = { email: string; password: string };
 type FormErrors = Partial<Record<keyof LoginForm, string>>;
 
 const FEATURES = [
-  { icon: Router, title: "Smart Router Management", desc: "Manage all your MikroTik routers remotely from one unified dashboard." },
+  { icon: Network, title: "Smart Network Management", desc: "Manage all your MikroTik routers remotely from one unified dashboard." },
   { icon: CreditCard, title: "Automated Billing", desc: "M-PESA and Airtel Money payments collected automatically, zero manual effort." },
   { icon: BarChart3, title: "Real-time Analytics", desc: "Track revenue, sessions and subscriber growth with live charts." },
   { icon: Headphones, title: "24/7 Support", desc: "Our team is always available to help you keep your network running." },
@@ -85,8 +85,8 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Brand */}
           <div className="flex items-center justify-center gap-2 mb-10">
-            <div className="flex h-16 w-16 items-center justify-center rounded-lg">
-              <img className="h-16 w-16 text-primary-foreground" src={"icon.svg"} />
+            <div className="flex h-16 w-22 items-center justify-center rounded-lg">
+              <img className="h-16 w-22 text-primary-foreground" src={"icon.svg"} />
             </div>
           </div>
 
@@ -174,11 +174,11 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-1 flex-col justify-center px-14 py-16 bg-primary">
         
 
-        <h2 className="text-4xl font-bold text-white leading-tight text-balance mb-4">
-          ISP Billing That Works While You Sleep
+        <h2 className="text-3xl font-bold text-white leading-tight text-balance mb-4">
+         Wake up to automated services, not headaches.
         </h2>
         <p className="text-base text-white/70 leading-relaxed mb-10 max-w-xlg">
-          Manage your hotspot network, collect payments automatically and grow your ISP business with {appName}.
+          Manage your hotspot network, collect payments automatically and grow your ISP business with <strong>{appName}</strong>.
         </p>
 
         <div className="grid grid-cols-2 gap-4 max-w-xlg">

@@ -87,10 +87,10 @@ export default function DashboardPage() {
       } : {};
       
       const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, { data: transactions }, {payment, session}] = await Promise.all([
-        apiClient.dashboard.getStats(dateFilter),
+        apiClient.dashboard.getStats(),
         isSuperAdmin ? { data: { settings: { currency: "TZS" } } } : apiClient.tenant.get(user?.tenantId),
         apiClient.transactions.recent(),
-        apiClient.dashboard.getReports(dateFilter)
+        apiClient.dashboard.getReports(dateFilter as any)
       ]);
       setSession(sessions)
       setTransReport(payment);
@@ -268,7 +268,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Sessions chart */}
-        {sessionReport && sessionReport.data.length > 0 && (<div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-foreground">
@@ -278,20 +278,24 @@ export default function DashboardPage() {
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">Hotspot session counts</p>
             </div>
-            <span className="text-xs font-semibold text-[oklch(0.42_0.18_142)] bg-[oklch(0.65_0.2_142)]/12 border border-[oklch(0.65_0.2_142)]/25 rounded-full px-2.5 py-0.5">
-              {sessionReport.summary.isPositiveGrowth ? "+" : "-"}{sessionReport.summary.growthPercentage}
-            </span>
+            {sessionReport && sessionReport.summary && (
+              <span className="text-xs font-semibold text-[oklch(0.42_0.18_142)] bg-[oklch(0.65_0.2_142)]/12 border border-[oklch(0.65_0.2_142)]/25 rounded-full px-2.5 py-0.5">
+                {sessionReport.summary.isPositiveGrowth ? "+" : "-"}{sessionReport.summary.growthPercentage}
+              </span>
+            )}
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={sessionReport.data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 260)" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
-              <Tooltip content={<ChartTooltip formatter={(v) => `${v} sessions`} />} />
+          {sessionReport && sessionReport.data.length > 0 && (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={sessionReport.data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 260)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
+                <Tooltip content={<ChartTooltip formatter={(v) => `${v} sessions`} />} />
               <Bar dataKey="sessions" fill="oklch(0.52 0.22 260)" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
-        </div>)}
+          </ResponsiveContainer>)}
+           {sessionReport && sessionReport.data.length === 0 && (<h3 className="text-sm font-semibold text-foreground text-center py-20 px-10">No session report for selected period</h3>)}
+        </div>
       </div>
 
       {/* Recent transactions */}

@@ -207,7 +207,7 @@ export default function SignupPage() {
           Your ISP. Your Rules. Your Revenue.
         </h2>
         <p className="text-base text-white/70 leading-relaxed mb-10 max-w-xlg">
-          Join hundreds of ISPs using {appName} to automate payments, manage routers and grow subscriber bases effortlessly.
+          Join hundreds of ISPs using <strong>{appName}</strong>. to automate payments, manage network and grow subscriber bases effortlessly.
         </p>
 
         <div className="grid grid-cols-2 gap-4 max-w-xlg">
