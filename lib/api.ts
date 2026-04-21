@@ -11,6 +11,7 @@ import type {
   Invoice,
   HotspotSession,
   GatewayConfig,
+  ReportSummary,
 } from "@/lib/types";
 
 export const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
@@ -185,11 +186,8 @@ export const apiClient = {
         payments: any;
         sessions: any;
       }>("/dashboard"),
-    paymentReports: () =>
-      req<{
-        data: Array<{ date: string; amount: number }>;
-        summary: { growthPercentage: string; isPositiveGrowth: boolean };
-      }>("/dashboard/report"),
+    getReports: (data: {startDate: string, endDate: string}) =>
+      req<{payment: ReportSummary; session: ReportSummary}>(`/dashboard/report?startDate=${data.startDate}&endDate=${data.endDate}`),
   },
 
   notifications: {

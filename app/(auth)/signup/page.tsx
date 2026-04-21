@@ -13,21 +13,18 @@ import { appName } from "@/lib/utils";
 
 const signupSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
-  adminName: z.string().min(2, "Full name is required"),
+  adminName: z.string()
+  .min(2, "Full name is required")
+  .regex(/^[A-Za-z]+(?: [A-Za-z]+)+$/, "Please enter your full name (first and last name)")
+  .transform((val) => val.replace(/\s+/g, " ").trim()),
   adminEmail: z.string().email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
+  
 });
 
 type SignupForm = {
   businessName: string;
   adminName: string;
   adminEmail: string;
-  password: string;
-  confirmPassword: string;
 };
 
 type FormErrors = Partial<Record<keyof SignupForm, string>>;
@@ -36,8 +33,6 @@ const DEFAULT_FORM: SignupForm = {
   businessName: "",
   adminName: "",
   adminEmail: "",
-  password: "",
-  confirmPassword: "",
 };
 
 const FEATURES = [
@@ -51,9 +46,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [form, setForm] = useState<SignupForm>(DEFAULT_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [serverError, setServerError] = useState("");
+  const [serverError, errorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -64,7 +57,7 @@ export default function SignupPage() {
   function setField(key: keyof SignupForm, value: string) {
     setForm(f => ({ ...f, [key]: value }));
     setErrors(e => ({ ...e, [key]: undefined }));
-    setServerError("");
+    errorMessage("");
   }
 
   function validate(): boolean {
@@ -86,7 +79,7 @@ export default function SignupPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    setServerError("");
+    errorMessage("");
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api"}/auth/register`, {
         method: "POST",
@@ -95,14 +88,13 @@ export default function SignupPage() {
           name: form.businessName,
           adminName: form.adminName,
           adminEmail: form.adminEmail,
-          password: form.password
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? data?.message ?? "Registration failed");
-      setSuccess(true);
+      const {success, message} = await res.json();
+      if (!success) errorMessage(message)
+      setSuccess(success);
     } catch (err: unknown) {
-      setServerError(err instanceof Error ? err.message : "Registration failed. Please try again.");
+      errorMessage(err instanceof Error ? err.message : "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -191,53 +183,7 @@ export default function SignupPage() {
               {errors.adminEmail && <p className="text-xs text-destructive">{errors.adminEmail}</p>}
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Min. 8 characters"
-                  value={form.password}
-                  onChange={(e) => setField("password", e.target.value)}
-                  autoComplete="new-password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Re-enter password"
-                  value={form.confirmPassword}
-                  onChange={(e) => setField("confirmPassword", e.target.value)}
-                  autoComplete="new-password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showConfirm ? "Hide password" : "Show password"}
-                >
-                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
-            </div>
+            
 
             <Button type="submit" className="w-full mt-1" disabled={loading || !isValid()}>
               {loading ? "Creating account…" : "Create Account"}

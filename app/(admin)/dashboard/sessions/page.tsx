@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter } from "lucide-react";
+import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter, Calendar } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { StatCard } from "@/components/admin/StatCard";
@@ -17,6 +17,9 @@ import { Activity, Wifi, Clock } from "lucide-react";
 import { HotspotSession, Package } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import SocketClient from "@/lib/socket.util";
+import { DateRange , DayPicker} from "react-day-picker";
+import { addDays, format as formatDate } from "date-fns";
+import "react-day-picker/style.css";
 
 
 function formatBytes(octate: number) {
@@ -44,11 +47,27 @@ export default function SessionsPage() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [acting, setActing] = useState(false);
   const { user } = useAuth();
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  
+  // Date range state - initialize to last 7 days
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  });
 
   const load = useCallback(async (showLoading: boolean = true) => {
     setLoading(showLoading);
     try {
-      const [_sessions, { data: _packages }] = await Promise.all([apiClient.sessions.list(), apiClient.packages.list()]);
+      // Pass date range to API calls if they support it
+      const dateFilter = dateRange?.from && dateRange?.to ? {
+        startDate: formatDate(dateRange.from, 'yyyy-MM-dd'),
+        endDate: formatDate(dateRange.to, 'yyyy-MM-dd')
+      } : {};
+      
+      const [_sessions, { data: _packages }] = await Promise.all([
+        apiClient.sessions.list(dateFilter), 
+        apiClient.packages.list()
+      ]);
       setSessions(_sessions);
       setPackages(_packages);
     } catch {
@@ -56,7 +75,12 @@ export default function SessionsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateRange]);
+
+  // Reload when date range changes
+  useEffect(() => { 
+    if (user) load(); 
+  }, [dateRange]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -99,8 +123,28 @@ export default function SessionsPage() {
     setActionState(null);
   }
 
-  const active = sessions.filter(s => s.status === "active");
-  const totalData = sessions.reduce((sum, s) => sum + ((s.usage.output + s.usage.input)), 0);
+  // Handle date range selection
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setShowDatePicker(false);
+  };
+
+  // Format display date range
+  const formatDateRange = () => {
+    if (!dateRange?.from) return "Select date range";
+    if (!dateRange?.to) return formatDate(dateRange.from, "MMM dd, yyyy");
+    return `${formatDate(dateRange.from, "MMM dd")} - ${formatDate(dateRange.to, "MMM dd, yyyy")}`;
+  };
+
+  // Filter sessions by date range if needed
+  const getFilteredSessions = () => {
+    let filtered = statusFilter === "all" ? sessions : sessions.filter(s => s.status === statusFilter);
+    return filtered;
+  };
+
+  const filteredSessions = getFilteredSessions();
+  const active = filteredSessions.filter(s => s.status === "active");
+  const totalData = filteredSessions.reduce((sum, s) => sum + ((s.usage.output + s.usage.input)), 0);
 
   const columns = [
     { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
@@ -125,22 +169,51 @@ export default function SessionsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Sessions</h1>
           <p className="text-sm text-muted-foreground mt-1">Live and historical hotspot sessions</p>
         </div>
+        
+        {/* Date Range Picker */}
+        <div className="relative">
+          <button
+            onClick={() => setShowDatePicker(!showDatePicker)}
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors"
+          >
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{formatDateRange()}</span>
+          </button>
+          
+          {showDatePicker && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowDatePicker(false)}
+              />
+              <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-3">
+                <DayPicker
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={handleDateRangeSelect}
+                  numberOfMonths={1}
+                  defaultMonth={dateRange?.from}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <StatCard label="Active Sessions" value={active.length} icon={Activity} changePositive />
-        <StatCard label="Total Sessions" value={sessions.length} icon={Wifi} />
+        <StatCard label="Total Sessions" value={filteredSessions.length} icon={Wifi} />
         <StatCard label="Total Data Used" value={formatBytes(totalData)} icon={Clock} />
       </div>
 
       <DataTable
-        data={(statusFilter === "all" ? sessions : sessions.filter(s => s.status === statusFilter)) as unknown as Record<string, unknown>[]}
+        data={filteredSessions as unknown as Record<string, unknown>[]}
         columns={columns as never}
         loading={loading}
         searchable
         searchKeys={["macAddress", "ipAddress"] as never}
         searchPlaceholder="by MAC or IP"
-        emptyMessage="No sessions recorded yet."
+        emptyMessage="No sessions recorded for the selected period."
         pageSize={10}
         filterSlot={
           <div className="flex items-center gap-2">

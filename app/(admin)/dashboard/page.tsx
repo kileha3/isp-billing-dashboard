@@ -14,6 +14,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Bar,
+  BarChart,
 } from "recharts";
 import {
   Router,
@@ -23,12 +25,15 @@ import {
   Ticket,
   Package,
   TrendingUp,
+  Calendar,
 } from "lucide-react";
 import { formatCurrency } from "./transactions/page";
 import { Transaction } from "@/lib/types";
 import SocketClient from "@/lib/socket.util";
 import { format } from 'timeago.js';
-
+import { DateRange, DayPicker } from "react-day-picker";
+import { addDays, format as formatDate } from "date-fns";
+import "react-day-picker/style.css";
 
 export const formatAgoTime = (date: string) => {
   return format(new Date(date));
@@ -63,19 +68,33 @@ export default function DashboardPage() {
   const isSuperAdmin = isRole("super_admin");
   const [recentTransactions, setRecentTransaction] = useState<Array<Transaction>>([])
   const [transReport, setTransReport] = useState<any>(null)
-
+  const [sessionReport, setSessionReport] = useState<any>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  
+  // Date range state - initialize to last 7 days
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  });
 
   const load = useCallback(async (showLoading: boolean = true) => {
     setLoading(showLoading);
     try {
-      const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, { data: transactions }, report] = await Promise.all([
-        apiClient.dashboard.getStats(),
+      // Pass date range to API calls if they support it
+      const dateFilter = dateRange?.from && dateRange?.to ? {
+        startDate: formatDate(dateRange.from, 'yyyy-MM-dd'),
+        endDate: formatDate(dateRange.to, 'yyyy-MM-dd')
+      } : {};
+      
+      const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, { data: transactions }, {payment, session}] = await Promise.all([
+        apiClient.dashboard.getStats(dateFilter),
         isSuperAdmin ? { data: { settings: { currency: "TZS" } } } : apiClient.tenant.get(user?.tenantId),
         apiClient.transactions.recent(),
-        apiClient.dashboard.paymentReports()
+        apiClient.dashboard.getReports(dateFilter)
       ]);
       setSession(sessions)
-      setTransReport(report);
+      setTransReport(payment);
+      setSessionReport(session);
       setRouterStats(routers);
       setVoucherStats(vouchers);
       setPackageStats(packages);
@@ -88,7 +107,14 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateRange]);
+
+  // Reload when date range changes
+  useEffect(() => {
+    if (authLoading || !user) return;
+    load();
+  }, [dateRange]);
+
   useEffect(() => {
     if (authLoading || !user) return;
     load();
@@ -106,12 +132,56 @@ export default function DashboardPage() {
     };
   }, [user]);
 
+  // Handle date range selection
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setShowDatePicker(false);
+  };
+
+  // Format display date range
+  const formatDateRange = () => {
+    if (!dateRange?.from) return "Select date range";
+    if (!dateRange?.to) return formatDate(dateRange.from, "MMM dd, yyyy");
+    return `${formatDate(dateRange.from, "MMM dd")} - ${formatDate(dateRange.to, "MMM dd, yyyy")}`;
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Overview of your ISP network</p>
+      {/* Page heading with date picker */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Overview of your ISP network</p>
+        </div>
+        
+        {/* Date Range Picker */}
+        <div className="relative">
+          <button
+            onClick={() => setShowDatePicker(!showDatePicker)}
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors"
+          >
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{formatDateRange()}</span>
+          </button>
+          
+          {showDatePicker && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowDatePicker(false)}
+              />
+              <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-3">
+                <DayPicker
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={handleDateRangeSelect}
+                  numberOfMonths={1}
+                  defaultMonth={dateRange?.from}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stat cards — middle card is "hero" (navy fill) to match DashboardDesign */}
@@ -167,7 +237,11 @@ export default function DashboardPage() {
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Revenue — Last 7 Days</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Revenue — {dateRange?.from && dateRange?.to 
+                  ? `${formatDate(dateRange.from, "MMM dd")} - ${formatDate(dateRange.to, "MMM dd, yyyy")}`
+                  : "Selected Period"}
+              </h3>
               <p className="text-xs text-muted-foreground mt-0.5">Daily transaction totals</p>
             </div>
             {transReport && transReport.data.length > 0 && (<span className="text-xs font-semibold text-[oklch(0.42_0.18_142)] bg-[oklch(0.65_0.2_142)]/12 border border-[oklch(0.65_0.2_142)]/25 rounded-full px-2.5 py-0.5">
@@ -190,30 +264,34 @@ export default function DashboardPage() {
             </AreaChart>
           </ResponsiveContainer>)}
 
-          {transReport && transReport.data.length === 0 && (<h3 className="text-sm font-semibold text-foreground text-center py-20 px-10">No revenue report</h3>)}
+          {transReport && transReport.data.length === 0 && (<h3 className="text-sm font-semibold text-foreground text-center py-20 px-10">No revenue report for selected period</h3>)}
         </div>
 
         {/* Sessions chart */}
-        <div className="rounded-xl border border-border bg-card p-5">
+        {sessionReport && sessionReport.data.length > 0 && (<div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Sessions — Last 7 Days</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Sessions — {dateRange?.from && dateRange?.to 
+                  ? `${formatDate(dateRange.from, "MMM dd")} - ${formatDate(dateRange.to, "MMM dd, yyyy")}`
+                  : "Selected Period"}
+              </h3>
               <p className="text-xs text-muted-foreground mt-0.5">Hotspot session counts</p>
             </div>
             <span className="text-xs font-semibold text-[oklch(0.42_0.18_142)] bg-[oklch(0.65_0.2_142)]/12 border border-[oklch(0.65_0.2_142)]/25 rounded-full px-2.5 py-0.5">
-              +10%
+              {sessionReport.summary.isPositiveGrowth ? "+" : "-"}{sessionReport.summary.growthPercentage}
             </span>
           </div>
-          {/* <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={s.sessionChart} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={sessionReport.data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 260)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
               <Tooltip content={<ChartTooltip formatter={(v) => `${v} sessions`} />} />
-              <Bar dataKey="count" fill="oklch(0.52 0.22 260)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="sessions" fill="oklch(0.52 0.22 260)" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer> */}
-        </div>
+          </ResponsiveContainer>
+        </div>)}
       </div>
 
       {/* Recent transactions */}

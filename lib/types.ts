@@ -63,6 +63,11 @@ export interface RouterInfo {
   availableInterfaces: Array<{ name: string; isRunning: boolean }>;
 }
 
+export interface ReportSummary {
+  data: Array<{ date: string; amount: number }>;
+  summary: { growthPercentage: string; isPositiveGrowth: boolean };
+}
+
 export interface Notification {
   _id: string;
   title: string;
