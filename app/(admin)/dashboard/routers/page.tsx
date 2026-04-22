@@ -17,7 +17,7 @@ import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
-import { appName } from "@/lib/utils";
+import { appName, capitalizeFirstLetter } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Progress } from "@radix-ui/react-progress";
 import SocketClient from "@/lib/socket.util";
@@ -451,6 +451,22 @@ export default function RoutersPage() {
         );
       }
     },
+
+    {
+      key: "service", label: "Services",
+      render: (v: unknown, row: unknown) => {
+        const portal = (row as RouterDevice).portalInterface;
+        const typeLabel = () => {
+          return portal?.type === "combined" ? "Hotspot,PPPOE": portal?.type === "pppoe" ? "PPPOE": portal?.type;
+        }
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{capitalizeFirstLetter(typeLabel() || "Undetermined")}</span>
+            <code className="text-xs font-mono text-muted-foreground">{portal?.interfaces?.join(", ") || "Undetermined"}</code>
+          </div>
+        );
+      }
+    },
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
     {
       key: "uptime", label: "Uptime", render: (v: unknown, row: unknown) => {
@@ -695,6 +711,7 @@ export default function RoutersPage() {
                   SocketClient.waitFor<RouterDevice>(SocketClient.event_router_setup_completed, wizard.router._id, (data) => {
                     updateStatus(data);
                     setWizard((prev) => ({ ...prev, data, step: "interfaces", canClose: false }));
+                    load(false);
                   });
                 }
 
