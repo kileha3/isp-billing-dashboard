@@ -123,11 +123,8 @@ export default function InvoicesPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {invoice.status === "pending" && !isSuperAdmin && (<DropdownMenuItem onClick={() => setShowClearInvoice(row as unknown as Invoice)}>
-                  <DollarSign className="mr-2 h-4 w-4" />Clear Invoice
-                </DropdownMenuItem>)}
 
-                {invoice.status === "pending" && isSuperAdmin && (<DropdownMenuItem onClick={() => changeInvoiceStatus(row as unknown as Invoice, "paid")}>
+                {invoice.status === "pending" && isSuperAdmin && (<DropdownMenuItem onClick={() => isSuperAdmin ? changeInvoiceStatus(row as unknown as Invoice, "paid") : setShowClearInvoice(row as unknown as Invoice)}>
                   <Lock className="mr-2 h-4 w-4" />Clear Invoice
                 </DropdownMenuItem>)}
 
