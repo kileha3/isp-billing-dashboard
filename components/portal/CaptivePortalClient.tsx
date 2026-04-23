@@ -140,11 +140,13 @@ function PaymentOverlay({
   state,
   primaryColor,
   isVoucher,
+  isFree,
   language,
   onDismissFailure,
 }: {
   state: PayState;
   isVoucher: boolean;
+  isFree: boolean;
   primaryColor: string;
   language: string;
   onDismissFailure: () => void;
@@ -170,7 +172,7 @@ function PaymentOverlay({
       {isProcessing && (
         <div className="flex flex-col items-center gap-6">
           <SpinnerRing color={primaryColor} />
-          <div className="flex flex-col gap-2">
+          {!isFree && (<div className="flex flex-col gap-2">
             <p className="text-lg font-bold text-foreground">
               {isVoucher ? labels[language]?.processVoucher : labels[language]?.processPay}
             </p>
@@ -180,7 +182,7 @@ function PaymentOverlay({
             <p className="text-xs text-muted-foreground">
               {isVoucher ? labels[language]?.voucherConfirmation : labels[language]?.paymentConfirmation}
             </p>
-          </div>
+          </div>)}
         </div>
       )}
 
@@ -285,6 +287,7 @@ export function CaptivePortalClient() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [isVoucher, setIsVoucher] = useState(false);
+  const [isFree, setIsFree] = useState(false);
   const [payState, setPayState] = useState<PayState>("idle");
 
 
@@ -360,6 +363,7 @@ export function CaptivePortalClient() {
       setPayState("processing");
       try {
         if (pkg.isFree) {
+          setIsFree(true);
           const { appliedVoucher, success } = await apiClient.portal.connectFreePackage({
             packageId: pkg._id,
             nasName,
@@ -434,6 +438,7 @@ export function CaptivePortalClient() {
         <PaymentOverlay
           state={payState}
           isVoucher={isVoucher}
+          isFree={isFree}
           primaryColor={primaryColor}
           language={config.language}
           onDismissFailure={handleDismissFailure}
