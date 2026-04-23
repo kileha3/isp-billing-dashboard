@@ -16,7 +16,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { phoneSchema } from "@/components/portal/PackageGrid";
+import { phoneSchemaDef } from "@/components/portal/PackageGrid";
 import SocketClient from "@/lib/socket.util";
 
 
@@ -33,6 +33,7 @@ export default function InvoicesPage() {
   const [invoiceToExempt, setExemptInvoice] = useState<Invoice | null>(null);
   const [phone, setPhone] = useState("");
   const { user } = useAuth();
+  const phoneSchema = phoneSchemaDef({ min: 9, max: 12, language: "en" });
   const phoneResult = phoneSchema.safeParse(phone);
   const phoneError = phone.length > 0 && !phoneResult.success
     ? phoneResult.error.errors[0]?.message

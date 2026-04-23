@@ -18,15 +18,30 @@ interface PackageGridProps {
   onPay: (params: { pkg: Package; phone: string }) => void;
 }
 
-export const phoneSchema = z
-  .string()
-  .min(10, "Phone number is required")
-  .regex(/^\+?[\d\s\-(]{10,15}$/, "Enter a valid phone number (e.g. 0712 XXX XXX)");
+export const phoneSchemaDef = (params?: {
+  min?: number;
+  max?: number;
+  language: string;
+}) => {
+  const min = params?.min ?? 10;
+  const max = params?.max ?? 15;
+  
+  return z.string().refine(
+    (val) => {
+      const phoneRegex = new RegExp(`^\\+?[\\d\\s\\-\\(]{${min},${max}}$`);
+      return phoneRegex.test(val);
+    },
+    {
+      message: labels[params!.language]?.phoneError || `Enter a valid phone number (e.g. 0712 XXX XXX)`
+    }
+  );
+};
 
 
 export function PackageGrid({ packages, primaryColor, onPay, currency, language }: PackageGridProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
+  const phoneSchema = phoneSchemaDef({ min: 9, max: 12, language: language });
 
   const phoneResult = phoneSchema.safeParse(phone);
   const phoneError = phone.length > 0 && !phoneResult.success

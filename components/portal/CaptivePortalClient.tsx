@@ -69,7 +69,8 @@ export const labels: any = {
     voucherConfirmation: "Please wait for confirmation...",
     paymentConfirmation: "Enter your PIN on your phone to confirm.",
     duration: { minutes: "minutes", hours: "hours", days: "days", months: "months" },
-    unlimited:"Unlimited"
+    unlimited:"Unlimited",
+    phoneError:"Enter a valid phone number (e.g. 0712 XXX XXX)"
 
   },
   sw: {
@@ -104,7 +105,9 @@ export const labels: any = {
     voucherConfirmation: "Tafadhali subiri uthibitisho...",
     paymentConfirmation: "Weka PIN yako kwenye simu yako kuthibitisha.",
     duration: { minutes: "dakika", hours: "saa", days: "siku", months: "mwezi" },
-    unlimited:"Bila Kikomo"
+    unlimited:"Bila Kikomo",
+    phoneError:"Weka namba ya simu sahihi (mfano 0712 XXX XXX)"
+
 
 
   }
