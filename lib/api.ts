@@ -14,7 +14,8 @@ import type {
   ReportSummary,
 } from "@/lib/types";
 
-export const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
+export const BASE =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
 
 // Token storage keys
 const TOKEN_KEY = "netbill_token";
@@ -186,8 +187,10 @@ export const apiClient = {
         payments: any;
         sessions: any;
       }>("/dashboard"),
-    getReports: (data: {startDate: string, endDate: string}) =>
-      req<{payment: ReportSummary; session: ReportSummary}>(`/dashboard/report?startDate=${data.startDate}&endDate=${data.endDate}`),
+    getReports: (data: { startDate: string; endDate: string }) =>
+      req<{ payment: ReportSummary; session: ReportSummary }>(
+        `/dashboard/report?startDate=${data.startDate}&endDate=${data.endDate}`,
+      ),
   },
 
   notifications: {
@@ -202,18 +205,18 @@ export const apiClient = {
         `/routers${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
 
-    services: () =>
-      req<Array<string>>(
-        `/routers/services`,
-      ),
+    services: () => req<Array<string>>(`/routers/services`),
 
     create: (data: Partial<RouterDevice>) =>
-      req<{ message: string; router: RouterDevice , success: boolean}>("/routers", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      req<{ message: string; router: RouterDevice; success: boolean }>(
+        "/routers",
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      ),
 
-    whileListAp: (data: {routerId: string ; name: string; mac: string;}) =>
+    whileListAp: (data: { routerId: string; name: string; mac: string }) =>
       req<{ data: RouterDevice }>("/routers/whitelist", {
         method: "POST",
         body: JSON.stringify(data),
@@ -226,16 +229,19 @@ export const apiClient = {
       }),
 
     resetDevice: (routerId: string) =>
-      req<{success: boolean}>("/routers/reset", {
+      req<{ success: boolean }>("/routers/reset", {
         method: "POST",
         body: JSON.stringify({ routerId }),
       }),
 
     update: (id: string, data: Partial<RouterDevice>) =>
-      req<{ message: string; routerId: string, success: boolean}>(`/routers/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
+      req<{ message: string; routerId: string; success: boolean }>(
+        `/routers/${id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        },
+      ),
 
     delete: (id: string) =>
       req<{ message: string }>(`/routers/${id}`, { method: "DELETE" }),
@@ -388,13 +394,10 @@ export const apiClient = {
     list: () => req<{ data: import("@/lib/types").Tenant[] }>("/tenants"),
 
     create: (data: { name: string; adminName: string; adminEmail: string }) =>
-      req<{message: string; success: boolean; tenantId: string}>(
-        "/tenants",
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      ),
+      req<{ message: string; success: boolean; tenantId: string }>("/tenants", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
     update: (id: string, data: Partial<import("@/lib/types").Tenant>) =>
       req<{ tenant: import("@/lib/types").Tenant }>(`/tenants/${id}`, {
@@ -463,6 +466,21 @@ export const apiClient = {
     }) =>
       req<{ success: boolean; message: string; appliedVoucher: string }>(
         `/payments/voucher?nasname=${data.nasName}&token=${data.authToken}`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      ),
+
+    connectFreePackage: (data: {
+      deviceIp: string;
+      deviceMac: string;
+      packageId: string;
+      nasName: string;
+      authToken: string;
+    }) =>
+      req<{ success: boolean; message: string; appliedVoucher: string }>(
+        `/payments/trial?nasname=${data.nasName}&token=${data.authToken}`,
         {
           method: "POST",
           body: JSON.stringify(data),

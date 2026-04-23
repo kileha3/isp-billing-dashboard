@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import type { Package } from "@/lib/types";
 import { Wifi, Clock, Database, Zap, ChevronUp } from "lucide-react";
 import { formatData, formatDuration, formatSpeed } from "@/app/(admin)/dashboard/packages/page";
+import { labels } from "./CaptivePortalClient";
 
 interface PackageGridProps {
   packages: Package[];
   primaryColor: string;
   currency: string;
+  language: string;
   onPay: (params: { pkg: Package; phone: string }) => void;
 }
 
@@ -22,7 +24,7 @@ export const phoneSchema = z
   .regex(/^\+?[\d\s\-(]{10,15}$/, "Enter a valid phone number (e.g. 0712 XXX XXX)");
 
 
-export function PackageGrid({ packages, primaryColor, onPay, currency }: PackageGridProps) {
+export function PackageGrid({ packages, primaryColor, onPay, currency, language }: PackageGridProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
 
@@ -46,7 +48,7 @@ export function PackageGrid({ packages, primaryColor, onPay, currency }: Package
     return (
       <div className="flex flex-col items-center gap-3 py-12 text-center">
         <Wifi className="h-10 w-10 text-muted-foreground/40" />
-        <p className="text-sm text-muted-foreground">No packages available on this network.</p>
+        <p className="text-sm text-muted-foreground">{labels[language]?.noPackages || "No packages available on this network."}</p>
       </div>
     );
   }
@@ -75,26 +77,26 @@ export function PackageGrid({ packages, primaryColor, onPay, currency }: Package
                 <div className="flex items-center gap-3 mt-1 flex-wrap">
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {formatDuration(pkg.duration, pkg.durationUnit)}
+                    {formatDuration(pkg.duration, labels[language]?.duration[pkg.durationUnit])}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Database className="h-3 w-3" />
-                    {formatData(pkg.dataLimit, pkg.dataLimitUnit)}
+                    {formatData(pkg.dataLimit, pkg.dataLimitUnit, labels[language]?.unlimited)}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Zap className="h-3 w-3" />
-                    {formatSpeed(pkg.speedLimit)}
+                    {formatSpeed(pkg.speedLimit, labels[language]?.unlimited)}
                   </span>
                 </div>
               </div>
 
               <div className="flex flex-col items-end gap-2 shrink-0">
-                <div
+                {!pkg.isFree && (<div
                   className="px-3 py-1.5 text-center"
 
                 >
                   <p className="text-xl font-bold leading-none" style={{ color: primaryColor }}><span className="text-xs font-medium leading-none mb-0.5" style={{ color: primaryColor }}>{currency}</span> {pkg.price.toLocaleString()}</p>
-                </div>
+                </div>)}
                 <Button
                   size="sm"
                   onClick={() => handleSelect(pkg)}
@@ -105,7 +107,7 @@ export function PackageGrid({ packages, primaryColor, onPay, currency }: Package
                       : { background: primaryColor, color: "#fff" }
                   }
                 >
-                  {isOpen ? <><ChevronUp className="h-3 w-3" />Close</> : "Select"}
+                  { pkg.isFree ? labels[language]?.connect || "Connect" : isOpen ? <><ChevronUp className="h-3 w-3" />{labels[language]?.close || "Close"}</> : labels[language]?.select || "Select"}
                 </Button>
               </div>
             </div>
@@ -117,13 +119,14 @@ export function PackageGrid({ packages, primaryColor, onPay, currency }: Package
                 style={{ borderColor: `${primaryColor}30`, background: `${primaryColor}06` }}
               >
                 <p className="text-xs font-semibold text-foreground">
-                  Paying for: <span style={{ color: primaryColor }}>{pkg.name}</span>
+                  {labels[language]?.payFor || "Paying for"}:
+                  <span style={{ color: primaryColor }}>{pkg.name}</span>
                   <span className="text-muted-foreground font-normal"> - {currency} {pkg.price.toLocaleString()}</span>
                 </p>
 
                 {/* Phone input */}
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs font-medium">Phone Number</Label>
+                  <Label className="text-xs font-medium">{labels[language]?.phone || "Phone Number"}</Label>
                   <Input
                     type="tel"
                     placeholder="0712 XXX XXX"
@@ -146,7 +149,7 @@ export function PackageGrid({ packages, primaryColor, onPay, currency }: Package
                   className="w-full h-11 font-semibold text-sm"
                   style={canPay ? { background: primaryColor, color: "#fff" } : { background: `${primaryColor}2a`, color: "#000" }}
                 >
-                  {`Pay Now ${currency} ${pkg.price.toLocaleString()}`}
+                  {`${labels[language]?.pay || "Pay Now"} ${currency} ${pkg.price.toLocaleString()}`}
                 </Button>
               </div>
             )}

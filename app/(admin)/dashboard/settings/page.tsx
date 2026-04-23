@@ -25,10 +25,13 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
   const [general, setGeneral] = useState({
     currency: "TZS",
     timezone: "Africa/Dar_es_Salaam",
+    language: "en",
   });
 
   const [gateways, setGateways] = useState<Array<GatewayConfig>>([]);
-  const [activeGateway, setActiveGateway] = useState<string | null | undefined>(null)
+  const [activeGateway, setActiveGateway] = useState<
+    string | null | undefined
+  >(null);
 
   const [profile, setProfile] = useState({
     name: "",
@@ -55,10 +58,20 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
         apiClient.tenant.get(tenantId),
         apiClient.transactions.gateways(),
       ]);
-      setGeneral(data.settings);
+
+      setGeneral({
+        currency: data.settings.currency || "TZS",
+        timezone: data.settings.timezone || "Africa/Dar_es_Salaam",
+        language: data.settings.language || "en",
+      });
+
       setGateways(remoteGateway);
-      const active = remoteGateway.find(g => g.gateway.id === data.paymentGateway.gateway)?.gateway.name;
-      if(active) setActiveGateway(active);
+
+      const active = remoteGateway.find(
+        (g) => g.gateway.id === data.paymentGateway?.gateway
+      )?.gateway.name;
+
+      if (active) setActiveGateway(active);
     } catch { }
   }, [tenantId]);
 
@@ -189,37 +202,66 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
           <CardHeader>
             <CardTitle className="text-base">General</CardTitle>
             <CardDescription>
-              Currency and timezone preferences
+              Currency, timezone, and language preferences
             </CardDescription>
           </CardHeader>
 
           <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label>Currency</Label>
-              <select
-                className="border rounded-md h-10 px-3 text-sm"
-                value={general.currency}
-                onChange={(e) =>
-                  setGeneral((g) => ({ ...g, currency: e.target.value }))
-                }
-              >
-                <option value="TZS">Tanzanian Shilling (TZS)</option>
-                <option value="KES">Kenyan Shilling (KES)</option>
-                <option value="UGX">Ugandan Shilling (UGX)</option>
-                <option value="RWF">Rwandan Franc (RWF)</option>
-                <option value="BIF">Burundian Franc (BIF)</option>
-                <option value="SSP">South Sudanese Pound (SSP)</option>
-              </select>
+            {/* Row 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Currency</Label>
+                <select
+                  className="border rounded-md h-10 px-3 text-sm"
+                  value={general.currency}
+                  onChange={(e) =>
+                    setGeneral((g) => ({
+                      ...g,
+                      currency: e.target.value,
+                    }))
+                  }
+                >
+                  <option value="TZS">Tanzanian Shilling (TZS)</option>
+                  <option value="KES">Kenyan Shilling (KES)</option>
+                  <option value="UGX">Ugandan Shilling (UGX)</option>
+                  <option value="RWF">Rwandan Franc (RWF)</option>
+                  <option value="BIF">Burundian Franc (BIF)</option>
+                  <option value="SSP">South Sudanese Pound (SSP)</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Timezone</Label>
+                <Input
+                  value={general.timezone}
+                  onChange={(e) =>
+                    setGeneral((g) => ({
+                      ...g,
+                      timezone: e.target.value,
+                    }))
+                  }
+                />
+              </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label>Timezone</Label>
-              <Input
-                value={general.timezone}
-                onChange={(e) =>
-                  setGeneral((g) => ({ ...g, timezone: e.target.value }))
-                }
-              />
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Language</Label>
+                <select
+                  className="border rounded-md h-10 px-3 text-sm"
+                  value={general.language}
+                  onChange={(e) =>
+                    setGeneral((g) => ({
+                      ...g,
+                      language: e.target.value,
+                    }))
+                  }
+                >
+                  <option value="en">English</option>
+                  <option value="sw">Swahili</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex justify-end">
@@ -249,11 +291,9 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
 
             <Input
               type="email"
-              placeholder="Email"
               value={profile.email}
-              onChange={(e) =>
-                setProfile((p) => ({ ...p, email: e.target.value }))
-              }
+              disabled
+              className="opacity-70 cursor-not-allowed"
             />
 
             <Separator />
@@ -293,66 +333,82 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
         </Card>
 
         {/* PAYMENT */}
-        {gateways.length > 0 && (<Card className="col-span-6 md:col-span-3">
-          <CardHeader>
-            <CardTitle className="text-base">Payment & Gateway</CardTitle>
-            <CardDescription>
-              Configure your payment provider credentials {activeGateway ? `, right now` : ""}
-              <strong>{activeGateway ? ` ${activeGateway}` : ""}</strong>
-              {activeGateway ? ` is configured for payments` : ""}
-            </CardDescription>
-          </CardHeader>
+        {gateways.length > 0 && (
+          <Card className="col-span-6 md:col-span-3">
+            <CardHeader>
+              <CardTitle className="text-base">
+                Payment & Gateway
+              </CardTitle>
+              <CardDescription>
+                Configure your payment provider credentials{" "}
+                {activeGateway ? `, right now ` : ""}
+                <strong>{activeGateway || ""}</strong>
+                {activeGateway ? ` is configured for payments` : ""}
+              </CardDescription>
+            </CardHeader>
 
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label>Gateway</Label>
-              <select
-                className="border rounded-md h-10 px-3 text-sm"
-                value={payment.gateway}
-                onChange={(e) => handleGatewayChange(e.target.value)}
-              >
-                <option value="">Select gateway</option>
-                {gateways.map((g) => (
-                  <option key={g.gateway.id} value={g.gateway.id}>
-                    {g.gateway.name}
-                  </option>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Gateway</Label>
+                <select
+                  className="border rounded-md h-10 px-3 text-sm"
+                  value={payment.gateway}
+                  onChange={(e) =>
+                    handleGatewayChange(e.target.value)
+                  }
+                >
+                  <option value="">Select gateway</option>
+                  {gateways.map((g) => (
+                    <option key={g.gateway.id} value={g.gateway.id}>
+                      {g.gateway.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedGateway &&
+                selectedGateway.fields.map((field) => (
+                  <div
+                    key={field.name}
+                    className="flex flex-col gap-1.5"
+                  >
+                    <Label className="capitalize">
+                      {field.name}
+                    </Label>
+                    <Input
+                      placeholder={field.placeholder}
+                      value={payment.values[field.name] || ""}
+                      onChange={(e) =>
+                        setPayment((p) => ({
+                          ...p,
+                          values: {
+                            ...p.values,
+                            [field.name]: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
                 ))}
-              </select>
-            </div>
 
-            {selectedGateway &&
-              selectedGateway.fields.map((field) => (
-                <div key={field.name} className="flex flex-col gap-1.5">
-                  <Label className="capitalize">{field.name}</Label>
-                  <Input
-                    placeholder={field.placeholder}
-                    value={payment.values[field.name] || ""}
-                    onChange={(e) =>
-                      setPayment((p) => ({
-                        ...p,
-                        values: {
-                          ...p.values,
-                          [field.name]: e.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </div>
-              ))}
-
-            <div className="flex justify-end">
-              <Button
-                onClick={handleSavePayment}
-                disabled={
-                  savingPayment || !isPaymentValid() || !payment.gateway
-                }
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {savingPayment ? "Saving…" : "Save Payment Settings"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>)}
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSavePayment}
+                  disabled={
+                    savingPayment ||
+                    !isPaymentValid() ||
+                    !payment.gateway
+                  }
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {savingPayment
+                    ? "Saving…"
+                    : "Save Payment Settings"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

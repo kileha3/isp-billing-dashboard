@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Ticket } from "lucide-react";
+import { labels } from "./CaptivePortalClient";
 
 interface VoucherInputProps {
   primaryColor: string;
   loading: boolean;
+  language: string;
   onRedeem: (voucher: string) => void;
 }
 
-export function VoucherInput({ primaryColor, onRedeem, loading }: VoucherInputProps) {
+export function VoucherInput({ primaryColor, onRedeem, loading, language }: VoucherInputProps) {
   const [code, setCode] = useState("");
 
   return (
@@ -21,12 +23,12 @@ export function VoucherInput({ primaryColor, onRedeem, loading }: VoucherInputPr
         <div className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: `${primaryColor}15` }}>
           <Ticket className="h-6 w-6" style={{ color: primaryColor }} />
         </div>
-        <p className="text-sm font-medium text-foreground">Enter your voucher code</p>
-        <p className="text-xs text-muted-foreground text-center">Scratched from a card or provided by your ISP</p>
+        <p className="text-sm font-medium text-foreground">{labels[language]?.enterVoucher || "Enter your voucher code"}</p>
+        <p className="text-xs text-muted-foreground text-center">{labels[language]?.enterVoucherDescription || "Scratched from a card or provided by your ISP"}</p>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs font-medium">Voucher Code</Label>
+        <Label className="text-xs font-medium">{labels[language]?.voucherCode || "Voucher Code"}</Label>
         <Input
           placeholder="e.g. NB1234"
           value={code}
@@ -47,7 +49,7 @@ export function VoucherInput({ primaryColor, onRedeem, loading }: VoucherInputPr
         className="w-full h-11 font-semibold text-sm"
         style={{ background: primaryColor, color: "white" }}
       >
-        {loading ? "Checking…" : "Redeem Voucher"}
+        {loading ? labels[language]?.checking || "Checking..." : labels[language]?.redeemVoucher || "Redeem Voucher"}
       </Button>
     </div>
   );

@@ -39,6 +39,7 @@ export interface TenantPortalSettings {
     showPoweredBy: boolean;
   };
   currency: string;
+  language: string;
 }
 
 export interface Tenant {
@@ -47,7 +48,7 @@ export interface Tenant {
   branding: TenantPortalSettings["branding"];
   support: TenantPortalSettings["support"];
   portalSettings: TenantPortalSettings["portalSettings"];
-  settings: { currency: string; timezone: string };
+  settings: { currency: string; timezone: string; language: string };
   paymentGateway: { gateway: string };
   status: "active" | "suspended";
   createdAt: string;

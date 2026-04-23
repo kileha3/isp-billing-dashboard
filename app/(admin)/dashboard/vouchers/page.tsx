@@ -331,23 +331,21 @@ export default function VouchersPage() {
             <DialogTitle>Generate Vouchers</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
-            <div className="flex flex-col gap-1.5">
-              <Label>Package</Label>
-              <Select value={form.packageId} onValueChange={(v) => setForm(f => ({ ...f, packageId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select package…" /></SelectTrigger>
-                <SelectContent>
-                  {packages.map(p => <SelectItem key={p._id} value={p._id}>{p.name} — Tsh {p.price}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Package</Label>
+                <Select value={form.packageId} onValueChange={(v) => setForm(f => ({ ...f, packageId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select package…" /></SelectTrigger>
+                  <SelectContent>
+                    {(packages || []).filter(pkg => !pkg.isFree).map(p => <SelectItem key={p._id} value={p._id}>{p.name} — Tsh {p.price}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Quantity</Label>
+                <Input type="number" min="1" max="500" value={form.quantity} onChange={(e) => setForm(f => ({ ...f, quantity: e.target.value }))} />
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Quantity</Label>
-              <Input type="number" min="1" max="500" value={form.quantity} onChange={(e) => setForm(f => ({ ...f, quantity: e.target.value }))} />
-            </div>
-            {/* <div className="flex flex-col gap-1.5">
-              <Label>Code Prefix (optional)</Label>
-              <Input placeholder="e.g. NB" maxLength={6} value={form.prefix} onChange={(e) => setForm(f => ({ ...f, prefix: e.target.value.toUpperCase() }))} />
-            </div> */}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowGenerate(false)}>Cancel</Button>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Filter, MoreHorizontal, Trash2, Lock, DollarSign, List } from "lucide-react";
+import { Filter, MoreHorizontal, Trash2, Lock, DollarSign, List, BetweenHorizonalEnd } from "lucide-react";
 import type { Invoice } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -30,6 +30,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showClearInvoice, setShowClearInvoice] = useState<Invoice | null>(null);
   const [invoiceToUpdate, setInvoiceToUpdate] = useState<Invoice | null>(null);
+  const [invoiceToExempt, setExemptInvoice] = useState<Invoice | null>(null);
   const [phone, setPhone] = useState("");
   const { user } = useAuth();
   const phoneResult = phoneSchema.safeParse(phone);
@@ -130,6 +131,10 @@ export default function InvoicesPage() {
                   <Lock className="mr-2 h-4 w-4" />Clear Invoice
                 </DropdownMenuItem>)}
 
+                {invoice.status === "pending" && isSuperAdmin && (<DropdownMenuItem onClick={() => setExemptInvoice(row as unknown as Invoice)}>
+                  <BetweenHorizonalEnd className="mr-2 h-4 w-4" />Excempt
+                </DropdownMenuItem>)}
+
                 {["overdue", "expired", "paid"].includes(invoice.status) && (<DropdownMenuItem className="text-destructive" onClick={() => changeInvoiceStatus(row as unknown as Invoice, "pending")}>
                   <List className="mr-2 h-4 w-4" />Reactivate Invoice
                 </DropdownMenuItem>)}
@@ -181,8 +186,28 @@ export default function InvoicesPage() {
           try {
             const { message } = await apiClient.invoices.update(id, status);
             toast({ title: message });
+            load(false);
           } catch {
             toast({ title: "Error", description: "Failed to delete a voucher.", variant: "destructive" });
+          }
+        }}
+      />)}
+
+      {invoiceToExempt && (<ConfirmDialog
+        open={invoiceToExempt !== null}
+        title="Exempt Invoice"
+        message={`Are you sure you want to exempt this invoice?`}
+        variant="destructive"
+        onCancel={() => setExemptInvoice(null)}
+        onConfirm={async () => {
+          const { _id: id } = invoiceToExempt!;
+          setExemptInvoice(null);
+          try {
+            const { message } = await apiClient.invoices.update(id, "exempted");
+            toast({ title: message });
+            load(false);
+          } catch {
+            toast({ title: "Error", description: "Failed to exempt the invoice.", variant: "destructive" });
           }
         }}
       />)}

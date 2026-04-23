@@ -32,8 +32,83 @@ const DEFAULT_CONFIG: TenantPortalSettings = {
     termsUrl: "",
     showPoweredBy: true,
   },
-  currency: "TZS"
+  currency: "TZS",
+  language: "en"
 };
+
+export const labels: any = {
+  en: {
+    buyPackage: "Buy Package",
+    haveVoucher: "Have a voucher?",
+    poweredBy: "Powered by",
+    terms: "Terms and Conditions",
+    connecting: "By connecting you agree to our",
+    noPackages: "No packages available on this network.",
+    close: "Close",
+    select: "Select",
+    payFor: "Paying for",
+    phone: "Phone Number",
+    pay: "Pay Now",
+    connect: "Connect",
+    enterVoucher: "Enter your voucher code",
+    enterVoucherDescription: "Scratched from a card or provided by your ISP",
+    voucherCode: "Voucher Code",
+    checking: "Checking...",
+    redeemVoucher: "Redeem Voucher",
+    connected: "You're Connected!",
+    connectedDescription: "Your package has been activated successfully.",
+    connectedFooter: "This page will close automatically…",
+    returnVoucher: "Return to Voucher Page",
+    returnPay: "Return to Payment Page",
+    failedVoucher: "Failed to redeem your voucher",
+    failedRedeem: "Failed to redeem ",
+    failedPay: "Failed to pay for your package",
+    tryAgain: "try again later",
+    processVoucher: "Processing Voucher",
+    processPay: "Processing Payment",
+    voucherConfirmation: "Please wait for confirmation...",
+    paymentConfirmation: "Enter your PIN on your phone to confirm.",
+    duration: { minutes: "minutes", hours: "hours", days: "days", months: "months" },
+    unlimited:"Unlimited"
+
+  },
+  sw: {
+    buyPackage: "Nunua Bando",
+    haveVoucher: "Tumia Vocha",
+    poweredBy: "Imedhaminiwa na",
+    terms: "Miongozo na Sharti",
+    connecting: "Ukiunganisha unakubali",
+    noPackages: "Hakuna bando zinazopatikana kwenye mtandao huu.",
+    close: "Funga",
+    select: "Chagua",
+    payFor: "Lipia",
+    phone: "Namba ya simu",
+    pay: "Lipa Sasa",
+    connect: "Unganisha",
+    enterVoucher: "Weka namba ya vocha",
+    enterVoucherDescription: "Vocha hii unaweza kuwa umeipata kwa wakala au mtoa huduma wako",
+    voucherCode: "Namba ya Vocha",
+    checking: "Inaangalia...",
+    redeemVoucher: "Komboa Vocha...",
+    connected: "Umeunganishwa!",
+    connectedDescription: "Bando lako limeunganishwa, waweza tumia sasa.",
+    connectedFooter: "Ukurasa huu utajifunga wenyewe...",
+    returnPay: "Rudi kwenye ukurasa wa malipo",
+    returnVoucher: "Rudi kwenye ukurasa wa vocha",
+    failedVoucher: "Imeshindwa kukomboa vocha yako",
+    failedRedeem: "Imeshindikana",
+    failedPay: "Imeshindwa kulipa bando lako",
+    tryAgain: "jaribu tena",
+    processVoucher: "Chakata Vocha",
+    processPay: "Chakata Malipo",
+    voucherConfirmation: "Tafadhali subiri uthibitisho...",
+    paymentConfirmation: "Weka PIN yako kwenye simu yako kuthibitisha.",
+    duration: { minutes: "dakika", hours: "saa", days: "siku", months: "mwezi" },
+    unlimited:"Bila Kikomo"
+
+
+  }
+}
 
 type PayState = "idle" | "processing" | "success" | "failure";
 
@@ -65,11 +140,13 @@ function PaymentOverlay({
   state,
   primaryColor,
   isVoucher,
+  language,
   onDismissFailure,
 }: {
   state: PayState;
   isVoucher: boolean;
   primaryColor: string;
+  language: string;
   onDismissFailure: () => void;
 }) {
   useEffect(() => {
@@ -95,13 +172,13 @@ function PaymentOverlay({
           <SpinnerRing color={primaryColor} />
           <div className="flex flex-col gap-2">
             <p className="text-lg font-bold text-foreground">
-              {isVoucher ? "Processing Voucher" : "Processing Payment"}
+              {isVoucher ? labels[language]?.processVoucher : labels[language]?.processPay}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              {isVoucher ? "Redeeming your voucher" : "A payment push has been initialized"}
+              {isVoucher ? labels[language]?.processVoucherDescription : labels[language]?.processPayDescription}
             </p>
             <p className="text-xs text-muted-foreground">
-              {isVoucher ? "Please wait for confirmation..." : "Enter your PIN on your phone to confirm."}
+              {isVoucher ? labels[language]?.voucherConfirmation : labels[language]?.paymentConfirmation}
             </p>
           </div>
         </div>
@@ -130,10 +207,10 @@ function PaymentOverlay({
 
           <div className="flex flex-col gap-2">
             <p className="text-2xl font-bold text-foreground">
-              You're Connected!
+              {labels[language]?.connected || "You're Connected!"}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              Package activated successfully. Enjoy your browsing
+              {labels[language]?.connectedDescription || "Your package has been activated successfully."}
             </p>
           </div>
 
@@ -145,7 +222,7 @@ function PaymentOverlay({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            This page will close automatically…
+            {labels[language]?.connectedFooter || "This page will close automatically…"}
           </p>
         </div>
       )}
@@ -173,10 +250,10 @@ function PaymentOverlay({
 
           <div className="flex flex-col gap-2">
             <p className="text-2xl font-bold text-foreground">
-              {isVoucher ? "Failed to redeem" : "Payment Failed"}
+              {isVoucher ? labels[language]?.failedRedeem : labels[language]?.failedPaying}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              {isVoucher ? "Failed to redeem your voucher" : "Failed to pay for your package"}, try again later.
+              {isVoucher ? labels[language]?.failedVoucher : labels[language]?.failedPay}, {labels[language]?.tryAgain}.
             </p>
           </div>
 
@@ -188,7 +265,7 @@ function PaymentOverlay({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            {isVoucher ? "Return to voucher page..." : "Returning to packages…"}
+            {isVoucher ? labels[language]?.returnVoucher : labels[language]?.returnPay}
           </p>
         </div>
       )}
@@ -231,6 +308,7 @@ export function CaptivePortalClient() {
           return;
         }
         setConfig(cfg.data ?? cfg);
+        (pkgs.data ?? pkgs).sort((a, b) => a.price - b.price);
         setPackages(pkgs.data ?? pkgs);
       } catch {
         setConfig(DEFAULT_CONFIG);
@@ -281,18 +359,33 @@ export function CaptivePortalClient() {
       setIsVoucher(false);
       setPayState("processing");
       try {
-        const { transactionId, success } = await apiClient.portal.initiatePayment({
-          packageId: pkg._id,
-          nasName,
-          deviceIp,
-          deviceMac,
-          authToken,
-          phoneNumber: phone,
-        });
-        if (success) {
-          SocketClient.waitFor<PayResult>(SocketClient.event_payment_completed, transactionId,
-            ({ success, voucher }) => reflectOnUI(success, voucher))
+        if (pkg.isFree) {
+          const { appliedVoucher, success } = await apiClient.portal.connectFreePackage({
+            packageId: pkg._id,
+            nasName,
+            deviceIp,
+            deviceMac,
+            authToken,
+          });
+          reflectOnUI(success, appliedVoucher)
+          return;
+        } else {
+          const { transactionId, success } = await apiClient.portal.initiatePayment({
+            packageId: pkg._id,
+            nasName,
+            deviceIp,
+            deviceMac,
+            authToken,
+            phoneNumber: phone,
+          });
+          if (success) {
+            SocketClient.waitFor<PayResult>(SocketClient.event_payment_completed, transactionId,
+              ({ success, voucher }) => reflectOnUI(success, voucher))
+          }
         }
+
+
+
       } catch (err: unknown) {
         setPayState("failure");
       }
@@ -342,6 +435,7 @@ export function CaptivePortalClient() {
           state={payState}
           isVoucher={isVoucher}
           primaryColor={primaryColor}
+          language={config.language}
           onDismissFailure={handleDismissFailure}
         />
       )}
@@ -360,10 +454,10 @@ export function CaptivePortalClient() {
             <Tabs defaultValue="packages">
               <TabsList className="w-full">
                 <TabsTrigger value="packages" className="flex-1">
-                  Buy Package
+                  {labels[config.language]?.buyPackage || "Buy Package"}
                 </TabsTrigger>
                 <TabsTrigger value="voucher" className="flex-1">
-                  Have a Voucher?
+                  {labels[config.language]?.haveVoucher || "Have a Voucher?"}
                 </TabsTrigger>
               </TabsList>
 
@@ -372,6 +466,7 @@ export function CaptivePortalClient() {
                   packages={packages}
                   primaryColor={primaryColor}
                   currency={config.currency}
+                  language={config.language}
                   onPay={handlePay}
                 />
               </TabsContent>
@@ -380,6 +475,7 @@ export function CaptivePortalClient() {
                 <VoucherInput
                   primaryColor={primaryColor}
                   loading={payState === "processing"}
+                  language={config.language}
                   onRedeem={handleRedeem}
                 />
               </TabsContent>
@@ -389,12 +485,14 @@ export function CaptivePortalClient() {
               packages={packages}
               currency={config.currency}
               primaryColor={primaryColor}
+              language={config.language}
               onPay={handlePay}
             />
           ) : (
             <VoucherInput
               primaryColor={primaryColor}
               loading={payState === "processing"}
+              language={config.language}
               onRedeem={handleRedeem}
             />
           )}
@@ -402,7 +500,7 @@ export function CaptivePortalClient() {
 
         {config.portalSettings.termsUrl && (
           <p className="text-center text-xs text-muted-foreground">
-            By connecting you agree to our{" "}
+            {labels[config.language]?.connecting || "By connecting you agree to our"}{" "}
             <a
               href={config.portalSettings.termsUrl}
               target="_blank"
@@ -410,7 +508,7 @@ export function CaptivePortalClient() {
               className="underline"
               style={{ color: primaryColor }}
             >
-              Terms of Service
+              {labels[config.language]?.terms || "Terms and Conditions"}
             </a>
           </p>
         )}
@@ -422,7 +520,7 @@ export function CaptivePortalClient() {
 
       {config.portalSettings.showPoweredBy && (
         <p className="text-center text-xs text-muted-foreground/50 py-4">
-          Powered by {appName}
+          {labels[config.language]?.poweredBy || "Powered by"} {appName}
         </p>
       )}
     </div>

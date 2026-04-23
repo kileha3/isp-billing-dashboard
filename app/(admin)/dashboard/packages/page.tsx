@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { labels } from "@/components/portal/CaptivePortalClient";
 
 const packageSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -35,15 +36,15 @@ export const formatDuration = (value: number, unit: string) => {
   return `${value} ${unit}`;
 }
 
-export const formatData = (mb: number, unit: string) => {
-  if (mb === 0) return "Unlimited";
+export const formatData = (mb: number, unit: string, unlimited: string) => {
+  if (mb === 0) return unlimited;
   if (unit === "GB") return `${mb}${unit}`
   if (mb >= 1024 && unit === "MB") return `${(mb / 1024).toFixed(0)}GB`;
   return `${mb}MB`;
 }
 
-export const formatSpeed = (mb: number) => {
-  if (mb === 0) return "Unlimited";
+export const formatSpeed = (mb: number, unlimited: string) => {
+  if (mb === 0) return unlimited;
   return `${mb}Mbps`;
 }
 
@@ -81,6 +82,7 @@ export default function PackagesPage() {
   const [form, setForm] = useState<PackageForm>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [packageToDelete, setPackageToDelete] = useState<Package | null>(null);
+  const language = "en";
 
   usePageTitle("Packages");
   const isSuperAdmin = isRole("super_admin");
@@ -208,14 +210,14 @@ export default function PackagesPage() {
       key: "duration", label: "Duration",
       render: (v: unknown, row: unknown) => {
         const pkg = row as unknown as Package;
-        return formatDuration(Number(v), pkg.durationUnit ?? "minutes");
+        return formatDuration(Number(v), labels[language]?.duration[pkg.durationUnit] ?? "minutes");
       }
     },
     { key: "dataLimit", label: "Data", render: (v: unknown, row: unknown) => {
        const pkg = row as unknown as Package;
-      return formatData(Number(v), pkg.dataLimitUnit); 
+      return formatData(Number(v), pkg.dataLimitUnit, labels[language]?.unlimited); 
     }},
-    { key: "speedLimit", label: "Speed", render: (v: unknown) => formatSpeed(Number(v)) },
+    { key: "speedLimit", label: "Speed", render: (v: unknown) => formatSpeed(Number(v), labels[language]?.unlimited) },
     {
       key: "routerIds", label: "Routers",
       render: (v: unknown) => {
