@@ -35,12 +35,16 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
   const canPay = phoneResult.success;
 
   function handleSelect(pkg: Package) {
-    if (selectedId === pkg._id) {
+    if(pkg.isFree){
+      onPay({ pkg, phone: "" });
+    }else {
+      if (selectedId === pkg._id) {
       setSelectedId(null);
       setPhone("");
     } else {
       setSelectedId(pkg._id);
       setPhone("");
+    }
     }
   }
 
