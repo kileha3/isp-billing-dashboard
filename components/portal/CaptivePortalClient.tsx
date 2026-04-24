@@ -395,7 +395,9 @@ export function CaptivePortalClient() {
           });
           if (success && orderId) {
             SocketClient.waitFor<PayResult>(SocketClient.event_payment_completed, orderId,
-              ({ success, voucher }) => reflectOnUI(success, voucher))
+              ({ success, voucher }) => reflectOnUI(success, voucher), 60 * 1000, () => apiClient.portal.checkStatus({
+                orderId, nasName, authToken
+              }))
           }
         }
 

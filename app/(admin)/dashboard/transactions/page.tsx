@@ -111,7 +111,7 @@ export default function TransactionsPage() {
   ].filter(Boolean);
 
   // Calculate summary statistics for the filtered transactions
-  const totalAmount = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalAmount = filteredTransactions.filter(t => t.status === "COMPLETED").reduce((sum, t) => sum + t.amount, 0);
   const completedCount = filteredTransactions.filter(t => t.status === "COMPLETED").length;
   const pendingCount = filteredTransactions.filter(t => t.status === "PENDING").length;
   const failedCount = filteredTransactions.filter(t => t.status === "FAILED").length;

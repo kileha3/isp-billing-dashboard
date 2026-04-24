@@ -64,7 +64,8 @@ class SocketClient {
     type: string,
     id: string,
     callback: (data: T) => void,
-    timeoutMs?: number
+    timeoutMs?: number,
+    onTimeout?: () => T | Promise<T>
   ): Promise<() => void> {
     // Ensure connection first
     if (!this.socket?.connected) {
@@ -76,8 +77,11 @@ class SocketClient {
     }
 
     let timeoutId: NodeJS.Timeout | null = null;
+    let isCompleted = false;
 
     const handler = (data: any) => {
+      if (isCompleted) return;
+      isCompleted = true;
       if (timeoutId) clearTimeout(timeoutId);
       callback(data);
     };
@@ -86,13 +90,32 @@ class SocketClient {
     this.join(id, type);
 
     if (timeoutMs) {
-      timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(async () => {
+        if (isCompleted) return;
+        isCompleted = true;
+        
+        // Clean up the event listener
         this.socket?.off(type, handler);
-        callback(null as any);
+        this.leave(id, type);
+        
+        // Execute fallback if provided
+        if (onTimeout) {
+          try {
+            const fallbackResult = await onTimeout();
+            callback(fallbackResult);
+          } catch (error) {
+            console.error("Timeout fallback failed:", error);
+            callback(null as any);
+          }
+        } else {
+          callback(null as any);
+        }
       }, timeoutMs);
     }
 
     return () => {
+      if (isCompleted) return;
+      isCompleted = true;
       if (timeoutId) clearTimeout(timeoutId);
       this.socket?.off(type, handler);
       this.leave(id, type);

@@ -417,14 +417,14 @@ export const apiClient = {
         body: JSON.stringify(data),
       }),
 
-    update: (id: string, data: Partial<import("@/lib/types").Tenant>) =>
-      req<{ tenant: import("@/lib/types").Tenant }>(`/tenants/${id}`, {
+    update: (id: string, data: Partial<Tenant>) =>
+      req<{ tenant: Tenant }>(`/tenants/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
 
     updateStatus: (id: string, status: "active" | "suspended") =>
-      req<{ tenant: import("@/lib/types").Tenant }>(`/tenants/${id}/status`, {
+      req<{ tenant: Tenant }>(`/tenants/${id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
@@ -515,12 +515,12 @@ export const apiClient = {
       ),
 
     checkStatus: (data: {
-      transactionId: string;
+      orderId: string;
       nasName: string;
       authToken: string;
     }) =>
       req<{ success: boolean; message: string; voucher: string | null }>(
-        `/payments/${data.transactionId}/status?nasname=${data.nasName}&token=${data.authToken}`,
+        `/payments/${data.orderId}/status?nasname=${data.nasName}&token=${data.authToken}`,
       ),
 
     initiatePayment: (data: {
@@ -537,6 +537,6 @@ export const apiClient = {
           method: "POST",
           body: JSON.stringify(data),
         },
-      ),
+      )
   },
 };
