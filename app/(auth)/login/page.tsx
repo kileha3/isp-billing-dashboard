@@ -99,7 +99,7 @@ export default function LoginPage() {
             {serverError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{serverError}</AlertDescription>
+                <AlertDescription>Wrong username or password, try again</AlertDescription>
               </Alert>
             )}
 
