@@ -62,7 +62,7 @@ export const labels: any = {
     returnPay: "Return to Payment Page",
     redeemErrorDescription: "Failed to redeem your voucher",
     redeemError: "Failed to redeem ",
-    payError:"Payment Failed",
+    payError: "Payment Failed",
     payErrorDescription: "Failed to pay for your package",
     tryAgain: "try again later",
     processVoucher: "Processing Voucher",
@@ -70,10 +70,10 @@ export const labels: any = {
     voucherConfirmation: "Please wait for confirmation...",
     paymentConfirmation: "Enter your PIN on your phone to confirm.",
     duration: { minutes: "minutes", hours: "hours", days: "days", months: "months" },
-    unlimited:"Unlimited",
-    phoneError:"Enter a valid phone number (e.g. 0712 XXX XXX)",
-    tryError:"Failed to try our service",
-    tryErrorDescription:"You have already tried our service, please purchase a package to continue."
+    unlimited: "Unlimited",
+    phoneError: "Enter a valid phone number (e.g. 0712 XXX XXX)",
+    tryError: "Service Not Available",
+    tryErrorDescription: "You have already tried our service, please purchase a package to continue."
 
   },
   sw: {
@@ -101,7 +101,7 @@ export const labels: any = {
     returnVoucher: "Rudi kwenye ukurasa wa vocha",
     redeemErrorDescription: "Imeshindwa kukomboa vocha yako",
     redeemError: "Imeshindikana",
-    payError:"Imeshindwa kulipa",
+    payError: "Imeshindwa kulipa",
     payErrorDescription: "Imeshindwa kulipa bando lako",
     tryAgain: "jaribu tena",
     processVoucher: "Chakata Vocha",
@@ -109,10 +109,10 @@ export const labels: any = {
     voucherConfirmation: "Tafadhali subiri uthibitisho...",
     paymentConfirmation: "Weka PIN yako kwenye simu yako kuthibitisha.",
     duration: { minutes: "dakika", hours: "saa", days: "siku", months: "mwezi" },
-    unlimited:"Bila Kikomo",
-    phoneError:"Weka namba ya simu sahihi (mfano 0712 XXX XXX)",
-    tryError:"Imeshindwa kukupa huduma",
-    tryErrorDescription:"Umejaribu huduma yetu tayari, tafadhali ununuzi bando lako sasa"
+    unlimited: "Bila Kikomo",
+    phoneError: "Weka namba ya simu sahihi (mfano 0712 XXX XXX)",
+    tryError: "Huduma haipatikani",
+    tryErrorDescription: "Umekwishajaribu huduma yetu tayari, tafadhali nunua bando kupata huduma"
 
 
 
@@ -264,7 +264,7 @@ function PaymentOverlay({
               {isFree ? labels[language]?.tryError : isVoucher ? labels[language]?.redeemError : labels[language]?.payError}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              {isFree ? labels[language]?.tryErrorDescription : isVoucher ? labels[language]?.redeemErrorDescription : labels[language]?.payErrorDescription}{`${isFree ? "": `, ${labels[language]?.tryAgain}`}`}.
+              {isFree ? labels[language]?.tryErrorDescription : isVoucher ? labels[language]?.redeemErrorDescription : labels[language]?.payErrorDescription}{`${isFree ? "" : `, ${labels[language]?.tryAgain}`}`}.
             </p>
           </div>
 
@@ -370,9 +370,9 @@ export function CaptivePortalClient() {
     async ({ pkg, phone }: { pkg: Package; phone: string }) => {
       setIsVoucher(false);
       setPayState("processing");
+      setIsFree(pkg.isFree);
       try {
         if (pkg.isFree) {
-          setIsFree(true);
           const { appliedVoucher, success } = await apiClient.portal.connectFreePackage({
             packageId: pkg._id,
             nasName,
