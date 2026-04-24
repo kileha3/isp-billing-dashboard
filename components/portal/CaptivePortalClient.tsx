@@ -106,7 +106,7 @@ export const labels: any = {
     payErrorDescription: "Imeshindwa kulipa bando lako",
     tryAgain: "jaribu tena",
     processVoucher: "Chakata Vocha",
-    processPay: "Chakata Malipo",
+    processPay: "Inachakata Malipo",
     voucherConfirmation: "Tafadhali subiri uthibitisho...",
     paymentConfirmation: "Weka PIN yako kwenye simu yako kuthibitisha.",
     duration: { minutes: "dakika", hours: "saa", days: "siku", months: "mwezi" },
