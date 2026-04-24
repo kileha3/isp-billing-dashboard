@@ -74,7 +74,7 @@ export default function DashboardPage() {
   // Date range state - initialize to last 7 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
-    to: new Date(),
+    to: addDays(new Date(), 1)
   });
 
   const load = useCallback(async (showLoading: boolean = true) => {

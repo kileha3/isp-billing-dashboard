@@ -23,7 +23,6 @@ export const formatCurrency = (n: number, currency: string) => {
 
 export default function TransactionsPage() {
   usePageTitle("Transactions");
-  const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -35,7 +34,7 @@ export default function TransactionsPage() {
   // Date range state - initialize to last 7 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
-    to: new Date(),
+    to: addDays(new Date(), 1),
   });
 
   const load = useCallback(async (showLoading: boolean = true) => {
