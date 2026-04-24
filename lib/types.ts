@@ -42,6 +42,21 @@ export interface TenantPortalSettings {
   language: string;
 }
 
+export interface PPPoEUser {
+  _id: string;
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  location?: string;
+  packageId: Package | string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  tenantId: string;
+}
+
 export interface Tenant {
   _id: string;
   name: string;
@@ -121,6 +136,7 @@ export interface Package {
   status: "active" | "inactive";
   isPublic: boolean;
   isFree: boolean;
+  isPpPoe: boolean;
   currency: string;
   routerIds: string[];
   createdAt: string;

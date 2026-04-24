@@ -1,12 +1,14 @@
 import { Wifi } from "lucide-react";
 import type { TenantPortalSettings } from "@/lib/types";
 import { BASE } from "@/lib/api";
+import { appName } from "@/lib/utils";
 
 interface PortalHeaderProps {
   config: TenantPortalSettings;
+  connectionLabel: string;
 }
 
-export function PortalHeader({ config }: PortalHeaderProps) {
+export function PortalHeader({ config, connectionLabel}: PortalHeaderProps) {
   const { primaryColor, secondaryColor, logo, businessName } = config.branding;
 
   const logoUrl = `${BASE.replace("v1",`logos/${logo}`)}`;
@@ -26,8 +28,8 @@ export function PortalHeader({ config }: PortalHeaderProps) {
       </div>
 
       <div>
-        <h1 className="text-lg font-bold text-white leading-tight">{businessName || "WiFi Portal"}</h1>
-        <p className="text-sm text-white/70">Connect to the internet</p>
+        <h1 className="text-lg font-bold text-white leading-tight">{businessName || `${appName}`}</h1>
+        <p className="text-sm text-white/70">{connectionLabel}</p>
       </div>
     </header>
   );

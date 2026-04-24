@@ -61,12 +61,13 @@ type PackageForm = {
   speedLimit: string;
   isPublic: boolean;
   isFree: boolean;
+  isPpPoe: boolean;
   tenantId: string;
   routerIds: string[];
 };
 
 const DEFAULT_FORM: PackageForm = {
-  name: "", description: "", price: 1000, duration: "", durationUnit: "hours", isFree: false,
+  name: "", description: "", price: 1000, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
   dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
 };
 
@@ -87,6 +88,8 @@ export default function PackagesPage() {
   usePageTitle("Packages");
   const isSuperAdmin = isRole("super_admin");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const load = useCallback(async () => {
     try {
@@ -150,6 +153,7 @@ export default function PackagesPage() {
       isPublic: pkg.isPublic,
       tenantId: pkg.tenantId,
       routerIds: pkg.routerIds ?? [],
+      isPpPoe: pkg.isPpPoe,
       isFree: pkg.isFree
     });
     setShowDialog(true);
@@ -237,10 +241,23 @@ export default function PackagesPage() {
         );
       }
     },
+    { key: "isPpPoe", label: "Category", render: (v: unknown) => (v ? "PPPoE" : "Hotspot") },
     { key: "isPublic", label: "Visibility", render: (v: unknown) => <StatusBadge status={v ? "public" : "private"} /> },
   ];
 
   const availableRouters = getAvailableRouters();
+
+  const getFilteredSessions = () => {
+    let filtered = (statusFilter === "all" ? packages : packages.filter(p => p.isPublic === (statusFilter === "true")));
+    if(categoryFilter !== "all"){
+      filtered = filtered.filter(p => p.isPpPoe === (categoryFilter === "true"));
+    }
+
+    if(typeFilter !== "all"){
+      filtered = filtered.filter(p => p.isFree === (typeFilter === "true"));
+    }
+    return filtered as unknown as Record<string, unknown>[];
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -256,7 +273,7 @@ export default function PackagesPage() {
       </div>
 
       <DataTable
-        data={(statusFilter === "all" ? packages : packages.filter(p => p.isPublic === (statusFilter === "true"))) as unknown as Record<string, unknown>[]}
+        data={getFilteredSessions()}
         columns={columns as never}
         loading={loading}
         searchable
@@ -266,7 +283,7 @@ export default function PackagesPage() {
         pageSize={10}
         filterSlot={
           <div className="flex gap-3">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="h-10 w-44 bg-background">
                 <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                 <SelectValue />
@@ -275,6 +292,18 @@ export default function PackagesPage() {
                 <SelectItem value="all">All types</SelectItem>
                 <SelectItem value="false">Paid</SelectItem>
                 <SelectItem value="true">Free</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-10 w-44 bg-background">
+                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                <SelectItem value="true">PPPoE</SelectItem>
+                <SelectItem value="false">Hotspot</SelectItem>
               </SelectContent>
             </Select>
 
@@ -435,7 +464,7 @@ export default function PackagesPage() {
                   onCheckedChange={(v) => setForm(f => ({ ...f, isPublic: v }))}
                   id="isPublic"
                 />
-                <Label htmlFor="isPublic">Let user see this package</Label>
+                <Label htmlFor="isPublic">Make it Public</Label>
               </div>
 
               <div className="flex items-center gap-3">
@@ -445,6 +474,15 @@ export default function PackagesPage() {
                   id="isFree"
                 />
                 <Label htmlFor="isFree">Free package</Label>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={form.isPpPoe}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v }))}
+                  id="isPpPoe" 
+                />
+                <Label htmlFor="isPpPoe">Is PPPoE</Label>
               </div>
             </div>
 

@@ -12,6 +12,7 @@ import type {
   HotspotSession,
   GatewayConfig,
   ReportSummary,
+  PPPoEUser,
 } from "@/lib/types";
 
 export const BASE =
@@ -252,8 +253,25 @@ export const apiClient = {
     getInfo: (id: string) => req<{ data: RouterDevice }>(`/routers?id=${id}`),
   },
 
+  pppoe: {
+    list: () => req<PPPoEUser[]>("/pppoe"),
+    create: (data: Partial<PPPoEUser>) =>
+      req<{ success: boolean; message: string }>("/pppoe", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: string, data: Partial<PPPoEUser>) =>
+      req<{ success: boolean; message: string }>(`/pppoe/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      req<{ message: string }>(`/pppoe/${id}`, { method: "DELETE" }),
+  },
+
   packages: {
-    list: () => req<{ data: Package[] }>("/packages"),
+    list: (type?: string) => req<{ data: Package[] }>(`/packages?type=${type ? type : "all"}`),
 
     create: (data: Partial<Package>) =>
       req<{ package: Package }>("/packages", {
@@ -268,7 +286,7 @@ export const apiClient = {
       }),
 
     delete: (id: string) =>
-      req<{ message: string }>(`/packages/${id}`, { method: "DELETE" }),
+      req<{ message: string, success: boolean }>(`/packages/${id}`, { method: "DELETE" }),
   },
 
   invoices: {

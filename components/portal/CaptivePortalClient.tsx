@@ -73,7 +73,8 @@ export const labels: any = {
     unlimited: "Unlimited",
     phoneError: "Enter a valid phone number (e.g. 0712 XXX XXX)",
     tryError: "Service Not Available",
-    tryErrorDescription: "You have already tried our service, please purchase a package to continue."
+    tryErrorDescription: "You have already tried our service, please purchase a package to continue.",
+    connectionLabel: "Connect to the internet"
 
   },
   sw: {
@@ -112,7 +113,8 @@ export const labels: any = {
     unlimited: "Bila Kikomo",
     phoneError: "Weka namba ya simu sahihi (mfano 0712 XXX XXX)",
     tryError: "Huduma haipatikani",
-    tryErrorDescription: "Umekwishajaribu huduma yetu tayari, tafadhali nunua bando kupata huduma"
+    tryErrorDescription: "Umekwishajaribu huduma yetu tayari, tafadhali nunua bando kupata huduma",
+    connectionLabel: "Peruzi bila Kikomo"
 
 
 
@@ -261,10 +263,10 @@ function PaymentOverlay({
 
           <div className="flex flex-col gap-2">
             <p className="text-2xl font-bold text-foreground">
-              {isFree ? labels[language]?.tryError : isVoucher ? labels[language]?.redeemError : labels[language]?.payError}
+              {isVoucher ? labels[language]?.redeemError : isFree ? labels[language]?.tryError : labels[language]?.payError}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              {isFree ? labels[language]?.tryErrorDescription : isVoucher ? labels[language]?.redeemErrorDescription : labels[language]?.payErrorDescription}{`${isFree ? "" : `, ${labels[language]?.tryAgain}`}`}.
+              {isVoucher ? labels[language]?.redeemErrorDescription : isFree ? labels[language]?.tryErrorDescription : labels[language]?.payErrorDescription}{`${isFree ? "" : `, ${labels[language]?.tryAgain}`}`}.
             </p>
           </div>
 
@@ -454,7 +456,7 @@ export function CaptivePortalClient() {
         />
       )}
 
-      <PortalHeader config={config} />
+      <PortalHeader config={config} connectionLabel={labels[config.language]?.connectionLabel || "Connect to the internet"} />
 
       <div className="mx-auto max-w-md w-full px-4 py-6 flex flex-col gap-5">
         {config.portalSettings.welcomeMessage && (

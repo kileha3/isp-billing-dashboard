@@ -406,13 +406,7 @@ export default function RoutersPage() {
 
   const handleSelectService = (type: typeof services[number]) => {
     setSelectedType(type);
-
-    setServiceInterfaces((prev: any) => {
-      if (type === "Combined") {
-        return undefined;
-      }
-      return prev;
-    });
+    setServiceInterfaces(undefined);
   };
 
   const handleChangeState = async (router: RouterDevice) => {
@@ -426,19 +420,26 @@ export default function RoutersPage() {
   }
 
   const columns = [
-    { key: "name", label: "Name" },
-    { key: "location", label: "Location" },
+    { key: "name", label: "Name/Location" , render: (v: unknown, row: unknown) => {
+        const router = (row as RouterDevice);
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{router.name}</span>
+            <code className="text-xs font-mono text-muted-foreground">{router.location}</code>
+          </div>
+        );
+      }},
     {
       key: "platform", label: "Identity", render: (v: unknown, row: unknown) => {
         const r = row as RouterDevice;
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm">{r.info.platform || "Undetermined"}</span>
+            <span className="text-sm font-medium">{r.ipAddress}</span>
+            <code className="text-xs font-mono text-muted-foreground">{r.info.platform}</code>
           </div>
         );
       }
     },
-    { key: "ipAddress", label: "Assigned IP" },
     {
       key: "model", label: "Device Info",
       render: (v: unknown, row: unknown) => {

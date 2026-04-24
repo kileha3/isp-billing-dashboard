@@ -13,3 +13,21 @@ export const capitalizeFirstLetter = (str: string): string => {
   if (!str) return str;
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+export const generateVoucher = (length = 8) => {
+  const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 chars
+
+  if (length > charset.length) {
+    throw new Error("Length cannot exceed unique charset size");
+  }
+  const chars = charset.split("");
+  let voucher = "";
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    voucher += chars[randomIndex];
+    chars.splice(randomIndex, 1);
+  }
+
+  return voucher;
+};
