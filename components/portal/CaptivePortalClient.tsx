@@ -60,9 +60,10 @@ export const labels: any = {
     connectedFooter: "This page will close automatically…",
     returnVoucher: "Return to Voucher Page",
     returnPay: "Return to Payment Page",
-    failedVoucher: "Failed to redeem your voucher",
-    failedRedeem: "Failed to redeem ",
-    failedPay: "Failed to pay for your package",
+    redeemErrorDescription: "Failed to redeem your voucher",
+    redeemError: "Failed to redeem ",
+    payError:"Payment Failed",
+    payErrorDescription: "Failed to pay for your package",
     tryAgain: "try again later",
     processVoucher: "Processing Voucher",
     processPay: "Processing Payment",
@@ -70,7 +71,9 @@ export const labels: any = {
     paymentConfirmation: "Enter your PIN on your phone to confirm.",
     duration: { minutes: "minutes", hours: "hours", days: "days", months: "months" },
     unlimited:"Unlimited",
-    phoneError:"Enter a valid phone number (e.g. 0712 XXX XXX)"
+    phoneError:"Enter a valid phone number (e.g. 0712 XXX XXX)",
+    tryError:"Failed to try our service",
+    tryErrorDescription:"You have already tried our service, please purchase a package to continue."
 
   },
   sw: {
@@ -96,9 +99,10 @@ export const labels: any = {
     connectedFooter: "Ukurasa huu utajifunga wenyewe...",
     returnPay: "Rudi kwenye ukurasa wa malipo",
     returnVoucher: "Rudi kwenye ukurasa wa vocha",
-    failedVoucher: "Imeshindwa kukomboa vocha yako",
-    failedRedeem: "Imeshindikana",
-    failedPay: "Imeshindwa kulipa bando lako",
+    redeemErrorDescription: "Imeshindwa kukomboa vocha yako",
+    redeemError: "Imeshindikana",
+    payError:"Imeshindwa kulipa",
+    payErrorDescription: "Imeshindwa kulipa bando lako",
     tryAgain: "jaribu tena",
     processVoucher: "Chakata Vocha",
     processPay: "Chakata Malipo",
@@ -106,7 +110,9 @@ export const labels: any = {
     paymentConfirmation: "Weka PIN yako kwenye simu yako kuthibitisha.",
     duration: { minutes: "dakika", hours: "saa", days: "siku", months: "mwezi" },
     unlimited:"Bila Kikomo",
-    phoneError:"Weka namba ya simu sahihi (mfano 0712 XXX XXX)"
+    phoneError:"Weka namba ya simu sahihi (mfano 0712 XXX XXX)",
+    tryError:"Imeshindwa kukupa huduma",
+    tryErrorDescription:"Umejaribu huduma yetu tayari, tafadhali ununuzi bando lako sasa"
 
 
 
@@ -255,10 +261,10 @@ function PaymentOverlay({
 
           <div className="flex flex-col gap-2">
             <p className="text-2xl font-bold text-foreground">
-              {isVoucher ? labels[language]?.failedRedeem : labels[language]?.failedPaying}
+              {isFree ? labels[language]?.tryError : isVoucher ? labels[language]?.redeemError : labels[language]?.payError}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              {isVoucher ? labels[language]?.failedVoucher : labels[language]?.failedPay}, {labels[language]?.tryAgain}.
+              {isFree ? labels[language]?.tryErrorDescription : isVoucher ? labels[language]?.redeemErrorDescription : labels[language]?.payErrorDescription}{`${isFree ? "": `, ${labels[language]?.tryAgain}`}`}.
             </p>
           </div>
 
