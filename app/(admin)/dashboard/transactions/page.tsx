@@ -46,7 +46,7 @@ export default function TransactionsPage() {
         endDate: formatDate(dateRange.to, 'yyyy-MM-dd')
       } : {};
       
-      const { data } = await apiClient.transactions.list(dateFilter);
+      const data = await apiClient.transactions.list(dateFilter);
       setTransactions(data);
     } catch {
       setTransactions([]);

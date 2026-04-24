@@ -96,7 +96,7 @@ export const labels: any = {
     checking: "Inaangalia...",
     redeemVoucher: "Komboa Vocha...",
     connected: "Umeunganishwa!",
-    connectedDescription: "Bando lako limeunganishwa, waweza tumia sasa.",
+    connectedDescription: "Bando lako limeunganishwa, waweza tumia mtandao sasa.",
     connectedFooter: "Ukurasa huu utajifunga wenyewe...",
     returnPay: "Rudi kwenye ukurasa wa malipo",
     returnVoucher: "Rudi kwenye ukurasa wa vocha",

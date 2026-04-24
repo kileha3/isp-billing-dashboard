@@ -33,9 +33,9 @@ export default function InvoicesPage() {
   const [invoiceToExempt, setExemptInvoice] = useState<Invoice | null>(null);
   const [phone, setPhone] = useState("");
   const { user } = useAuth();
-  const phoneSchema = phoneSchemaDef({ min: 9, max: 12, language: "en" });
+  const phoneSchema = phoneSchemaDef({ min: 10, max: 13, language: "en" });
   const phoneResult = phoneSchema.safeParse(phone);
-  const phoneError = phone.length > 0 && !phoneResult.success
+  const phoneError = phone.length >= 10 && !phoneResult.success
     ? phoneResult.error.errors[0]?.message
     : "";
 

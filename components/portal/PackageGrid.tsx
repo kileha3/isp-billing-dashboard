@@ -41,12 +41,12 @@ export const phoneSchemaDef = (params?: {
 export function PackageGrid({ packages, primaryColor, onPay, currency, language }: PackageGridProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
-  const phoneSchema = phoneSchemaDef({ min: 9, max: 12, language: language });
+  const phoneSchema = phoneSchemaDef({ min: 10, max: 13, language: language });
 
   const phoneResult = phoneSchema.safeParse(phone);
-  const phoneError = phone.length > 0 && !phoneResult.success
+  const phoneError = phone.length >= 10 && !phoneResult.success
     ? phoneResult.error.errors[0]?.message
-    : "";
+    : null;
   const canPay = phoneResult.success;
 
   function handleSelect(pkg: Package) {

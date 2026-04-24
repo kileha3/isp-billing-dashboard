@@ -341,13 +341,13 @@ export const apiClient = {
       const clean = Object.fromEntries(
         Object.entries(params ?? {}).filter(([, v]) => v !== undefined),
       ) as Record<string, string>;
-      return req<{ data: Transaction[] }>(
+      return req<Transaction[]>(
         `/payments${Object.keys(clean).length ? "?" + new URLSearchParams(clean) : ""}`,
       );
     },
 
     recent: () => {
-      return req<{ data: Transaction[] }>(`/payments/recent`);
+      return req<Transaction[]>(`/payments/recent`);
     },
 
     gateways: () => {
