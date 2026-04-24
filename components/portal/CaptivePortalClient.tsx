@@ -385,7 +385,7 @@ export function CaptivePortalClient() {
           reflectOnUI(success, appliedVoucher)
           return;
         } else {
-          const { transactionId, success } = await apiClient.portal.initiatePayment({
+          const { orderId, success } = await apiClient.portal.initiatePayment({
             packageId: pkg._id,
             nasName,
             deviceIp,
@@ -393,8 +393,8 @@ export function CaptivePortalClient() {
             authToken,
             phoneNumber: phone,
           });
-          if (success) {
-            SocketClient.waitFor<PayResult>(SocketClient.event_payment_completed, transactionId,
+          if (success && orderId) {
+            SocketClient.waitFor<PayResult>(SocketClient.event_payment_completed, orderId,
               ({ success, voucher }) => reflectOnUI(success, voucher))
           }
         }

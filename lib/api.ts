@@ -531,7 +531,7 @@ export const apiClient = {
       authToken: string;
       phoneNumber: string;
     }) =>
-      req<{ transactionId: string; message: string; success: boolean }>(
+      req<{ orderId: string; message: string; success: boolean }>(
         `/payments/mno?nasname=${data.nasName}&token=${data.authToken}`,
         {
           method: "POST",
