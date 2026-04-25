@@ -28,6 +28,7 @@ const packageSchema = z.object({
   duration: z.coerce.number().int().min(1, "Duration must be at least 1"),
   dataLimit: z.coerce.number().min(0, "Data limit must be 0 or more"),
   speedLimit: z.coerce.number().min(0, "Speed limit must be 0 or more"),
+  routerIds: z.array(z.string()).min(1, "At least one router must be selected"),
 });
 
 type DurationUnit = "minutes" | "hours" | "days" | "months";
@@ -67,7 +68,7 @@ type PackageForm = {
 };
 
 const DEFAULT_FORM: PackageForm = {
-  name: "", description: "", price: 1000, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
+  name: "", description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
   dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
 };
 
@@ -177,6 +178,18 @@ export default function PackagesPage() {
       dataLimit: Number(form.dataLimit),
       speedLimit: Number(form.speedLimit),
     };
+    
+    // Validate router selection for new packages
+    if (!editTarget && payload.routerIds.length === 0) {
+      toast({ 
+        title: "Validation Error", 
+        description: "Please select at least one router for the package.", 
+        variant: "destructive" 
+      });
+      setSubmitting(false);
+      return;
+    }
+    
     try {
       if (editTarget) {
         await apiClient.packages.update(editTarget._id, payload);
@@ -385,9 +398,12 @@ export default function PackagesPage() {
               <Label>Price (Tsh)</Label>
               <Input
                 type="number"
-                placeholder="100"
-                value={form.price}
-                onChange={(e) => setForm(f => ({ ...f, price: parseInt(e.target.value) || 0 }))}
+                placeholder="0"
+                value={form.price === 0 ? "" : form.price}
+                onChange={(e) => {
+                  const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
+                  setForm(f => ({ ...f, price: value }));
+                }}
               />
             </div>
 
@@ -489,7 +505,9 @@ export default function PackagesPage() {
             {/* Router mapping - unchanged */}
             <div className="col-span-2 flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <Label>Router Mapping</Label>
+                <Label className={!editTarget && form.routerIds.length === 0 ? "text-destructive" : ""}>
+                  Router Mapping {!editTarget && <span className="text-destructive text-xs">*</span>}
+                </Label>
                 <span className="text-xs text-muted-foreground">
                   {form.routerIds.length === 0 ? "Shown on all routers" : `${form.routerIds.length} router(s) selected`}
                 </span>
@@ -502,7 +520,7 @@ export default function PackagesPage() {
                     : "No routers available. Add routers first."}
                 </p>
               ) : (
-                <div className="rounded-md border border-border divide-y divide-border">
+                <div className={`rounded-md border border-border divide-y divide-border ${!editTarget && form.routerIds.length === 0 ? 'border-destructive' : ''}`}>
                   {availableRouters.map(router => (
                     <label
                       key={router._id}
@@ -522,7 +540,13 @@ export default function PackagesPage() {
                 </div>
               )}
 
-              {availableRouters.length > 0 && (
+              {availableRouters.length > 0 && !editTarget && form.routerIds.length === 0 && (
+                <p className="text-xs text-destructive">
+                  Please select at least one router.
+                </p>
+              )}
+              
+              {availableRouters.length > 0 && editTarget && (
                 <p className="text-xs text-muted-foreground">
                   Leave unchecked to show this package on all routers.
                 </p>
@@ -534,7 +558,10 @@ export default function PackagesPage() {
             <Button variant="outline" onClick={() => setShowDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting || !packageFormValid}>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={submitting || !packageFormValid || (!editTarget && form.routerIds.length === 0)}
+            >
               {submitting ? "Saving…" : editTarget ? "Update" : "Create"}
             </Button>
           </DialogFooter>
