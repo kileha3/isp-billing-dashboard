@@ -25,6 +25,7 @@ import { labels } from "@/components/portal/CaptivePortalClient";
 const packageSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   maxUsers: z.coerce.number().int().min(1, "Max connection must be at least 1").max(100, "Max connection must be at most 100"),
+  maxReconnets: z.coerce.number().int().min(1, "Max sessions must be at least 1").max(10, "Max sessions must be at most 10"),
   price: z.coerce.number().min(0, "Price must be 0 or more"),
   duration: z.coerce.number().int().min(1, "Duration must be at least 1"),
   dataLimit: z.coerce.number().min(0, "Data limit must be 0 or more"),
@@ -55,6 +56,7 @@ type DataLimitUnit = "GB" | "MB"
 type PackageForm = {
   name: string;
   maxUsers: number;
+  maxReconnets: number;
   description: string;
   price: number;
   duration: string;
@@ -70,7 +72,7 @@ type PackageForm = {
 };
 
 const DEFAULT_FORM: PackageForm = {
-  name: "", maxUsers: 1, description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
+  name: "", maxUsers: 1, maxReconnets: 3, description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
   dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
 };
 
@@ -147,6 +149,7 @@ export default function PackagesPage() {
     setForm({
       name: pkg.name,
       maxUsers: pkg.maxUsers ?? 1,
+      maxReconnets: pkg.maxReconnets ?? 3,
       description: pkg.description ?? "",
       price: pkg.price,
       duration: String(pkg.duration),
@@ -181,6 +184,7 @@ export default function PackagesPage() {
       dataLimit: Number(form.dataLimit),
       speedLimit: Number(form.speedLimit),
       maxUsers: Number(form.maxUsers),
+      maxReconnets: Number(form.maxReconnets),
     };
     
     // Validate router selection for new packages
@@ -225,7 +229,8 @@ export default function PackagesPage() {
 
   const columns = [
     { key: "name", label: "Name" },
-    { key: "maxUsers", label: "Max Users", render: (v: unknown) => Number(v)},
+    { key: "maxUsers", label: "Connections", render: (v: unknown) => Number(v)},
+    { key: "maxReconnets", label: "Reconnets", render: (v: unknown) => Number(v)},
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
     { key: "price", label: "Price", render: (v: unknown, row: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `${(row as Package).currency ?? "TZS"} ${Number(v).toLocaleString()}`}</span> },
     {
@@ -364,30 +369,14 @@ export default function PackagesPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
-            <div className="col-span-2 grid grid-cols-4 gap-4">
-              <div className="col-span-3 flex flex-col gap-1.5">
-                <Label>Package Name</Label>
-                <Input
-                  placeholder="e.g. Daily Unlimited Internet"
-                  value={form.name}
-                  onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                />
-              </div>
-              <div className="col-span-1 flex flex-col gap-1.5">
-                <Label className="flex items-center gap-2">
-                  Max Users
-                </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={form.maxUsers === 0 ? "" : form.maxUsers}
-                  onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
-                    setForm(f => ({ ...f, maxUsers: value }));
-                  }}
-                />
-              </div>
+            {/* Package Name - Full width */}
+            <div className="col-span-2 flex flex-col gap-1.5">
+              <Label>Package Name</Label>
+              <Input
+                placeholder="e.g. Daily Unlimited Internet"
+                value={form.name}
+                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+              />
             </div>
 
             {/* Tenant association (super admin only) */}
@@ -420,7 +409,7 @@ export default function PackagesPage() {
               />
             </div>
 
-            {/* Duration - unchanged */}
+            {/* Duration */}
             <div className="flex flex-col gap-1.5">
               <Label>Duration</Label>
               <div className="flex gap-2">
@@ -486,6 +475,45 @@ export default function PackagesPage() {
               </div>
             </div>
 
+            {/* Max Users & Max Sessions Row */}
+            <div className="col-span-2 grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label className="flex items-center gap-2">
+                  Connections
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={form.maxUsers === 0 ? "" : form.maxUsers}
+                  onChange={(e) => {
+                    const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 1;
+                    setForm(f => ({ ...f, maxUsers: value }));
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">Simultaneous connections per device</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label className="flex items-center gap-2">
+                  Reconnects
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  placeholder="1"
+                  value={form.maxReconnets === 0 ? "" : form.maxReconnets}
+                  onChange={(e) => {
+                    const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 1;
+                    setForm(f => ({ ...f, maxReconnets: Math.min(value, 10) }));
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
+              </div>
+            </div>
+
+            {/* Toggle Switches Row */}
             <div className="col-span-2 flex items-center gap-6">
               <div className="flex items-center gap-3">
                 <Switch
@@ -516,7 +544,7 @@ export default function PackagesPage() {
             </div>
 
             {/* Router mapping */}
-            <div className="col-span-2 flex flex-col gap-2">
+            <div className="col-span-2 flex flex-col gap-2 mt-4">
               <div className="flex items-center justify-between">
                 <Label className={!editTarget && form.routerIds.length === 0 ? "" : ""}>
                   Router Mapping {!editTarget && <span className="text-xs">*</span>}

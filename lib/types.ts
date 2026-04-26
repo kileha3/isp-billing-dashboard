@@ -129,6 +129,7 @@ export interface Package {
   description?: string;
   price: number;
   maxUsers: number;
+  maxReconnets: number;
   duration: number;
   durationUnit: string;
   dataLimit: number;
