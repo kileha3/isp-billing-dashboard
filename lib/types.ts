@@ -215,6 +215,7 @@ export interface HotspotSession {
     stop: null;
     duration: number;
   };
+  sessions: number;
   status: string;
   tenant: { id: string; name: string };
   timeLapse: string;

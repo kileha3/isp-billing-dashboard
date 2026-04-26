@@ -150,15 +150,16 @@ export default function SessionsPage() {
     { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
     { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac },
     { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.ip },
-    { key: "routerId", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})` },
-    { key: "packageId", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
-    { key: "startTime", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
+    { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})` },
+    { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
+    { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
     {
       key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
         return formatBytes(Number(sess.usage.output + sess.usage.input))
       }
     },
+    { key: "sessions", label: "Sessions", render: (v: unknown, row: unknown) => (row as HotspotSession).sessions },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
   ];
 
