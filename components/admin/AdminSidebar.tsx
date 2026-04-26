@@ -49,6 +49,7 @@ const navTenantConfig = [
 const navAdmin = [
   { label: "Tenants", href: "/dashboard/tenants", icon: Building2 },
   { label: "Users", href: "/dashboard/users", icon: Users },
+  { label: "Defaults", href: "/dashboard/defaults", icon: Settings },
 ];
 
 export function AdminSidebar() {

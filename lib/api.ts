@@ -336,6 +336,17 @@ export const apiClient = {
     },
   },
 
+  defaults: {
+    current: () => {
+      return req<any>(`/defaults`);
+    },
+    createUpdate: (data: any) =>
+      req<{ success: boolean }>(`/defaults`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
   transactions: {
     list: (params?: Record<string, string | undefined>) => {
       const clean = Object.fromEntries(
