@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, MoreHorizontal, Pencil, Trash2, Router, Filter } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, Router, Filter, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Package, RouterDevice, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,7 @@ import { labels } from "@/components/portal/CaptivePortalClient";
 
 const packageSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
+  maxUsers: z.coerce.number().int().min(1, "Max connection must be at least 1").max(100, "Max connection must be at most 100"),
   price: z.coerce.number().min(0, "Price must be 0 or more"),
   duration: z.coerce.number().int().min(1, "Duration must be at least 1"),
   dataLimit: z.coerce.number().min(0, "Data limit must be 0 or more"),
@@ -53,6 +54,7 @@ type DataLimitUnit = "GB" | "MB"
 
 type PackageForm = {
   name: string;
+  maxUsers: number;
   description: string;
   price: number;
   duration: string;
@@ -68,7 +70,7 @@ type PackageForm = {
 };
 
 const DEFAULT_FORM: PackageForm = {
-  name: "", description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
+  name: "", maxUsers: 1, description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
   dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
 };
 
@@ -144,6 +146,7 @@ export default function PackagesPage() {
     setEditTarget(pkg);
     setForm({
       name: pkg.name,
+      maxUsers: pkg.maxUsers ?? 1,
       description: pkg.description ?? "",
       price: pkg.price,
       duration: String(pkg.duration),
@@ -177,6 +180,7 @@ export default function PackagesPage() {
       duration: Number(form.duration),
       dataLimit: Number(form.dataLimit),
       speedLimit: Number(form.speedLimit),
+      maxUsers: Number(form.maxUsers),
     };
     
     // Validate router selection for new packages
@@ -221,6 +225,7 @@ export default function PackagesPage() {
 
   const columns = [
     { key: "name", label: "Name" },
+    { key: "maxUsers", label: "Max Users", render: (v: unknown) => Number(v)},
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
     { key: "price", label: "Price", render: (v: unknown, row: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `${(row as Package).currency ?? "TZS"} ${Number(v).toLocaleString()}`}</span> },
     {
@@ -359,23 +364,31 @@ export default function PackagesPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <Label>Package Name</Label>
-              <Input
-                placeholder="e.g. Daily Unlimited Internet"
-                value={form.name}
-                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-              />
+            <div className="col-span-2 grid grid-cols-4 gap-4">
+              <div className="col-span-3 flex flex-col gap-1.5">
+                <Label>Package Name</Label>
+                <Input
+                  placeholder="e.g. Daily Unlimited Internet"
+                  value={form.name}
+                  onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div className="col-span-1 flex flex-col gap-1.5">
+                <Label className="flex items-center gap-2">
+                  Max Users
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={form.maxUsers === 0 ? "" : form.maxUsers}
+                  onChange={(e) => {
+                    const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
+                    setForm(f => ({ ...f, maxUsers: value }));
+                  }}
+                />
+              </div>
             </div>
-
-            {/* <div className="col-span-2 flex flex-col gap-1.5">
-              <Label>Description</Label>
-              <Input
-                placeholder="Short description"
-                value={form.description}
-                onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
-              />
-            </div> */}
 
             {/* Tenant association (super admin only) */}
             {isSuperAdmin && (
@@ -436,7 +449,7 @@ export default function PackagesPage() {
               </div>
             </div>
 
-            {/* Speed Limit - Now first (swapped position) */}
+            {/* Speed Limit */}
             <div className="flex flex-col gap-1.5">
               <Label>Speed Limit (Mbps, 0 = unlimited)</Label>
               <Input
@@ -502,14 +515,14 @@ export default function PackagesPage() {
               </div>
             </div>
 
-            {/* Router mapping - unchanged */}
+            {/* Router mapping */}
             <div className="col-span-2 flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <Label className={!editTarget && form.routerIds.length === 0 ? "text-destructive" : ""}>
-                  Router Mapping {!editTarget && <span className="text-destructive text-xs">*</span>}
+                <Label className={!editTarget && form.routerIds.length === 0 ? "" : ""}>
+                  Router Mapping {!editTarget && <span className="text-xs">*</span>}
                 </Label>
                 <span className="text-xs text-muted-foreground">
-                  {form.routerIds.length === 0 ? "Shown on all routers" : `${form.routerIds.length} router(s) selected`}
+                  {form.routerIds.length === 0 ? "" : `${form.routerIds.length} router(s) selected`}
                 </span>
               </div>
 
