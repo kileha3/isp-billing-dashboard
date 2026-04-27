@@ -537,7 +537,7 @@ export function CaptivePortalClient() {
       )}
 
       {config.portalSettings.showPoweredBy && (
-        <p className="text-center text-xs text-muted-foreground/50 py-4">
+        <p className="text-center text-sm text-muted-foreground/50 py-4">
           {labels[config.language]?.poweredBy || "Powered by"} {appName}
         </p>
       )}

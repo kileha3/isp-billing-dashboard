@@ -212,7 +212,7 @@ export const termsLabels: Record<string, any> = {
   },
 };
 
-export default function TermsPage() {
+export default function TermsPageContent() {
   const searchParams = useSearchParams();
   // Get parameters from URL (same as CaptivePortalClient)
   const nasName = searchParams.get("nasname") ?? "";
@@ -319,16 +319,7 @@ export default function TermsPage() {
             <div className="mb-6 p-4 bg-amber-50 rounded-lg border-l-4" style={{ borderLeftColor: primaryColor }}>
               <p className="text-sm text-gray-700">{labels.intro}</p>
             </div>
-
-            {/* Language indicator - shows current language from config */}
-            <div className="flex justify-end mb-6">
-              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="font-medium">
-                  {config.language === "sw" ? "Kiswahili" : "English"}
-                </span>
-                <span className="text-xs">✓</span>
-              </div>
-            </div>
+            
 
             {/* Terms Sections */}
             <div className="space-y-6">
