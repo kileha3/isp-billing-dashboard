@@ -153,9 +153,10 @@ export default function VouchersPage() {
       ]);
       setVouchers(vData.data ?? vData);
       setPackages(pData.data ?? pData);
-    } catch {
+    } catch (error: any) {
       setVouchers([]);
       setPackages([]);
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -186,8 +187,8 @@ export default function VouchersPage() {
       toast({ title: `${data.vouchers?.length ?? form.quantity} vouchers generated` });
       setShowGenerate(false);
       load();
-    } catch {
-      toast({ title: "Error", description: "Failed to generate vouchers.", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -370,8 +371,8 @@ export default function VouchersPage() {
             const { message } = await apiClient.vouchers.delete(id);
             toast({ title: message });
             load();
-          } catch {
-            toast({ title: "Error", description: "Failed to delete a voucher.", variant: "destructive" });
+          } catch (error: any) {
+            toast({ title:  error.message, variant: "destructive" });
           }
         }}
       />)}
@@ -390,8 +391,8 @@ export default function VouchersPage() {
             const { message } = await apiClient.vouchers.revoke(id);
             toast({ title: message });
             load();
-          } catch {
-            toast({ title: "Error", description: "Failed to revoke access.", variant: "destructive" });
+          } catch (error: any) {
+            toast({ title:  error.message, variant: "destructive" });
           }
         }}
       />)}

@@ -44,8 +44,9 @@ export default function InvoicesPage() {
     try {
       const invoices = await apiClient.invoices.list();
       setInvoices(invoices.data ?? invoices);
-    } catch {
+    } catch (error: any) {
       setInvoices([]);
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -185,8 +186,8 @@ export default function InvoicesPage() {
             const { message } = await apiClient.invoices.update(id, status);
             toast({ title: message });
             load(false);
-          } catch {
-            toast({ title: "Error", description: "Failed to delete a voucher.", variant: "destructive" });
+          } catch (error: any) {
+            toast({ title:  error.message, variant: "destructive" });
           }
         }}
       />)}
@@ -204,8 +205,8 @@ export default function InvoicesPage() {
             const { message } = await apiClient.invoices.update(id, "exempted");
             toast({ title: message });
             load(false);
-          } catch {
-            toast({ title: "Error", description: "Failed to exempt the invoice.", variant: "destructive" });
+          } catch (error: any) {
+            toast({ title:  error.message, variant: "destructive" });
           }
         }}
       />)}

@@ -27,6 +27,7 @@ import {
   Palette,
   DollarSignIcon,
   EthernetPort,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { appName } from "@/lib/utils";
@@ -88,8 +89,8 @@ export function AdminSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarMenu>
-            {(isSuperAdmin ? navMain : navMain.toSpliced(2, 0, { label: "Packages", href: "/dashboard/packages", icon: Package },
-              { label: "Hotspot Vouchers", href: "/dashboard/vouchers", icon: Ticket }, { label: "PPPoE Users", href: "/dashboard/pppoe", icon: EthernetPort })).map((item) => (
+            {(isSuperAdmin ? [...navMain]: navMain.toSpliced(2, 0, { label: "Packages", href: "/dashboard/packages", icon: Package },
+              { label: "Hotspot Vouchers", href: "/dashboard/vouchers", icon: Ticket }, { label: "Offers", href: "/dashboard/offers", icon: Gift },{ label: "PPPoE Users", href: "/dashboard/pppoe", icon: EthernetPort })).map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
                     <Link href={item.href}>

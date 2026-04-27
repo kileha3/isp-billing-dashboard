@@ -77,9 +77,10 @@ export default function PPPoEUsersPage() {
 
       if (packagesData.status === "fulfilled") setPackages(packagesData.value.data);
       else setPackages([]);
-    } catch {
+    } catch (error: any) {
       setUsers([]);
       setPackages([]);
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -138,11 +139,7 @@ export default function PPPoEUsersPage() {
       setShowDialog(false);
       load();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.response?.data?.message || "Failed to save PPPoE user.",
-        variant: "destructive"
-      });
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -158,7 +155,7 @@ export default function PPPoEUsersPage() {
         duration: 2000,
       });
       setTimeout(() => setCopiedPassword(null), 2000);
-    } catch (err) {
+    } catch (error: any) {
       toast({
         title: "Failed to copy",
         description: "Please try again",
@@ -427,8 +424,8 @@ export default function PPPoEUsersPage() {
               await apiClient.pppoe.delete(userId);
               toast({ description: "PPPoE user deleted successfully", title: "User Deleted" });
               load();
-            } catch {
-              toast({ title: "Error", description: "Failed to delete user.", variant: "destructive" });
+            } catch (error: any) {
+              toast({ title:  error.message, variant: "destructive" });
             }
           }}
         />

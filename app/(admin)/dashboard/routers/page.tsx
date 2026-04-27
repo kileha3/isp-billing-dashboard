@@ -197,8 +197,9 @@ export default function RoutersPage() {
       ]);
       setRouters(data);
       setServices(allowedServices);
-    } catch {
+    } catch (error: any) {
       setRouters([]);
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -209,8 +210,9 @@ export default function RoutersPage() {
     try {
       const { data } = await apiClient.tenants.list();
       setTenants(data);
-    } catch {
+    } catch (error: any) {
       setTenants([]);
+      toast({ title:  error.message, variant: "destructive" });
     }
   }, [isSuperAdmin]);
 
@@ -353,8 +355,8 @@ export default function RoutersPage() {
           canClose: true
         }));
       }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to save router information.", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setSubmittingBasic(false);
     }
@@ -972,8 +974,8 @@ export default function RoutersPage() {
             const { message } = await apiClient.routers.delete(routerId);
             toast({ title: "Device deletion", description: message });
             load();
-          } catch {
-            toast({ title: "Error", description: "Failed to delete router.", variant: "destructive" });
+          } catch (error: any) {
+            toast({ title:  error.message, variant: "destructive" });
           }
         }}
       />)}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiClient } from "@/lib/api";
+import { apiClient, BASE } from "@/lib/api";
 import { PortalHeader } from "@/components/portal/PortalHeader";
 import { PackageGrid } from "@/components/portal/PackageGrid";
 import { VoucherInput } from "@/components/portal/VoucherInput";
@@ -287,7 +287,7 @@ function PaymentOverlay({
 }
 
 export function CaptivePortalClient() {
-  const params = useSearchParams();
+  const params = useSearchParams(); 
   const nasName = params.get("nasname") ?? "";
   const deviceMac = params.get("mac") ?? "";
   const deviceIp = params.get("ip") ?? "";
@@ -314,7 +314,7 @@ export function CaptivePortalClient() {
       try {
         const [cfg, pkgs, session] = await Promise.all([
           apiClient.portal.getConfig(nasName, authToken),
-          apiClient.portal.getPackages(nasName, authToken),
+          apiClient.portal.getPackages({nasName, authToken, deviceMac}),
           apiClient.portal.checkSession({ deviceMac, nasName, authToken }),
         ]);
         if (session.success && session.voucher) {
@@ -322,8 +322,8 @@ export function CaptivePortalClient() {
           return;
         }
         setConfig(cfg.data ?? cfg);
-        (pkgs.data ?? pkgs).sort((a, b) => a.price - b.price);
-        setPackages(pkgs.data ?? pkgs);
+        (pkgs).sort((a, b) => a.price - b.price);
+        setPackages(pkgs ?? pkgs);
       } catch {
         setConfig(DEFAULT_CONFIG);
         setPackages([]);
@@ -520,8 +520,8 @@ export function CaptivePortalClient() {
           <p className="text-center text-xs text-muted-foreground">
             {labels[config.language]?.connecting || "By connecting you agree to our"}{" "}
             <a
-              href={config.portalSettings.termsUrl}
-              target="_blank"
+              href={`${window.location.host.includes("localhost") ? `http://${window.location.host}/terms-and-conditions`: config.portalSettings.termsUrl}?${params.toString()}`}
+              target="_self"
               rel="noopener noreferrer"
               className="underline"
               style={{ color: primaryColor }}

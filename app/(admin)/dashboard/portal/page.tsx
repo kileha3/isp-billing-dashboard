@@ -17,7 +17,7 @@ import { appName, imageUrl } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
-const DEFAULT_SETTINGS: TenantPortalSettings = {
+const DEFAULT_SETTINGS: any = {
   branding: {
     logo: "",
     primaryColor: "#3B82F6",
@@ -83,8 +83,9 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId: string
       if(!data.portalSettings.termsUrl) data.portalSettings.termsUrl = "https://isp.easypay.co.tz/terms-and-conditions";
       setSettings(data as any);
       if (settings.branding.logo) setLogoPreview(settings.branding.logo);
-    } catch {
+    } catch (error: any) {
       setSettings(DEFAULT_SETTINGS);
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -119,8 +120,8 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId: string
       await apiClient.tenant.updatePortalSettings(_settings, tenantId);
       toast({ title: "Portal settings saved", description: "Your captive portal has been updated." });
       router.back();
-    } catch {
-      toast({ title: "Saved locally", description: "Could not reach server — changes previewed locally.", variant: "destructive" });
+    } catch (error: any) {
+     toast({ title:  error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }

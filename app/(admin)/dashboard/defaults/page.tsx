@@ -75,7 +75,7 @@ export default function DefaultsPage() {
 
       const newPayment = {
         gateway: data?.payment?.gateway || "",
-        values: data?.payment?.auths || {},
+        values:  {},
       };
 
       setGeneral(newGeneral);

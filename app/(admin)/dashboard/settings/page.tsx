@@ -13,10 +13,11 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Save } from "lucide-react";
+import { Save, Key, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { GatewayConfig } from "@/lib/types";
+import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage({ tenantId }: { tenantId: string }) {
   const { toast } = useToast();
@@ -36,8 +37,7 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
   const [profile, setProfile] = useState({
     name: "",
     email: "",
-    currentPassword: "",
-    newPassword: "",
+    status: "",
   });
 
   const [payment, setPayment] = useState<{
@@ -48,9 +48,17 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
     values: {},
   });
 
+  const [charges, setCharges] = useState({
+    applyCharges: false,
+    registrationFee: 0,
+    monthlyFee: 0,
+    monthlyThreshold: 0,
+  });
+
   const [saving, setSaving] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -72,18 +80,28 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
       )?.gateway.name;
 
       if (active) setActiveGateway(active);
-    } catch { }
-  }, [tenantId]);
 
-  useEffect(() => {
-    if (user) {
+      // Load charges data
+      if (data.paymentPref) {
+        setCharges({
+          applyCharges: data.paymentPref.enableCharges || false,
+          registrationFee: data.paymentPref.registrationFee || 0,
+          monthlyFee: data.paymentPref.monthlyFee || 0,
+          monthlyThreshold: data.paymentPref.monthlyThreshold || 0,
+        });
+      }
+
+      if (user) {
       setProfile((p) => ({
         ...p,
         name: user.name ?? "",
         email: user.email ?? "",
+        status: data.status ?? "active",
       }));
     }
-  }, [user]);
+    } catch { }
+  }, [tenantId]);
+
 
   useEffect(() => {
     load();
@@ -95,9 +113,8 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
     try {
       await apiClient.tenant.updateSettings(general, user!.tenantId!);
       toast({ title: "General settings saved" });
-    } catch (error) {
-      console.error(error);
-      toast({ title: "Saved locally", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -106,17 +123,30 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
   async function handleSaveProfile() {
     setSavingProfile(true);
     try {
-      await apiClient.auth.updateProfile(profile);
+      await apiClient.auth.updateProfile({ name: profile.name });
       toast({ title: "Profile updated" });
-      setProfile((p) => ({
-        ...p,
-        currentPassword: "",
-        newPassword: "",
-      }));
     } catch {
       toast({ title: "Error updating profile", variant: "destructive" });
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function handlePasswordChange() {
+    setChangingPassword(true);
+    try {
+      await apiClient.auth.forgotPassword(profile.email);
+      toast({ 
+        title: "Password reset email sent", 
+        description: "Check your email for instructions to reset your password" 
+      });
+    } catch {
+      toast({ 
+        title: "Error sending reset email", 
+        variant: "destructive" 
+      });
+    } finally {
+      setChangingPassword(false);
     }
   }
 
@@ -296,31 +326,24 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
               className="opacity-70 cursor-not-allowed"
             />
 
-            <Separator />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                type="password"
-                placeholder="Current Password"
-                value={profile.currentPassword}
-                onChange={(e) =>
-                  setProfile((p) => ({
-                    ...p,
-                    currentPassword: e.target.value,
-                  }))
-                }
-              />
-              <Input
-                type="password"
-                placeholder="New Password"
-                value={profile.newPassword}
-                onChange={(e) =>
-                  setProfile((p) => ({
-                    ...p,
-                    newPassword: e.target.value,
-                  }))
-                }
-              />
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Account Status:</span>
+                <span className={`text-sm font-medium ${profile.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                  {profile.status?.toUpperCase() || 'ACTIVE'}
+                </span>
+              </div>
+              
+              <Button
+                onClick={handlePasswordChange}
+                disabled={changingPassword}
+                variant="outline"
+                size="sm"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                {changingPassword ? "Sending..." : "Password Change"}
+              </Button>
             </div>
 
             <div className="flex justify-end">
@@ -406,6 +429,88 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
                     : "Save Payment Settings"}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* CHARGES */}
+        {charges && (
+          <Card className="col-span-6 md:col-span-3">
+            <CardHeader>
+              <CardTitle className="text-base">Charges</CardTitle>
+              <CardDescription>
+                Fee structure applied to this account
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={charges.applyCharges}
+                    onCheckedChange={(checked) =>
+                      setCharges((c) => ({ ...c, applyCharges: checked }))
+                    }
+                    disabled
+                  />
+                  <Label>{charges.applyCharges ? "Charges are applied to this account" : "No charges applied to this account"}</Label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Registration Fee</Label>
+                  <Input
+                    type="number"
+                    value={charges.registrationFee}
+                    onChange={(e) =>
+                      setCharges((c) => ({
+                        ...c,
+                        registrationFee: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label>Monthly Fee</Label>
+                  <Input
+                    type="number"
+                    value={charges.monthlyFee}
+                    onChange={(e) =>
+                      setCharges((c) => ({
+                        ...c,
+                        monthlyFee: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label>Monthly Threshold</Label>
+                  <Input
+                    type="number"
+                    value={charges.monthlyThreshold}
+                    onChange={(e) =>
+                      setCharges((c) => ({
+                        ...c,
+                        monthlyThreshold: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground mt-2">
+                These charges are configured by the system administrator and cannot be modified here.
+                They determine the fee structure applied to this tenant account.
+              </p>
             </CardContent>
           </Card>
         )}

@@ -106,9 +106,10 @@ export default function PackagesPage() {
       else setPackages([]);
       if (routerData.status === "fulfilled") setRouters(routerData.value.data);
       else setRouters([]);
-    } catch {
+    } catch (error: any) {
       setPackages([]);
       setRouters([]);
+      toast({ title:  error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -119,8 +120,9 @@ export default function PackagesPage() {
     try {
       const { data } = await apiClient.tenants.list();
       setTenants(data);
-    } catch {
+    } catch (error: any) {
       setTenants([]);
+      toast({ title:  error.message, variant: "destructive" });
     }
   }, [isSuperAdmin]);
 
@@ -209,8 +211,8 @@ export default function PackagesPage() {
       }
       setShowDialog(false);
       load();
-    } catch {
-      toast({ title: "Error", description: "Failed to save package.", variant: "destructive" });
+    } catch (error: any) {
+     toast({ title:  error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -622,8 +624,8 @@ export default function PackagesPage() {
             const { message } = await apiClient.packages.delete(packageId);
             toast({ description: message , title:"Package deletion"});
             load();
-          } catch {
-            toast({ title: "Error", description: "Failed to delete package.", variant: "destructive" });
+          } catch (error: any) {
+            toast({ title:  error.message, variant: "destructive" });
           }
         }}
       />)}

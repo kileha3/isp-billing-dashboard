@@ -64,6 +64,7 @@ export interface Tenant {
   support: TenantPortalSettings["support"];
   portalSettings: TenantPortalSettings["portalSettings"];
   settings: { currency: string; timezone: string; language: string };
+  paymentPref: any;
   paymentGateway: { gateway: string };
   status: "active" | "suspended";
   createdAt: string;
@@ -202,7 +203,6 @@ export interface Transaction {
   updatedAt: string;
 }
 
-// ─── Session ──────────────────────────────────────────────────────────────────
 
 export interface HotspotSession {
   _id: string;
@@ -226,45 +226,6 @@ export interface HotspotSession {
   username: string;
 }
 
-export type PeerStatus = "assigned" | "available" | "reserved" | "blocked";
-
-export interface Peer {
-  /** UUID v4 */
-  _id: string;
-  /** Tenant UUID */
-  tenantId: string;
-  /** MAC address in colon-hex notation, e.g. aa:bb:cc:dd:ee:ff */
-  mac: string;
-  /** Assigned IPv4 address, e.g. 10.10.0.5 */
-  ip: string;
-  status: PeerStatus;
-  /** Optional human-readable label */
-  hostname?: string;
-  /** Router UUID this peer is associated with */
-  routerId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ─── Dashboard ────────────────────────────────────────────────────────────────
-
-export interface DashboardStats {
-  routers: { total: number; online: number; offline: number };
-  packages: { total: number };
-  vouchers: { total: number; unused: number };
-  transactions: { total: number; revenue: number; todayRevenue: number };
-  sessions: { active: number };
-  revenueChart: { date: string; amount: number }[];
-  sessionChart: { date: string; count: number }[];
-  recentTransactions: {
-    _id: string;
-    amount: number;
-    status: string;
-    customerPhone: string;
-    createdAt: string;
-    packageId?: { name: string };
-  }[];
-}
 
 export interface GatewayField {
   name: string;
@@ -279,4 +240,46 @@ export interface Gateway {
 export interface GatewayConfig {
   gateway: Gateway;
   fields: GatewayField[];
+}
+
+export interface OfferCriteria {
+  minUsageDays: {
+    enabled: boolean;
+    operator: ">" | ">=" | "=" | "<" | "<=";
+    value: number;
+  };
+  totalSpent: {
+    enabled: boolean;
+    operator: ">" | ">=" | "=" | "<" | "<=";
+    value: number;
+  };
+  lastPurchaseDays: {
+    enabled: boolean;
+    operator: ">" | ">=" | "=" | "<" | "<=";
+    value: number;
+  };
+}
+
+export interface OfferQualifiedUser {
+  userId: string;
+  name?: string;
+  email?: string;
+  totalSpent: number;
+  lastPurchaseDate: string;
+  usageDays: number;
+}
+
+export interface Offer {
+  _id: string;
+  name: string;
+  packageId: string;
+  criteria: OfferCriteria;
+  startDate: string;
+  endDate: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  tenantId: string;
+  qualified: number;
+  totalJoined?: number;
 }

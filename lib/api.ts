@@ -5,7 +5,6 @@ import type {
   Package,
   Voucher,
   Transaction,
-  Peer,
   Notification,
   Tenant,
   Invoice,
@@ -13,6 +12,7 @@ import type {
   GatewayConfig,
   ReportSummary,
   PPPoEUser,
+  Offer,
 } from "@/lib/types";
 
 export const BASE =
@@ -167,6 +167,12 @@ export const apiClient = {
       tokenManager.setToken(null);
     },
 
+    forgotPassword: (email: string) =>
+      req<{ message: string }>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      }),
+
     updateProfile: (data: {
       name?: string;
       email?: string;
@@ -270,8 +276,33 @@ export const apiClient = {
       req<{ message: string }>(`/pppoe/${id}`, { method: "DELETE" }),
   },
 
+  offers: {
+    list: () => req<Offer[]>(`/offers`),
+    
+    create: (data: Partial<Offer>) =>
+      req<{ offer: Offer }>(`/offers`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: string, data: Partial<Offer>) =>
+      req<{ offer: Offer }>(`/offers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+      activateDeactivate: (id: string, isActive: boolean) =>
+      req<{ offer: Offer }>(`/offers/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({isActive}),
+      }),
+    delete: (id: string) =>
+      req<{ message: string }>(`/offers/${id}`, { method: "DELETE" }),
+
+  },
+
   packages: {
-    list: (type?: string) => req<{ data: Package[] }>(`/packages?type=${type ? type : "all"}`),
+    list: (type?: string, isPublic: string = "all", isFree: string = "all") =>
+      req<{ data: Package[] }>(`/packages?type=${type ? type : "all"}${isPublic === "all" ? "":`&isPublic=${isPublic}`}${isFree === "all" ? "":`&isFree=${isFree}`}`),
 
     create: (data: Partial<Package>) =>
       req<{ package: Package }>("/packages", {
@@ -286,7 +317,9 @@ export const apiClient = {
       }),
 
     delete: (id: string) =>
-      req<{ message: string, success: boolean }>(`/packages/${id}`, { method: "DELETE" }),
+      req<{ message: string; success: boolean }>(`/packages/${id}`, {
+        method: "DELETE",
+      }),
   },
 
   invoices: {
@@ -481,9 +514,9 @@ export const apiClient = {
         `/tenants/config?nasname=${nasname}&token=${token}`,
       ),
 
-    getPackages: (nasname: string, token: string) =>
-      req<{ data: Package[] }>(
-        `/packages/portal?nasname=${nasname}&token=${token}`,
+    getPackages: (data: {nasName: string; authToken: string; deviceMac: string}) =>
+      req<Package[]>(
+        `/packages/portal?nasname=${data.nasName}&token=${data.authToken}&deviceMac=${data.deviceMac}`,
       ),
 
     redeemVoucher: (data: {
@@ -548,6 +581,6 @@ export const apiClient = {
           method: "POST",
           body: JSON.stringify(data),
         },
-      )
+      ),
   },
 };
