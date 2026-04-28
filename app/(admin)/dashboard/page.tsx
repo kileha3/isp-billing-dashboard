@@ -143,7 +143,7 @@ export default function DashboardPage() {
     if (!lastDismissed) return true;
     
     const dismissedTime = parseInt(lastDismissed, 10);
-    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    const oneHourAgo = Date.now() - (5 * 60 * 1000);
     
     // Show if more than 1 hour has passed since last dismissal
     return dismissedTime < oneHourAgo;
@@ -160,7 +160,7 @@ export default function DashboardPage() {
   const handleClearInvoices = useCallback(() => {
     setShowInvoiceDialog(false);
     // Navigate to invoices page
-    router.push('/admin/invoices');
+    router.push('/dashboard/invoices');
   }, [router]);
 
   // Show dialog when condition is met
