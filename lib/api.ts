@@ -333,7 +333,7 @@ export const apiClient = {
         body: JSON.stringify({ status }),
       }),
     pay: (id: string, phoneNumber: string) =>
-      req<{ success: boolean; message: string }>(`/invoices/${id}/pay`, {
+      req<{ success: boolean; message: string, orderId: string }>(`/invoices/${id}/pay`, {
         method: "POST",
         body: JSON.stringify({ phoneNumber }),
       }),

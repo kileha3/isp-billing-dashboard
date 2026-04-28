@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { phoneSchemaDef } from "@/components/portal/PackageGrid";
 import SocketClient from "@/lib/socket.util";
+import { PayResult } from "@/components/portal/CaptivePortalClient";
 
 
 export default function InvoicesPage() {
@@ -32,6 +33,7 @@ export default function InvoicesPage() {
   const [invoiceToUpdate, setInvoiceToUpdate] = useState<Invoice | null>(null);
   const [invoiceToExempt, setExemptInvoice] = useState<Invoice | null>(null);
   const [phone, setPhone] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
   const { user } = useAuth();
   const phoneSchema = phoneSchemaDef({ min: 10, max: 13, language: "en" });
   const phoneResult = phoneSchema.safeParse(phone);
@@ -46,7 +48,7 @@ export default function InvoicesPage() {
       setInvoices(invoices.data ?? invoices);
     } catch (error: any) {
       setInvoices([]);
-      toast({ title:  error.message, variant: "destructive" });
+      toast({ title: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -69,7 +71,7 @@ export default function InvoicesPage() {
 
   const columns = [
     isSuperAdmin ? { key: "tenant", label: "Tenant", render: (v: unknown) => v } : null,
-    { key: "amount", label: "Amount", render: (v: unknown) => v },
+    { key: "amount", label: "Amount", render: (v: unknown) => Number(v).toLocaleString("en-US", { currency: "TZS" }) },
     { key: "description", label: "Description", render: (v: unknown) => v },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
     { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
@@ -126,7 +128,7 @@ export default function InvoicesPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
 
-                {invoice.status === "pending" && isSuperAdmin && (<DropdownMenuItem onClick={() => isSuperAdmin ? changeInvoiceStatus(row as unknown as Invoice, "paid") : setShowClearInvoice(row as unknown as Invoice)}>
+                {invoice.status === "pending" && (<DropdownMenuItem onClick={() => isSuperAdmin ? changeInvoiceStatus(row as unknown as Invoice, "paid") : setShowClearInvoice(row as unknown as Invoice)}>
                   <Lock className="mr-2 h-4 w-4" />Clear Invoice
                 </DropdownMenuItem>)}
 
@@ -145,31 +147,56 @@ export default function InvoicesPage() {
 
       <Dialog open={showClearInvoice != null} onOpenChange={() => setShowClearInvoice(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Pay up this invoice</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-6 px-7">
-            <Label className="text-xs font-medium">Phone Number</Label>
-            <Input
-              type="tel"
-              placeholder="0712 XXX XXX"
-              value={phone}
-              autoFocus
-              onChange={(e) => setPhone(e.target.value)}
-              className="h-10 focus-visible:outline-none focus-visible:ring-2"
-            />
-            {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowClearInvoice(null)}>Cancel</Button>
+          {!isPaying && (<div>
+            <DialogHeader>
+              <DialogTitle>Pay up this invoice</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-6 px-7">
+              <Label className="text-xs font-medium">Phone Number</Label>
+              <Input
+                type="tel"
+                placeholder="0712 XXX XXX"
+                value={phone}
+                autoFocus
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-10 focus-visible:outline-none focus-visible:ring-2"
+              />
+              {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
+            </div>
+          </div>)}
+          {isPaying && (<div className="min-h-[50v] bg-background flex flex-col items-center justify-center gap-6 py-16">
+            <div className="h-18 w-18 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+            <p className="text-muted-foreground text-sm">Check your phone and enter your wallet PIN</p>
+          </div>)}
+          {!isPaying && (<DialogFooter>
+            <Button variant="outline" onClick={() => setShowClearInvoice(null)} >Cancel</Button>
             <Button onClick={async () => {
-              const { message } = await apiClient.invoices.pay(showClearInvoice!._id, phone);
-              setShowClearInvoice(null);
-              toast({ title: "Invoice payment", description: message })
-            }} disabled={phoneResult.success === false}>
+
+              setIsPaying(true);
+              const { success, orderId } = await apiClient.invoices.pay(showClearInvoice!._id, phone);
+
+              if (success && orderId) {
+                const timeoutId = setTimeout(() => {
+                  setShowClearInvoice(null);
+                  setIsPaying(false);
+                }, 2 * 60 * 1000)
+                SocketClient.waitFor<PayResult>(SocketClient.event_invoice_paid, orderId,
+                  ({ success }) => {
+                    clearTimeout(timeoutId);
+                    setShowClearInvoice(null);
+                    setIsPaying(false);
+                    if (success) {
+                      toast({ title: "Invoice paid successfully" });
+                      load(false);
+                    } else {
+                      toast({ title: "Payment failed", variant: "destructive" });
+                    }
+                  })
+              }
+            }} disabled={phoneResult.success === false || isPaying}>
               Pay now
             </Button>
-          </DialogFooter>
+          </DialogFooter>)}
         </DialogContent>
       </Dialog>
 
@@ -187,7 +214,7 @@ export default function InvoicesPage() {
             toast({ title: message });
             load(false);
           } catch (error: any) {
-            toast({ title:  error.message, variant: "destructive" });
+            toast({ title: error.message, variant: "destructive" });
           }
         }}
       />)}
@@ -206,7 +233,7 @@ export default function InvoicesPage() {
             toast({ title: message });
             load(false);
           } catch (error: any) {
-            toast({ title:  error.message, variant: "destructive" });
+            toast({ title: error.message, variant: "destructive" });
           }
         }}
       />)}

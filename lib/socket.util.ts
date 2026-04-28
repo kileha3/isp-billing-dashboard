@@ -18,6 +18,8 @@ class SocketClient {
 
   static event_payment_completed = "payment_completed";
 
+  static event_invoice_paid = "invoice_paid";
+
   static event_router_setup_completed = "router_setup_completed";
 
   static async connect(options: any = {}): Promise<Socket | null> {
