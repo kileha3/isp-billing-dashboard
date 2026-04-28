@@ -58,7 +58,7 @@ export default function DefaultsPage() {
         apiClient.transactions.gateways(),
       ]);
 
-      setGateways(remoteGateway);
+      if(remoteGateway) setGateways(remoteGateway);
 
       const newGeneral = {
         currency: data?.currency || "TZS",
@@ -188,7 +188,7 @@ export default function DefaultsPage() {
   }, [general, charges, payment, hasChanges, initialData]);
 
   // Determine if save button should be enabled
-  const isSaveEnabled = isDirty && isFormValid() && !saving;
+  const isSaveEnabled =  isFormValid() && !saving;
 
   async function handleSaveAll() {
     if (!user) return;
