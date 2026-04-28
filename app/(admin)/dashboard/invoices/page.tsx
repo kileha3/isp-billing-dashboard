@@ -173,13 +173,13 @@ export default function InvoicesPage() {
             <Button onClick={async () => {
 
               setIsPaying(true);
+              const timeoutId = setTimeout(() => {
+                setShowClearInvoice(null);
+                setIsPaying(false);
+              }, 2 * 60 * 1000)
               const { success, orderId } = await apiClient.invoices.pay(showClearInvoice!._id, phone);
 
               if (success && orderId) {
-                const timeoutId = setTimeout(() => {
-                  setShowClearInvoice(null);
-                  setIsPaying(false);
-                }, 2 * 60 * 1000)
                 SocketClient.waitFor<PayResult>(SocketClient.event_invoice_paid, orderId,
                   ({ success }) => {
                     clearTimeout(timeoutId);

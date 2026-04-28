@@ -278,7 +278,7 @@ export const apiClient = {
 
   offers: {
     list: () => req<Offer[]>(`/offers`),
-    
+
     create: (data: Partial<Offer>) =>
       req<{ offer: Offer }>(`/offers`, {
         method: "POST",
@@ -290,19 +290,20 @@ export const apiClient = {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
-      activateDeactivate: (id: string, isActive: boolean) =>
+    activateDeactivate: (id: string, isActive: boolean) =>
       req<{ offer: Offer }>(`/offers/${id}/status`, {
         method: "PATCH",
-        body: JSON.stringify({isActive}),
+        body: JSON.stringify({ isActive }),
       }),
     delete: (id: string) =>
       req<{ message: string }>(`/offers/${id}`, { method: "DELETE" }),
-
   },
 
   packages: {
     list: (type?: string, isPublic: string = "all", isFree: string = "all") =>
-      req<{ data: Package[] }>(`/packages?type=${type ? type : "all"}${isPublic === "all" ? "":`&isPublic=${isPublic}`}${isFree === "all" ? "":`&isFree=${isFree}`}`),
+      req<{ data: Package[] }>(
+        `/packages?type=${type ? type : "all"}${isPublic === "all" ? "" : `&isPublic=${isPublic}`}${isFree === "all" ? "" : `&isFree=${isFree}`}`,
+      ),
 
     create: (data: Partial<Package>) =>
       req<{ package: Package }>("/packages", {
@@ -327,16 +328,20 @@ export const apiClient = {
       req<{ data: Invoice[] }>(
         `/invoices${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
+    showStatus: () => req<boolean>(`/invoices/show`),
     update: (id: string, status: string) =>
       req<{ success: boolean; message: string }>(`/invoices/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
     pay: (id: string, phoneNumber: string) =>
-      req<{ success: boolean; message: string, orderId: string }>(`/invoices/${id}/pay`, {
-        method: "POST",
-        body: JSON.stringify({ phoneNumber }),
-      }),
+      req<{ success: boolean; message: string; orderId: string }>(
+        `/invoices/${id}/pay`,
+        {
+          method: "POST",
+          body: JSON.stringify({ phoneNumber }),
+        },
+      ),
   },
 
   vouchers: {
@@ -514,7 +519,11 @@ export const apiClient = {
         `/tenants/config?nasname=${nasname}&token=${token}`,
       ),
 
-    getPackages: (data: {nasName: string; authToken: string; deviceMac: string}) =>
+    getPackages: (data: {
+      nasName: string;
+      authToken: string;
+      deviceMac: string;
+    }) =>
       req<Package[]>(
         `/packages/portal?nasname=${data.nasName}&token=${data.authToken}&deviceMac=${data.deviceMac}`,
       ),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { apiClient } from "@/lib/api";
@@ -26,6 +27,7 @@ import {
   Package,
   TrendingUp,
   Calendar,
+  AlertCircle,
 } from "lucide-react";
 import { formatCurrency } from "./transactions/page";
 import { Transaction } from "@/lib/types";
@@ -55,7 +57,61 @@ function ChartTooltip({ active, payload, label, formatter }: {
   );
 }
 
+// Invoice reminder dialog component
+function InvoiceReminderDialog({ isOpen, onClose, onClear }: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onClear: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2">
+        <div className="bg-card border border-border rounded-xl shadow-2xl p-6 animate-in fade-in zoom-in duration-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/20">
+              <AlertCircle className="h-6 w-6 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Pending Invoices</h3>
+              <p className="text-sm text-muted-foreground">Action Required</p>
+            </div>
+          </div>
+          
+          <div className="mb-6">
+            <p className="text-sm text-foreground mb-2">
+              You have pending invoices that need to be cleared.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Failure to clear these invoices will result in service suspension. 
+              Please clear them as soon as possible to avoid interruption.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClear}
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+            >
+              Clear Invoices
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium text-sm"
+            >
+              Remind Me Later
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
   usePageTitle("Dashboard");
   const { user, loading: authLoading, isRole } = useAuth();
   const [routerStats, setRouterStats] = useState<any>(null);
@@ -70,12 +126,49 @@ export default function DashboardPage() {
   const [transReport, setTransReport] = useState<any>(null)
   const [sessionReport, setSessionReport] = useState<any>(null)
   const [showDatePicker, setShowDatePicker] = useState(false);
-  
+  const [showClearInvoice, setShowClearInvoice] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+
   // Date range state - initialize to last 7 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
     to: addDays(new Date(), 1)
   });
+
+  // Check if we should show the invoice reminder dialog
+  const shouldShowInvoiceReminder = useCallback(() => {
+    if (!showClearInvoice) return false;
+    
+    const lastDismissed = localStorage.getItem('invoiceReminderDismissed');
+    if (!lastDismissed) return true;
+    
+    const dismissedTime = parseInt(lastDismissed, 10);
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    
+    // Show if more than 1 hour has passed since last dismissal
+    return dismissedTime < oneHourAgo;
+  }, [showClearInvoice]);
+
+  // Handle invoice dialog close (remind me later)
+  const handleInvoiceRemindLater = useCallback(() => {
+    // Store current timestamp in localStorage
+    localStorage.setItem('invoiceReminderDismissed', Date.now().toString());
+    setShowInvoiceDialog(false);
+  }, []);
+
+  // Handle clear invoices action
+  const handleClearInvoices = useCallback(() => {
+    setShowInvoiceDialog(false);
+    // Navigate to invoices page
+    router.push('/admin/invoices');
+  }, [router]);
+
+  // Show dialog when condition is met
+  useEffect(() => {
+    if (!authLoading && shouldShowInvoiceReminder()) {
+      setShowInvoiceDialog(true);
+    }
+  }, [authLoading, shouldShowInvoiceReminder]);
 
   const load = useCallback(async (showLoading: boolean = true) => {
     setLoading(showLoading);
@@ -85,13 +178,15 @@ export default function DashboardPage() {
         startDate: formatDate(dateRange.from, 'yyyy-MM-dd'),
         endDate: formatDate(dateRange.to, 'yyyy-MM-dd')
       } : {};
-      
-      const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, transactions, {payment, session}] = await Promise.all([
+
+      const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, transactions, { payment, session }, showClearDialog] = await Promise.all([
         apiClient.dashboard.getStats(),
         isSuperAdmin ? { data: { settings: { currency: "TZS" } } } : apiClient.tenant.get(user?.tenantId),
         apiClient.transactions.recent(),
-        apiClient.dashboard.getReports(dateFilter as any)
+        apiClient.dashboard.getReports(dateFilter as any),
+        apiClient.invoices.showStatus()
       ]);
+      if(!isSuperAdmin) setShowClearInvoice(showClearDialog);
       setSession(sessions)
       setTransReport(payment);
       setSessionReport(session);
@@ -147,13 +242,20 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Invoice Reminder Dialog */}
+      <InvoiceReminderDialog 
+        isOpen={showInvoiceDialog}
+        onClose={handleInvoiceRemindLater}
+        onClear={handleClearInvoices}
+      />
+
       {/* Page heading with date picker */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Overview of your ISP network</p>
         </div>
-        
+
         {/* Date Range Picker */}
         <div className="relative">
           <button
@@ -163,11 +265,11 @@ export default function DashboardPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{formatDateRange()}</span>
           </button>
-          
+
           {showDatePicker && (
             <>
-              <div 
-                className="fixed inset-0 z-40" 
+              <div
+                className="fixed inset-0 z-40"
                 onClick={() => setShowDatePicker(false)}
               />
               <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-3">
@@ -238,7 +340,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-foreground">
-                Revenue — {dateRange?.from && dateRange?.to 
+                Revenue — {dateRange?.from && dateRange?.to
                   ? `${formatDate(dateRange.from, "MMM dd")} - ${formatDate(dateRange.to, "MMM dd, yyyy")}`
                   : "Selected Period"}
               </h3>
@@ -272,7 +374,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-foreground">
-                Sessions — {dateRange?.from && dateRange?.to 
+                Sessions — {dateRange?.from && dateRange?.to
                   ? `${formatDate(dateRange.from, "MMM dd")} - ${formatDate(dateRange.to, "MMM dd, yyyy")}`
                   : "Selected Period"}
               </h3>
@@ -291,10 +393,10 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "oklch(0.52 0.02 260)" }} tickLine={false} axisLine={false} />
                 <Tooltip content={<ChartTooltip formatter={(v) => `${v} sessions`} />} />
-              <Bar dataKey="sessions" fill="oklch(0.52 0.22 260)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>)}
-           {sessionReport && sessionReport.data.length === 0 && (<h3 className="text-sm font-semibold text-foreground text-center py-20 px-10">No session report for selected period</h3>)}
+                <Bar dataKey="sessions" fill="oklch(0.52 0.22 260)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>)}
+          {sessionReport && sessionReport.data.length === 0 && (<h3 className="text-sm font-semibold text-foreground text-center py-20 px-10">No session report for selected period</h3>)}
         </div>
       </div>
 
