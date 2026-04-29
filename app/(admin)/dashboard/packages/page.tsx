@@ -24,8 +24,8 @@ import { labels } from "@/components/portal/CaptivePortalClient";
 
 const packageSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  maxUsers: z.coerce.number().int().min(1, "Max connection must be at least 1").max(100, "Max connection must be at most 100"),
-  maxReconnects: z.coerce.number().int().min(1, "Max sessions must be at least 1").max(10, "Max sessions must be at most 10"),
+  maxUsers: z.coerce.number().int().min(0, "Max connection must be at least 0").max(10000, "Max connection must be at most 10000"),
+  maxReconnects: z.coerce.number().int().min(0, "Max sessions must be at least 0").max(1000, "Max sessions must be at most 1000"),
   price: z.coerce.number().min(0, "Price must be 0 or more"),
   duration: z.coerce.number().int().min(1, "Duration must be at least 1"),
   dataLimit: z.coerce.number().min(0, "Data limit must be 0 or more"),
@@ -231,8 +231,14 @@ export default function PackagesPage() {
 
   const columns = [
     { key: "name", label: "Name" },
-    { key: "maxUsers", label: "Connections", render: (v: unknown) => Number(v)},
-    { key: "maxReconnects", label: "Reconnets", render: (v: unknown) => Number(v)},
+    { key: "maxUsers", label: "Connections", render: (v: unknown, row: unknown) => {
+      const pkg = row as unknown as Package;
+      return pkg.isPpPoe && v == 0 ? "Unlimited": Number(v)
+    }},
+    { key: "maxReconnects", label: "Reconnets", render: (v: unknown, row: unknown) => {
+      const pkg = row as unknown as Package;
+      return pkg.isPpPoe && v == 0 ? "Unlimited": Number(v)
+    }},
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
     { key: "price", label: "Price", render: (v: unknown, row: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `${(row as Package).currency ?? "TZS"} ${Number(v).toLocaleString()}`}</span> },
     {
@@ -478,7 +484,7 @@ export default function PackagesPage() {
             </div>
 
             {/* Max Users & Max Sessions Row */}
-            <div className="col-span-2 grid grid-cols-2 gap-4">
+            {!form.isPpPoe && (<div className="col-span-2 grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label className="flex items-center gap-2">
                   Connections
@@ -513,7 +519,7 @@ export default function PackagesPage() {
                 />
                 <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
               </div>
-            </div>
+            </div>)}
 
             {/* Toggle Switches Row */}
             <div className="col-span-2 flex items-center gap-6">
@@ -538,7 +544,7 @@ export default function PackagesPage() {
               <div className="flex items-center gap-3">
                 <Switch
                   checked={form.isPpPoe}
-                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v, maxUsers: 100, maxReconnects: 1000 }))}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v, maxUsers: v ? 0:1, maxReconnects: v ? 0: 3 }))}
                   id="isPpPoe" 
                 />
                 <Label htmlFor="isPpPoe">Is PPPoE</Label>

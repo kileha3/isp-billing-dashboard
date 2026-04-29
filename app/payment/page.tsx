@@ -510,7 +510,7 @@ function PackageGrid({
 // Main Payment Component
 function PaymentContent() {
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const token = searchParams.get("id");
   
   const [config, setConfig] = useState<TenantPortalSettings>(DEFAULT_CONFIG);
   const [packages, setPackages] = useState<Package[]>([]);

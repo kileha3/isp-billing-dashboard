@@ -328,7 +328,7 @@ export const apiClient = {
       req<{ data: Invoice[] }>(
         `/invoices${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
-    showStatus: () => req<boolean>(`/invoices/show`),
+    showStatus: () => req<{ shouldShow: boolean }>(`/invoices/show`),
     update: (id: string, status: string) =>
       req<{ success: boolean; message: string }>(`/invoices/${id}`, {
         method: "PATCH",

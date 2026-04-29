@@ -183,14 +183,14 @@ export default function DashboardPage() {
         endDate: formatDate(dateRange.to, 'yyyy-MM-dd')
       } : {};
 
-      const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, transactions, { payment, session }, showClearDialog] = await Promise.all([
+      const [{ routers, vouchers, packages, payments, sessions }, { data: { settings: { currency } } }, transactions, { payment, session }, {shouldShow}] = await Promise.all([
         apiClient.dashboard.getStats(),
         isSuperAdmin ? { data: { settings: { currency: "TZS" } } } : apiClient.tenant.get(user?.tenantId),
         apiClient.transactions.recent(),
         apiClient.dashboard.getReports(dateFilter as any),
         apiClient.invoices.showStatus()
       ]);
-      if(!isSuperAdmin) setShowClearInvoice(showClearDialog);
+      if(!isSuperAdmin) setShowClearInvoice(shouldShow);
       setSession(sessions)
       setTransReport(payment);
       setSessionReport(session);

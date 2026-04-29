@@ -151,7 +151,7 @@ export default function PPPoEUsersPage() {
       setCopiedPassword(field);
       toast({
         title: "Copied!",
-        description: `${field} copied to clipboard`,
+        description: `Password copied to clipboard`,
         duration: 2000,
       });
       setTimeout(() => setCopiedPassword(null), 2000);
