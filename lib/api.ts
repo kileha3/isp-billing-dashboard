@@ -528,6 +528,29 @@ export const apiClient = {
         `/packages/portal?nasname=${data.nasName}&token=${data.authToken}&deviceMac=${data.deviceMac}`,
       ),
 
+    standAlonePaymentInfo: (token: string) =>
+      req<{ packages: Package[]; configs: TenantPortalSettings }>(
+        `/standalone/info?token=${token}`,
+      ),
+
+    standAlonePayment: (
+      token: string,
+      packageId: string,
+      phoneNumber: string,
+    ) =>
+      req<{ success: boolean; message: string; orderId: string }>(
+        `/standalone/pay?token=${token}`,
+        { method: "POST", body: JSON.stringify({ packageId, phoneNumber }) },
+      ),
+
+    standAloneStatus: (data: {
+      orderId: string;
+      token: string;
+    }) =>
+      req<{ success: boolean; message: string; voucher: string }>(
+        `/standalone/${data.orderId}/status?token=${data.token}`,
+      ),
+
     redeemVoucher: (data: {
       code: string;
       deviceIp: string;

@@ -538,7 +538,7 @@ export default function PackagesPage() {
               <div className="flex items-center gap-3">
                 <Switch
                   checked={form.isPpPoe}
-                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v }))}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v, maxUsers: 100, maxReconnects: 1000 }))}
                   id="isPpPoe" 
                 />
                 <Label htmlFor="isPpPoe">Is PPPoE</Label>

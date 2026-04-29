@@ -137,7 +137,11 @@ export default function DashboardPage() {
 
   // Check if we should show the invoice reminder dialog
   const shouldShowInvoiceReminder = useCallback(() => {
-    if (!showClearInvoice) return false;
+    if (!showClearInvoice) {
+      localStorage.removeItem('invoiceReminderDismissed');
+      return false;
+
+    };
     
     const lastDismissed = localStorage.getItem('invoiceReminderDismissed');
     if (!lastDismissed) return true;
