@@ -272,6 +272,11 @@ export const apiClient = {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
+    activateDeactivate: (id: string, status: string) =>
+      req<{ success: boolean; message: string }>(`/pppoe/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
     delete: (id: string) =>
       req<{ message: string }>(`/pppoe/${id}`, { method: "DELETE" }),
   },

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, Pencil, Trash2, Filter, Plus, Copy, Check } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Filter, Plus, Copy, Check, Power, PowerOff } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Package, PPPoEUser, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +36,6 @@ type PPPoEUserForm = {
   lastName: string;
   location: string;
   packageId: string;
-  isActive: boolean;
 };
 
 const DEFAULT_FORM: PPPoEUserForm = {
@@ -46,7 +45,6 @@ const DEFAULT_FORM: PPPoEUserForm = {
   lastName: "",
   location: "",
   packageId: "",
-  isActive: true,
 };
 
 export default function PPPoEUsersPage() {
@@ -92,6 +90,8 @@ export default function PPPoEUsersPage() {
     setShowDialog(true);
   }
 
+  
+
   const isFormValid = pppoeUserSchema.safeParse(form).success;
 
   function openEdit(user: PPPoEUser) {
@@ -103,9 +103,14 @@ export default function PPPoEUsersPage() {
       lastName: user.lastName,
       location: user.location || "",
       packageId: typeof user.packageId === 'string' ? user.packageId : user.packageId._id,
-      isActive: user.isActive,
     });
     setShowDialog(true);
+  }
+
+  const handleActivate = async (user: PPPoEUser) => {
+     const { message } = await apiClient.pppoe.activateDeactivate(user._id, user.status !== "active" ? "active" : "unpaid");
+        toast({ title: "Status update", description: message });
+        load();
   }
 
   async function handleSubmit() {
@@ -227,9 +232,9 @@ export default function PPPoEUsersPage() {
       }
     },
     {
-      key: "isActive",
+      key: "status",
       label: "Status",
-      render: (v: unknown) => <StatusBadge status={v ? "active" : "inactive"} />
+      render: (v: unknown) => <StatusBadge status={v as string} />
     },
     {
       key: "createdAt",
@@ -240,7 +245,7 @@ export default function PPPoEUsersPage() {
 
   const filteredUsers = (statusFilter === "all"
     ? users
-    : users.filter(user => user.isActive === (statusFilter === "active"))) as unknown as Record<string, unknown>[];
+    : users.filter(user => user.status === statusFilter)) as unknown as Record<string, unknown>[];
 
   useEffect(() => { load(); }, [load]);
 
@@ -276,7 +281,9 @@ export default function PPPoEUsersPage() {
               <SelectContent>
                 <SelectItem value="all">All Users</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="offline">Offline</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -292,9 +299,16 @@ export default function PPPoEUsersPage() {
               <DropdownMenuItem onClick={() => openEdit(row as unknown as PPPoEUser)}>
                 <Pencil className="mr-2 h-4 w-4" />Edit
               </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={() => handleActivate(row as unknown as PPPoEUser)}>
+                {row.status !== "active" && (<Power className="mr-2 h-4 w-4" />)}
+                {row.status === "active" && (<PowerOff className="mr-2 h-4 w-4" />)}
+                {row.status === "active" ? "Mark Unpaid":"Activate"}
+              </DropdownMenuItem>
               <DropdownMenuItem className="text-destructive" onClick={() => setUserToDelete(row as unknown as PPPoEUser)}>
                 <Trash2 className="mr-2 h-4 w-4" />Delete
               </DropdownMenuItem>
+              
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -383,19 +397,6 @@ export default function PPPoEUsersPage() {
                   No packages available
                 </p>
               )}
-            </div>
-
-            {/* Active Status */}
-            <div className="col-span-2 flex items-center gap-3 pt-2">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) => setForm(f => ({ ...f, isActive: e.target.checked }))}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <span className="text-sm">Active (user can connect immediately)</span>
-              </label>
             </div>
           </div>
 
