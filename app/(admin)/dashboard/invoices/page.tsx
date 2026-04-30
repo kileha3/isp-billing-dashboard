@@ -202,9 +202,8 @@ export default function InvoicesPage() {
 
       {invoiceToUpdate && (<ConfirmDialog
         open={invoiceToUpdate !== null}
-        title="Status update"
-        message={`Are you sure you want to this invoice status?`}
-        variant="destructive"
+        title="Invoice update"
+        message={`You are about to clear tenants invoice, make sure payments are in order since once done user service will be activated.`}
         onCancel={() => setInvoiceToUpdate(null)}
         onConfirm={async () => {
           const { _id: id, status } = invoiceToUpdate!;
