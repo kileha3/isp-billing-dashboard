@@ -11,6 +11,8 @@ import SocketClient from "@/lib/socket.util";
 import { apiClient } from "@/lib/api";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
+import { phoneSchemaDef } from "@/components/portal/PackageGrid";
+import { formatData, formatDuration, formatSpeed } from "../(admin)/dashboard/packages/page";
 
 // Labels with English and Swahili translations
 export const labels: any = {
@@ -124,36 +126,6 @@ const DEFAULT_CONFIG: TenantPortalSettings = {
   language: "en"
 };
 
-// Helper functions for formatting
-const formatDuration = (duration: number, unit: string, lang: string): string => {
-  const durationLabels = labels[lang]?.duration;
-  const unitKey = duration === 1 ? unit : `${unit}s`;
-  const unitLabel = durationLabels?.[unitKey] || unit;
-  return `${duration} ${unitLabel}`;
-};
-
-const formatData = (limit: number, unit: string, unlimitedLabel: string): string => {
-  if (limit === 0) return unlimitedLabel;
-  return `${limit} ${unit}`;
-};
-
-const formatSpeed = (speed: number, unlimitedLabel: string): string => {
-  if (speed === 0) return unlimitedLabel;
-  return `${speed} Mbps`;
-};
-
-// Phone validation schema
-const phoneSchemaDef = (language: string) => {
-  return z.string().refine(
-    (val) => {
-      const phoneRegex = /^\+?[\d\s\-\(]{10,15}$/;
-      return phoneRegex.test(val);
-    },
-    {
-      message: labels[language]?.phoneError || labels.en.phoneError
-    }
-  );
-};
 
 type PayState = "idle" | "processing" | "success" | "failure";
 
@@ -344,18 +316,20 @@ function PackageGrid({
   currency, 
   language, 
   onPay,
+  packageId,
   isProcessing 
 }: { 
   packages: Package[]; 
   primaryColor: string; 
   currency: string; 
-  language: string; 
+  language: string;
+  packageId?: string; 
   onPay: (params: { pkg: Package; phone: string }) => void;
   isProcessing: boolean;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(packageId || null);
   const [phone, setPhone] = useState("");
-  const phoneSchema = phoneSchemaDef(language);
+  const phoneSchema = phoneSchemaDef({language});
   
   const phoneResult = phoneSchema.safeParse(phone);
   const phoneError = phone.length >= 10 && !phoneResult.success
@@ -412,11 +386,11 @@ function PackageGrid({
                 <div className="flex items-center gap-3 mt-1 flex-wrap">
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {formatDuration(pkg.duration, pkg.durationUnit, language)}
+                    {formatDuration(pkg.duration, labels[language]?.duration[pkg.durationUnit])}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Database className="h-3 w-3" />
-                    {formatData(pkg.dataLimit, pkg.dataLimitUnit, labels[language]?.unlimited || labels.en.unlimited)}
+                    {formatData(pkg.dataLimit, pkg.dataLimitUnit, labels[language]?.unlimited)}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Zap className="h-3 w-3" />
@@ -516,6 +490,7 @@ function PaymentContent() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [payState, setPayState] = useState<PayState>("idle");
+  const [selectedPackage, setSelectedPackage] = useState<string | undefined>(undefined)
 
 
    const resetUi = () => {
@@ -531,8 +506,9 @@ function PaymentContent() {
   useEffect(() => {
     const init = async () => {
       try {
-        const {configs, packages} = await apiClient.portal.standAlonePaymentInfo(token!);
+        const {configs, packages, packageId} = await apiClient.portal.standAlonePaymentInfo(token!);
         setConfig(configs);
+        if(packageId) setSelectedPackage(packageId);
         packages.sort((a, b) => a.price - b.price);
         setPackages(packages);
       } catch (error) {
@@ -625,6 +601,7 @@ function PaymentContent() {
           currency={config.currency}
           language={config.language}
           onPay={handlePay}
+          packageId={selectedPackage}
           isProcessing={payState === "processing"}
         />
 

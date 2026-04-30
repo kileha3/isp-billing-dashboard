@@ -43,6 +43,7 @@ export default function SessionsPage() {
   const [sessions, setSessions] = useState<HotspotSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [actionState, setActionState] = useState<ActionState | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
   const [acting, setActing] = useState(false);
@@ -138,7 +139,9 @@ export default function SessionsPage() {
 
   // Filter sessions by date range if needed
   const getFilteredSessions = () => {
-    let filtered = statusFilter === "all" ? sessions : sessions.filter(s => s.status === statusFilter);
+    let filtered = sessions;
+    if(statusFilter !== "all") filtered = sessions.filter(s => s.status === statusFilter);
+    if(typeFilter !== "all") filtered = sessions.filter(s => s.isPPPoE === (typeFilter === "pppoe"))
     return filtered;
   };
 
@@ -153,6 +156,7 @@ export default function SessionsPage() {
     { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})` },
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
+    { key: "type", label: "Type", render: (v: unknown, row: unknown) => (row as HotspotSession).isPPPoE ? "PPPoE":"Hotspot" },
     {
       key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
@@ -225,9 +229,21 @@ export default function SessionsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="online">Online</SelectItem>
+                <SelectItem value="active">Online</SelectItem>
                 <SelectItem value="offline">Offline</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="h-10 w-44 bg-background">
+                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="pppoe">PPPoE</SelectItem>
+                <SelectItem value="hotspot">Hotspot</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">

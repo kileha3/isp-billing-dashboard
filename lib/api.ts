@@ -534,8 +534,8 @@ export const apiClient = {
       ),
 
     standAlonePaymentInfo: (token: string) =>
-      req<{ packages: Package[]; configs: TenantPortalSettings }>(
-        `/standalone/info?token=${token}`,
+      req<{ packages: Package[]; configs: TenantPortalSettings, packageId?: string }>(
+        `/standalone/info?id=${token}`,
       ),
 
     standAlonePayment: (
@@ -544,7 +544,7 @@ export const apiClient = {
       phoneNumber: string,
     ) =>
       req<{ success: boolean; message: string; orderId: string }>(
-        `/standalone/pay?token=${token}`,
+        `/standalone/pay?id=${token}`,
         { method: "POST", body: JSON.stringify({ packageId, phoneNumber }) },
       ),
 
@@ -553,7 +553,7 @@ export const apiClient = {
       token: string;
     }) =>
       req<{ success: boolean; message: string; voucher: string }>(
-        `/standalone/${data.orderId}/status?token=${data.token}`,
+        `/standalone/${data.orderId}/status?id=${data.token}`,
       ),
 
     redeemVoucher: (data: {

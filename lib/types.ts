@@ -217,8 +217,9 @@ export interface HotspotSession {
     stop: null;
     duration: number;
   };
+  isPPPoE: boolean;
   sessions: number;
-  status: string;
+  status: "active" | "expired" | "offline";
   tenant: { id: string; name: string };
   timeLapse: string;
   updatedAt: Date;
