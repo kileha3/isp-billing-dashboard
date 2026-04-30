@@ -71,7 +71,7 @@ export default function InvoicesPage() {
 
   const columns = [
     isSuperAdmin ? { key: "tenant", label: "Tenant", render: (v: unknown) => v } : null,
-    { key: "amount", label: "Amount", render: (v: unknown) => Number(v).toLocaleString("en-US", { currency: "TZS" }) },
+    { key: "amount", label: "Amount", render: (v: unknown) => (v === 0 ? "Exempted": Number(v).toLocaleString("en-US")) },
     { key: "description", label: "Description", render: (v: unknown) => v },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
     { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
