@@ -25,7 +25,7 @@ export const phoneSchemaDef = (params?: {
 }) => {
   const min = params?.min ?? 10;
   const max = params?.max ?? 15;
-  
+
   return z.string().refine(
     (val) => {
       const phoneRegex = new RegExp(`^\\+?[\\d\\s\\-\\(]{${min},${max}}$`);
@@ -50,16 +50,16 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
   const canPay = phoneResult.success;
 
   function handleSelect(pkg: Package) {
-    if(pkg.isFree){
+    if (pkg.isFree) {
       onPay({ pkg, phone: "" });
-    }else {
-      if (selectedId === pkg._id) {
-      setSelectedId(null);
-      setPhone("");
     } else {
-      setSelectedId(pkg._id);
-      setPhone("");
-    }
+      if (selectedId === pkg._id) {
+        setSelectedId(null);
+        setPhone("");
+      } else {
+        setSelectedId(pkg._id);
+        setPhone("");
+      }
     }
   }
 
@@ -96,16 +96,16 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
                 <div className="flex items-center gap-3 mt-1 flex-wrap">
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {formatDuration(pkg.duration, labels[language]?.duration[pkg.durationUnit])}
+                    {formatDuration(pkg.duration, labels[language]?.duration[pkg.durationUnit], language)}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Database className="h-3 w-3" />
+                    <Wifi className="h-3 w-3" />
                     {formatData(pkg.dataLimit, pkg.dataLimitUnit, labels[language]?.unlimited)}
                   </span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {/* <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Zap className="h-3 w-3" />
                     {formatSpeed(pkg.speedLimit, labels[language]?.unlimited)}
-                  </span>
+                  </span> */}
                 </div>
               </div>
 
@@ -126,7 +126,7 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
                       : { background: primaryColor, color: "#fff" }
                   }
                 >
-                  { pkg.isFree ? labels[language]?.connect || "Connect" : isOpen ? <><ChevronUp className="h-3 w-3" />{labels[language]?.close || "Close"}</> : labels[language]?.select || "Select"}
+                  {pkg.isFree ? labels[language]?.connect || "Connect" : isOpen ? <><ChevronUp className="h-3 w-3" />{labels[language]?.close || "Close"}</> : labels[language]?.select || "Select"}
                 </Button>
               </div>
             </div>
