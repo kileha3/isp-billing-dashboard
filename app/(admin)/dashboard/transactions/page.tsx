@@ -111,10 +111,10 @@ export default function TransactionsPage() {
   ].filter(Boolean);
 
   // Calculate summary statistics for the filtered transactions
-  const totalAmount = filteredTransactions.filter(t => t.status === "COMPLETED").reduce((sum, t) => sum + t.amount, 0);
-  const completedCount = filteredTransactions.filter(t => t.status === "COMPLETED").length;
-  const pendingCount = filteredTransactions.filter(t => t.status === "PENDING").length;
-  const failedCount = filteredTransactions.filter(t => t.status === "FAILED").length;
+  const totalAmount = filteredTransactions.filter(t => t.status === "COMPLETED" && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  const completedCount = filteredTransactions.filter(t => t.status === "COMPLETED" && t.amount > 0).length;
+  const pendingCount = filteredTransactions.filter(t => t.status === "PENDING" && t.amount > 0).length;
+  const failedCount = filteredTransactions.filter(t => t.status === "FAILED" && t.amount > 0).length;
 
   return (
     <div className="flex flex-col gap-6">
