@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Eye, EyeOff, CheckCircle2, Shield, Zap, Users, Globe } from "lucide-react";
+import { AlertCircle, CheckCircle2, Shield, Zap, Users, Globe } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { z } from "zod";
 import { appName } from "@/lib/utils";
@@ -110,7 +110,7 @@ export default function SignupPage() {
           <div>
             <h2 className="text-xl font-semibold">Account created!</h2>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-              Your ISP account for <strong>{form.businessName}</strong> has been set up. You can now sign in.
+              Your ISP account for <strong>{form.businessName}</strong> has been set up. Check your email for your account password.
             </p>
           </div>
           <Button className="w-full" onClick={() => router.push("/login")}>

@@ -504,7 +504,7 @@ export default function PackagesPage() {
 
               <div className="flex flex-col gap-1.5">
                 <Label className="flex items-center gap-2">
-                  Reconnects
+                  Reconnects (0 = unlimited)
                 </Label>
                 <Input
                   type="number"
@@ -514,7 +514,7 @@ export default function PackagesPage() {
                   value={form.maxReconnects === 0 ? "" : form.maxReconnects}
                   onChange={(e) => {
                     const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 1;
-                    setForm(f => ({ ...f, maxReconnects: Math.min(value, 10) }));
+                    setForm(f => ({ ...f, maxReconnects: Math.min(value, 10000) }));
                   }}
                 />
                 <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
