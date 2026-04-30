@@ -316,16 +316,19 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId: string
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />Phone</Label>
-                  <Input placeholder="+255712XXXXXX" value={settings.support.phone} onChange={(e) => setSupport("phone", e.target.value)} />
+                  <Input placeholder="+255712XXXXXX" value={settings.support.phone} onChange={(e) => {
+                    setSupport("phone", e.target.value);
+                    setSupport("whatsapp", e.target.value)
+                  }} />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />Email</Label>
                   <Input placeholder="support@myisp.com" type="email" value={settings.support.email} onChange={(e) => setSupport("email", e.target.value)} />
                 </div>
-                <div className="flex flex-col gap-1.5">
+                {/* <div className="flex flex-col gap-1.5">
                   <Label className="flex items-center gap-1.5"><MessageCircle className="h-3.5 w-3.5" />WhatsApp</Label>
                   <Input placeholder="+255712XXXXXX" value={settings.support.whatsapp} onChange={(e) => setSupport("whatsapp", e.target.value)} />
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>
@@ -345,10 +348,10 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId: string
                   onChange={(e) => setPortal("welcomeMessage", e.target.value)}
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
+              {/* <div className="flex flex-col gap-1.5">
                 <Label>Terms of Service URL (optional)</Label>
                 <Input placeholder="https://myisp.com/terms" value={settings.portalSettings.termsUrl} onChange={(e) => setPortal("termsUrl", e.target.value)} />
-              </div>
+              </div> */}
               {isSuperAdmin && (<div className="flex items-center gap-3">
                 <Switch
                   id="showPoweredBy"
