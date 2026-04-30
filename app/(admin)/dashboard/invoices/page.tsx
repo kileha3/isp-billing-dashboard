@@ -80,8 +80,6 @@ export default function InvoicesPage() {
 
   const filteredInvoices = statusFilter === "all" ? invoices : invoices.filter(v => v.status === statusFilter);
 
-  const changeInvoiceStatus = (invoice: Invoice, status: any) => setInvoiceToUpdate({ ...invoice, status })
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -128,15 +126,15 @@ export default function InvoicesPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
 
-                {invoice.status === "pending" && (<DropdownMenuItem onClick={() => isSuperAdmin ? changeInvoiceStatus(row as unknown as Invoice, "paid") : setShowClearInvoice(row as unknown as Invoice)}>
+                {invoice.status === "pending" && !isSuperAdmin && (<DropdownMenuItem onClick={() => setShowClearInvoice(row as unknown as Invoice)}>
                   <Lock className="mr-2 h-4 w-4" />Clear Invoice
                 </DropdownMenuItem>)}
 
                 {invoice.status === "pending" && isSuperAdmin && (<DropdownMenuItem onClick={() => setExemptInvoice(row as unknown as Invoice)}>
-                  <BetweenHorizonalEnd className="mr-2 h-4 w-4" />Excempt
+                  <BetweenHorizonalEnd className="mr-2 h-4 w-4" />Exempt Invoice
                 </DropdownMenuItem>)}
 
-                {["overdue", "expired", "paid"].includes(invoice.status) && (<DropdownMenuItem className="text-destructive" onClick={() => changeInvoiceStatus(row as unknown as Invoice, "pending")}>
+                {["overdue", "expired", "paid"].includes(invoice.status) && (<DropdownMenuItem className="text-destructive" onClick={() => setInvoiceToUpdate({ ...(row as unknown as Invoice), status: "pending" })}>
                   <List className="mr-2 h-4 w-4" />Reactivate Invoice
                 </DropdownMenuItem>)}
               </DropdownMenuContent>
@@ -203,7 +201,7 @@ export default function InvoicesPage() {
       {invoiceToUpdate && (<ConfirmDialog
         open={invoiceToUpdate !== null}
         title="Invoice update"
-        message={`You are about to clear tenants invoice, make sure payments are in order since once done user service will be activated.`}
+        message={`You are about to reactivate tenant's invoice, make sure payments were not in order since once done user will be required to pay.`}
         onCancel={() => setInvoiceToUpdate(null)}
         onConfirm={async () => {
           const { _id: id, status } = invoiceToUpdate!;
@@ -221,8 +219,7 @@ export default function InvoicesPage() {
       {invoiceToExempt && (<ConfirmDialog
         open={invoiceToExempt !== null}
         title="Exempt Invoice"
-        message={`Are you sure you want to exempt this invoice?`}
-        variant="destructive"
+        message={`You are about to exempt tenant's invoice, make sure payments are in order since once done user service will be activated.`}
         onCancel={() => setExemptInvoice(null)}
         onConfirm={async () => {
           const { _id: id } = invoiceToExempt!;
