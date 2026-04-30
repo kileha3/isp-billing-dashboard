@@ -485,7 +485,7 @@ function PackageGrid({
 function PaymentContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("id");
-  
+  const router = useRouter();
   const [config, setConfig] = useState<TenantPortalSettings>(DEFAULT_CONFIG);
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
@@ -514,6 +514,7 @@ function PaymentContent() {
       } catch (error) {
         setConfig(DEFAULT_CONFIG);
         setPackages([]);
+        router.push("/login");
       } finally {
         setLoading(false);
       }
