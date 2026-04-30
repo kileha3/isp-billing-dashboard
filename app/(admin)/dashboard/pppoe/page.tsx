@@ -48,7 +48,7 @@ const DEFAULT_FORM: PPPoEUserForm = {
 };
 
 export default function PPPoEUsersPage() {
-  const { isRole, user } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<PPPoEUser[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
@@ -58,6 +58,7 @@ export default function PPPoEUsersPage() {
   const [form, setForm] = useState<PPPoEUserForm>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [userToDelete, setUserToDelete] = useState<PPPoEUser | null>(null);
+  const [userToActivate, setUserToActivate] = useState<PPPoEUser | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
 
@@ -300,7 +301,7 @@ export default function PPPoEUsersPage() {
                 <Pencil className="mr-2 h-4 w-4" />Edit
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => handleActivate(row as unknown as PPPoEUser)}>
+              <DropdownMenuItem onClick={() => row.status !== "active" ? setUserToActivate(row as unknown as PPPoEUser): handleActivate(row as unknown as PPPoEUser)}>
                 {row.status !== "active" && (<Power className="mr-2 h-4 w-4" />)}
                 {row.status === "active" && (<PowerOff className="mr-2 h-4 w-4" />)}
                 {row.status === "active" ? "Mark Unpaid":"Activate"}
@@ -428,6 +429,21 @@ export default function PPPoEUsersPage() {
             } catch (error: any) {
               toast({ title:  error.message, variant: "destructive" });
             }
+          }}
+        />
+      )}
+
+
+      {userToActivate && (
+        <ConfirmDialog
+          open={userToActivate !== null}
+          title="Activate PPPoE User"
+          message={`You are about to activate user ${userToActivate.username}, make sure payments are in order since once done user service will be activated.`}
+          onCancel={() => setUserToActivate(null)}
+          onConfirm={async () => {
+            const user = userToActivate!;
+            setUserToActivate(null);
+            handleActivate(user);
           }}
         />
       )}
