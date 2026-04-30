@@ -495,7 +495,7 @@ export default function PackagesPage() {
                   placeholder="1"
                   value={form.maxUsers === 0 ? "" : form.maxUsers}
                   onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 1;
+                    const value = e.target.value === "" ? 1 : parseInt(e.target.value) || 1;
                     setForm(f => ({ ...f, maxUsers: value }));
                   }}
                 />
@@ -513,8 +513,8 @@ export default function PackagesPage() {
                   placeholder="1"
                   value={form.maxReconnects === 0 ? "" : form.maxReconnects}
                   onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 1;
-                    setForm(f => ({ ...f, maxReconnects: Math.min(value, 10000) }));
+                    const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
+                    setForm(f => ({ ...f, maxReconnects: value }));
                   }}
                 />
                 <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
