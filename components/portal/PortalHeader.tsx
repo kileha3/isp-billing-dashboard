@@ -11,7 +11,7 @@ interface PortalHeaderProps {
 export function PortalHeader({ config, connectionLabel}: PortalHeaderProps) {
   const { primaryColor, secondaryColor, logo, businessName } = config.branding;
 
-  const logoUrl = `${BASE.replace("v1",`logos/${logo}`)}`;
+  const logoUrl = `${BASE.replace("v1",`logo/${logo}`)}`;
 
   return (
     <header

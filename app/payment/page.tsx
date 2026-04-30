@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Wifi, Clock, Database, Zap, ChevronUp, Globe, Phone, Mail, MessageCircle } from "lucide-react";
 import SocketClient from "@/lib/socket.util";
-import { apiClient } from "@/lib/api";
+import { apiClient, BASE } from "@/lib/api";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
 import { phoneSchemaDef } from "@/components/portal/PackageGrid";
@@ -288,13 +288,14 @@ function PaymentOverlay({
 
 function PortalHeader({ config, connectionLabel }: { config: TenantPortalSettings; connectionLabel: string }) {
   const { branding } = config;
+  const logoUrl = `${BASE.replace("v1",`logo/${branding.logo}`)}`;
   
   return (
     <div className="bg-card border-b">
       <div className="mx-auto max-w-md w-full px-4 py-6">
         {branding.logo && (
           <div className="flex justify-center mb-4">
-            <img src={branding.logo} alt={branding.businessName} className="h-12 w-auto" />
+            <img src={logoUrl} alt={branding.businessName} className="h-12 w-auto" />
           </div>
         )}
         <h1 className="text-2xl font-bold text-center text-foreground">
