@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { appName } from "@/lib/utils";
 import Link from "next/link";
@@ -214,33 +214,38 @@ export const termsLabels: Record<string, any> = {
 
 export default function TermsPageContent() {
   const searchParams = useSearchParams();
-  // Get parameters from URL (same as CaptivePortalClient)
   const nasName = searchParams.get("nasname") ?? "";
   const authToken = searchParams.get("token") ?? "";
-
+  const referrer = searchParams.get("ref") ?? "";
+  const router = useRouter();
   const [config, setConfig] = useState<TenantPortalSettings>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
 
-  // Load configuration from API - exactly as in the provided CaptivePortalClient
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        // Same API call as in the provided page
-        const cfg = await apiClient.portal.getConfig(nasName, authToken);
-        // Handle response structure like the original: cfg.data ?? cfg
-        const loadedConfig = cfg.data ?? cfg;
-        setConfig(loadedConfig);
+
+        if (referrer === "portal") {
+          const cfg = await apiClient.portal.getConfig(nasName, authToken);
+          const loadedConfig = cfg.data ?? cfg;
+          setConfig(loadedConfig);
+        }
+
+        if (referrer === "standalone") {
+          const { configs } = await apiClient.portal.standAlonePaymentInfo(authToken!);
+          setConfig(configs);
+        }
+
       } catch (error) {
-        console.error("Failed to load portal config:", error);
-        // Keep default config on error
         setConfig(DEFAULT_CONFIG);
+        router.push("/login");
       } finally {
         setLoading(false);
       }
     };
 
     loadConfig();
-  }, [nasName, authToken]);
+  }, [nasName, authToken, referrer]);
 
   // Get labels based on config language (same as original page)
   const labels = termsLabels[config.language] || termsLabels.en;
@@ -258,7 +263,7 @@ export default function TermsPageContent() {
     return content.replace(/{businessName}/g, businessName);
   };
 
-  
+
   // Loading state - matches the original page's loading spinner style
   if (loading) {
     return (
@@ -288,7 +293,7 @@ export default function TermsPageContent() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3 py-7">
                 {/* Logo or icon */}
-                { (
+                {(
                   <div className="bg-white/20 rounded-full p-2">
                     <svg
                       className="h-6 w-6 text-white"
@@ -309,7 +314,7 @@ export default function TermsPageContent() {
                   {labels.title}
                 </h1>
               </div>
-              
+
             </div>
           </div>
 
@@ -319,7 +324,7 @@ export default function TermsPageContent() {
             <div className="mb-6 p-4 bg-amber-50 rounded-lg border-l-4" style={{ borderLeftColor: primaryColor }}>
               <p className="text-sm text-gray-700">{labels.intro}</p>
             </div>
-            
+
 
             {/* Terms Sections */}
             <div className="space-y-6">
@@ -352,9 +357,9 @@ export default function TermsPageContent() {
               ))}
             </div>
 
-            
 
-            
+
+
             {/* Disclaimer and Agree Button */}
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="invisible rounded-lg p-4 mb-4" style={{ backgroundColor: `${primaryColor}10` }}>

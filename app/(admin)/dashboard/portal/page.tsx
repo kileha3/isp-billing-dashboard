@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { apiClient } from "@/lib/api";
+import { apiClient, imageUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Save, Upload, Eye, Wifi, Phone, Mail, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { TenantPortalSettings } from "@/lib/types";
-import { appName, imageUrl } from "@/lib/utils";
+import { appName } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
@@ -181,7 +181,7 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId: string
                 <div className="flex items-center gap-4">
                   <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted overflow-hidden">
                     {logoPreview || settings.branding.logo.length ? (
-                      <img src={logoPreview ?  logoPreview : `${imageUrl}/logo/${settings.branding.logo}`} alt="Logo" className="h-full w-full object-contain" />
+                      <img src={logoPreview ?  logoPreview : `${imageUrl(settings.branding.logo)}`} alt="Logo" className="h-full w-full object-contain" />
                     ) : (
                       <Wifi className="h-6 w-6 text-muted-foreground" />
                     )}
@@ -374,7 +374,7 @@ export default function PortalCustomizationPage({ tenantId }: { tenantId: string
               <div className="flex items-center gap-3 px-5 py-4" style={{ background: settings.branding.primaryColor }}>
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 overflow-hidden shrink-0">
                   {logoPreview || settings.branding.logo.length ? (
-                      <img src={logoPreview ?  logoPreview : `${imageUrl}/logo/${settings.branding.logo}`} alt="Logo" className="h-8 w-8 object-contain" />
+                      <img src={logoPreview ?  logoPreview : `${imageUrl(settings.branding.logo)}`} alt="Logo" className="h-8 w-8 object-contain" />
                     ): (
                     <Wifi className="h-5 w-5 text-white" />
                   )}

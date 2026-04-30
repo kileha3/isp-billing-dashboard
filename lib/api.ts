@@ -18,6 +18,8 @@ import type {
 export const BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
 
+export const imageUrl = (logo: string) => `${BASE.replace("v1",`logo/${logo}`)}`
+
 // Token storage keys
 const TOKEN_KEY = "netbill_token";
 const REMEMBER_KEY = "netbill_remember";

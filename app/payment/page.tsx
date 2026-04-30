@@ -2,13 +2,12 @@
 
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wifi, Clock, Database, Zap, ChevronUp, Globe, Phone, Mail, MessageCircle } from "lucide-react";
+import { Wifi, Clock, Database, Zap, ChevronUp } from "lucide-react";
 import SocketClient from "@/lib/socket.util";
-import { apiClient, BASE } from "@/lib/api";
+import { apiClient, imageUrl } from "@/lib/api";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
 import { phoneSchemaDef } from "@/components/portal/PackageGrid";
@@ -37,14 +36,14 @@ export const labels: any = {
     tryAgain: "try again later",
     processPay: "Processing Payment",
     paymentConfirmation: "Enter your PIN on your phone to confirm.",
-    duration: { 
-      minute: "minute", 
+    duration: {
+      minute: "minute",
       minutes: "minutes",
-      hour: "hour", 
-      hours: "hours", 
-      day: "day", 
-      days: "days", 
-      month: "month", 
+      hour: "hour",
+      hours: "hours",
+      day: "day",
+      days: "days",
+      month: "month",
       months: "months",
       year: "year",
       years: "years"
@@ -79,21 +78,21 @@ export const labels: any = {
     tryAgain: "jaribu tena",
     processPay: "Inachakata Malipo",
     paymentConfirmation: "Weka PIN yako kwenye simu yako kuthibitisha.",
-    duration: { 
-      minute: "dakika", 
+    duration: {
+      minute: "dakika",
       minutes: "dakika",
-      hour: "saa", 
-      hours: "saa", 
-      day: "siku", 
-      days: "siku", 
-      month: "mwezi", 
+      hour: "saa",
+      hours: "saa",
+      day: "siku",
+      days: "siku",
+      month: "mwezi",
       months: "miezi",
       year: "mwaka",
       years: "miaka"
     },
     unlimited: "Bila Kikomo",
     phoneError: "Weka namba ya simu sahihi (mfano 0712 XXX XXX)",
-    connectionLabel: "Unganisha kwenye mtandao",
+    connectionLabel: "Peruzi bila kikomo",
     welcomeMessage: "Karibu! Chagua bando ili kuunganishwa.",
     support: "Msaada",
     call: "Piga",
@@ -288,22 +287,25 @@ function PaymentOverlay({
 
 function PortalHeader({ config, connectionLabel }: { config: TenantPortalSettings; connectionLabel: string }) {
   const { branding } = config;
-  const logoUrl = `${BASE.replace("v1",`logo/${branding.logo}`)}`;
-  
+
   return (
     <div className="bg-card border-b">
       <div className="mx-auto max-w-md w-full px-4 py-6">
-        {branding.logo && (
-          <div className="flex justify-center mb-4">
-            <img src={logoUrl} alt={branding.businessName} className="h-12 w-auto" />
+        <div className="flex items-center gap-4">
+          {branding.logo && (
+            <div className="flex-shrink-0">
+              <img src={imageUrl(branding.logo)} alt={branding.businessName} className="h-12 w-auto" />
+            </div>
+          )}
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-foreground">
+              {branding.businessName}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {connectionLabel}
+            </p>
           </div>
-        )}
-        <h1 className="text-2xl font-bold text-center text-foreground">
-          {branding.businessName}
-        </h1>
-        <p className="text-sm text-center text-muted-foreground mt-2">
-          {connectionLabel}
-        </p>
+        </div>
       </div>
     </div>
   );
@@ -311,27 +313,27 @@ function PortalHeader({ config, connectionLabel }: { config: TenantPortalSetting
 
 
 
-function PackageGrid({ 
-  packages, 
-  primaryColor, 
-  currency, 
-  language, 
+function PackageGrid({
+  packages,
+  primaryColor,
+  currency,
+  language,
   onPay,
   packageId,
-  isProcessing 
-}: { 
-  packages: Package[]; 
-  primaryColor: string; 
-  currency: string; 
+  isProcessing
+}: {
+  packages: Package[];
+  primaryColor: string;
+  currency: string;
   language: string;
-  packageId?: string; 
+  packageId?: string;
   onPay: (params: { pkg: Package; phone: string }) => void;
   isProcessing: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(packageId || null);
   const [phone, setPhone] = useState("");
-  const phoneSchema = phoneSchemaDef({language});
-  
+  const phoneSchema = phoneSchemaDef({ language });
+
   const phoneResult = phoneSchema.safeParse(phone);
   const phoneError = phone.length >= 10 && !phoneResult.success
     ? phoneResult.error.errors[0]?.message
@@ -387,7 +389,7 @@ function PackageGrid({
                 <div className="flex items-center gap-3 mt-1 flex-wrap">
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {formatDuration(pkg.duration, labels[language]?.duration[pkg.durationUnit])}
+                    {formatDuration(pkg.duration, labels[language]?.duration[pkg.durationUnit], language)}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Database className="h-3 w-3" />
@@ -406,7 +408,7 @@ function PackageGrid({
                     <p className="text-xl font-bold leading-none" style={{ color: primaryColor }}>
                       <span className="text-xs font-medium leading-none mb-0.5" style={{ color: primaryColor }}>
                         {currency}
-                      </span> 
+                      </span>
                       {pkg.price.toLocaleString()}
                     </p>
                   </div>
@@ -422,9 +424,9 @@ function PackageGrid({
                       : { background: primaryColor, color: "#fff" }
                   }
                 >
-                  {pkg.isFree ? (labels[language]?.connect || labels.en.connect) : 
-                    isOpen ? <><ChevronUp className="h-3 w-3" />{labels[language]?.close || labels.en.close}</> : 
-                    labels[language]?.select || labels.en.select}
+                  {pkg.isFree ? (labels[language]?.connect || labels.en.connect) :
+                    isOpen ? <><ChevronUp className="h-3 w-3" />{labels[language]?.close || labels.en.close}</> :
+                      labels[language]?.select || labels.en.select}
                 </Button>
               </div>
             </div>
@@ -467,8 +469,8 @@ function PackageGrid({
                   onClick={() => onPay({ pkg, phone })}
                   disabled={!canPay || isProcessing}
                   className="w-full h-11 font-semibold text-sm"
-                  style={canPay && !isProcessing 
-                    ? { background: primaryColor, color: "#fff" } 
+                  style={canPay && !isProcessing
+                    ? { background: primaryColor, color: "#fff" }
                     : { background: `${primaryColor}2a`, color: "#000" }}
                 >
                   {`${labels[language]?.pay || labels.en.pay} ${currency} ${pkg.price.toLocaleString()}`}
@@ -485,7 +487,7 @@ function PackageGrid({
 // Main Payment Component
 function PaymentContent() {
   const searchParams = useSearchParams();
-  const token = searchParams.get("id");
+  const token = searchParams.get("token");
   const router = useRouter();
   const [config, setConfig] = useState<TenantPortalSettings>(DEFAULT_CONFIG);
   const [packages, setPackages] = useState<Package[]>([]);
@@ -494,7 +496,7 @@ function PaymentContent() {
   const [selectedPackage, setSelectedPackage] = useState<string | undefined>(undefined)
 
 
-   const resetUi = () => {
+  const resetUi = () => {
     document.body.style.transition = "opacity 1s";
     document.body.style.opacity = "0";
   }
@@ -507,9 +509,9 @@ function PaymentContent() {
   useEffect(() => {
     const init = async () => {
       try {
-        const {configs, packages, packageId} = await apiClient.portal.standAlonePaymentInfo(token!);
+        const { configs, packages, packageId } = await apiClient.portal.standAlonePaymentInfo(token!);
         setConfig(configs);
-        if(packageId) setSelectedPackage(packageId);
+        if (packageId) setSelectedPackage(packageId);
         packages.sort((a, b) => a.price - b.price);
         setPackages(packages);
       } catch (error) {
@@ -520,7 +522,7 @@ function PaymentContent() {
         setLoading(false);
       }
     };
-    
+
     if (token) {
       init();
     }
@@ -528,22 +530,22 @@ function PaymentContent() {
 
   const handlePay = useCallback(async ({ pkg, phone }: { pkg: Package; phone: string }) => {
     setPayState("processing");
-    
+
     try {
       const { orderId, success } = await apiClient.portal.standAlonePayment(token!, pkg._id, phone);
-        if (success && orderId) {
-          SocketClient.waitFor<PayResult>(
-            SocketClient.event_payment_completed, 
-            orderId,
-            ({ success }) => reflectOnUI(success), 
-            60 * 1000, 
-            () => apiClient.portal.standAloneStatus({
-              orderId, token: token!
-            })
-          );
-        } else {
-          setPayState("failure");
-        }
+      if (success && orderId) {
+        SocketClient.waitFor<PayResult>(
+          SocketClient.event_payment_completed,
+          orderId,
+          ({ success }) => reflectOnUI(success),
+          60 * 1000,
+          () => apiClient.portal.standAloneStatus({
+            orderId, token: token!
+          })
+        );
+      } else {
+        setPayState("failure");
+      }
     } catch (err: unknown) {
       setPayState("failure");
     }
@@ -585,9 +587,9 @@ function PaymentContent() {
         />
       )}
 
-      <PortalHeader 
-        config={config} 
-        connectionLabel={labels[config.language]?.connectionLabel || "Connect to the internet"} 
+      <PortalHeader
+        config={config}
+        connectionLabel={labels[config.language]?.connectionLabel || "Connect to the internet"}
       />
 
       <div className="mx-auto max-w-md w-full px-4 py-6 flex flex-col gap-5">
@@ -611,7 +613,7 @@ function PaymentContent() {
           <p className="text-center text-xs text-muted-foreground">
             {labels[config.language]?.connecting || "By connecting you agree to our"}{" "}
             <a
-              href={`${config.portalSettings.termsUrl}?${searchParams.toString()}`}
+              href={`${window.location.host.includes("localhost") ? `http://${window.location.host}/terms-and-conditions` : config.portalSettings.termsUrl}?${searchParams.toString()}&ref=portal`}
               target="_self"
               rel="noopener noreferrer"
               className="underline"

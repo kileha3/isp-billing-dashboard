@@ -35,8 +35,8 @@ const packageSchema = z.object({
 
 type DurationUnit = "minutes" | "hours" | "days" | "months";
 
-export const formatDuration = (value: number, unit: string) => {
-  return `${value} ${unit}`;
+export const formatDuration = (value: number, unit: string, lan: string) => {
+  return lan === "en" ? `${value} ${unit}`: `${unit} ${value} `;
 }
 
 export const formatData = (mb: number, unit: string, unlimited: string) => {
@@ -245,7 +245,7 @@ export default function PackagesPage() {
       key: "duration", label: "Duration",
       render: (v: unknown, row: unknown) => {
         const pkg = row as unknown as Package;
-        return formatDuration(Number(v), labels[language]?.duration[pkg.durationUnit] ?? "minutes");
+        return formatDuration(Number(v), labels[language]?.duration[pkg.durationUnit] ?? "minutes", language);
       }
     },
     { key: "dataLimit", label: "Data", render: (v: unknown, row: unknown) => {
