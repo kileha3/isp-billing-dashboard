@@ -97,7 +97,7 @@ export const labels: any = {
     support: "Msaada",
     call: "Piga",
     email: "Barua pepe",
-    whatsapp: "WhatsApp"
+    whatsapp: "WhatsApp",
   }
 };
 
@@ -613,7 +613,7 @@ function PaymentContent() {
           <p className="text-center text-xs text-muted-foreground">
             {labels[config.language]?.connecting || "By connecting you agree to our"}{" "}
             <a
-              href={`${window.location.host.includes("localhost") ? `http://${window.location.host}/terms-and-conditions` : config.portalSettings.termsUrl}?${searchParams.toString()}&ref=portal`}
+              href={`/terms-and-conditions?${searchParams.toString()}&ref=stadalone`}
               target="_self"
               rel="noopener noreferrer"
               className="underline"

@@ -74,8 +74,8 @@ export const labels: any = {
     phoneError: "Enter a valid phone number (e.g. 0712 XXX XXX)",
     tryError: "Service Not Available",
     tryErrorDescription: "You have already tried our service, please purchase a package to continue.",
-    connectionLabel: "Connect to the internet"
-
+    connectionLabel: "Connect to the internet",
+    needHelp:"Need help?"
   },
   sw: {
     buyPackage: "Nunua Bando",
@@ -114,10 +114,8 @@ export const labels: any = {
     phoneError: "Weka namba ya simu sahihi (mfano 0712 XXX XXX)",
     tryError: "Huduma haipatikani",
     tryErrorDescription: "Umekwishajaribu huduma yetu tayari, tafadhali nunua bando kupata huduma",
-    connectionLabel: "Peruzi bila Kikomo"
-
-
-
+    connectionLabel: "Peruzi bila Kikomo",
+    needHelp:"Wahitaji Msaada?"
   }
 }
 
@@ -520,7 +518,7 @@ export function CaptivePortalClient() {
           <p className="text-center text-xs text-muted-foreground">
             {labels[config.language]?.connecting || "By connecting you agree to our"}{" "}
             <a
-              href={`${window.location.host.includes("localhost") ? `http://${window.location.host}/terms-and-conditions`: config.portalSettings.termsUrl}?${params.toString()}`}
+              href={`/terms-and-conditions?${params.toString()}&ref=portal`}
               target="_self"
               rel="noopener noreferrer"
               className="underline"
@@ -533,7 +531,7 @@ export function CaptivePortalClient() {
       </div>
 
       {config.support.showOnPortal && (
-        <SupportInfo support={config.support} primaryColor={primaryColor} />
+        <SupportInfo support={config.support} language={config.language} primaryColor={primaryColor} />
       )}
 
       {config.portalSettings.showPoweredBy && (
