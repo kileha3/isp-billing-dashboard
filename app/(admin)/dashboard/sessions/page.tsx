@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter, Calendar } from "lucide-react";
+import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter, Calendar, History, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { StatCard } from "@/components/admin/StatCard";
@@ -17,7 +17,7 @@ import { Activity, Wifi, Clock } from "lucide-react";
 import { HotspotSession, Package } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import SocketClient from "@/lib/socket.util";
-import { DateRange , DayPicker} from "react-day-picker";
+import { DateRange, DayPicker } from "react-day-picker";
 import { addDays, format as formatDate } from "date-fns";
 import "react-day-picker/style.css";
 
@@ -37,6 +37,13 @@ interface ActionState {
   selectedPackageId?: string;
 }
 
+interface HistoryDialogState {
+  isOpen: boolean;
+  loading: boolean;
+  sessions: HotspotSession[];
+  currentSession: HotspotSession | null;
+}
+
 export default function SessionsPage() {
   usePageTitle("Sessions");
   const { toast } = useToast();
@@ -49,7 +56,13 @@ export default function SessionsPage() {
   const [acting, setActing] = useState(false);
   const { user } = useAuth();
   const [showDatePicker, setShowDatePicker] = useState(false);
-  
+  const [historyDialog, setHistoryDialog] = useState<HistoryDialogState>({
+    isOpen: false,
+    loading: false,
+    sessions: [],
+    currentSession: null
+  });
+
   // Date range state - initialize to last 7 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
@@ -64,9 +77,9 @@ export default function SessionsPage() {
         startDate: formatDate(dateRange.from, 'yyyy-MM-dd'),
         endDate: formatDate(dateRange.to, 'yyyy-MM-dd')
       } : {};
-      
+
       const [_sessions, { data: _packages }] = await Promise.all([
-        apiClient.sessions.list(dateFilter as any), 
+        apiClient.sessions.list(dateFilter as any),
         apiClient.packages.list()
       ]);
       setSessions(_sessions);
@@ -79,8 +92,8 @@ export default function SessionsPage() {
   }, [dateRange]);
 
   // Reload when date range changes
-  useEffect(() => { 
-    if (user) load(); 
+  useEffect(() => {
+    if (user) load();
   }, [dateRange]);
 
   useEffect(() => { load(); }, [load]);
@@ -130,6 +143,37 @@ export default function SessionsPage() {
     setShowDatePicker(false);
   };
 
+  const showHistory = async (session: HotspotSession) => {
+    // Open dialog with loading state
+    setHistoryDialog({
+      isOpen: true,
+      loading: true,
+      sessions: [],
+      currentSession: session
+    });
+
+    try {
+      const historySessions = await apiClient.sessions.history(session._id);
+      setHistoryDialog(prev => ({
+        ...prev,
+        loading: false,
+        sessions: historySessions || []
+      }));
+    } catch (error) {
+      console.error("Failed to load history:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load session history. Please try again.",
+        variant: "destructive"
+      });
+      setHistoryDialog(prev => ({
+        ...prev,
+        loading: false,
+        sessions: []
+      }));
+    }
+  };
+
   // Format display date range
   const formatDateRange = () => {
     if (!dateRange?.from) return "Select date range";
@@ -140,8 +184,8 @@ export default function SessionsPage() {
   // Filter sessions by date range if needed
   const getFilteredSessions = () => {
     let filtered = sessions;
-    if(statusFilter !== "all") filtered = sessions.filter(s => s.status === statusFilter);
-    if(typeFilter !== "all") filtered = sessions.filter(s => s.isPPPoE === (typeFilter === "pppoe"))
+    if (statusFilter !== "all") filtered = sessions.filter(s => s.status === statusFilter);
+    if (typeFilter !== "all") filtered = sessions.filter(s => s.isPPPoE === (typeFilter === "pppoe"))
     return filtered;
   };
 
@@ -149,13 +193,29 @@ export default function SessionsPage() {
   const active = filteredSessions.filter(s => s.status === "active");
   const totalData = filteredSessions.reduce((sum, s) => sum + ((s.usage.output + s.usage.input)), 0);
 
+  // History table columns (without sessions column)
+  const historyColumns = [
+    { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.ip },
+    { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})` },
+    { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
+    { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
+    {
+      key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
+        const sess = row as HotspotSession;
+        return formatBytes(Number(sess.usage.output + sess.usage.input))
+      }
+    },
+    { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
+  ];
+
+  // Main table columns
   const columns = [
     { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
     { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.ip },
     { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})` },
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
-    { key: "type", label: "Type", render: (v: unknown, row: unknown) => (row as HotspotSession).isPPPoE ? "PPPoE":"Hotspot" },
+    { key: "type", label: "Type", render: (v: unknown, row: unknown) => (row as HotspotSession).isPPPoE ? "PPPoE" : "Hotspot" },
     {
       key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
@@ -173,7 +233,7 @@ export default function SessionsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Sessions</h1>
           <p className="text-sm text-muted-foreground mt-1">Live and historical hotspot sessions</p>
         </div>
-        
+
         {/* Date Range Picker */}
         <div className="relative">
           <button
@@ -183,11 +243,11 @@ export default function SessionsPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{formatDateRange()}</span>
           </button>
-          
+
           {showDatePicker && (
             <>
-              <div 
-                className="fixed inset-0 z-40" 
+              <div
+                className="fixed inset-0 z-40"
                 onClick={() => setShowDatePicker(false)}
               />
               <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-3">
@@ -272,6 +332,11 @@ export default function SessionsPage() {
                   <Eraser className="mr-2 h-4 w-4" />
                   Clear MAC Address
                 </DropdownMenuItem>
+
+                {s.sessions > 1 && (<DropdownMenuItem onClick={() => showHistory(s)}>
+                  <History className="mr-2 h-4 w-4" />
+                  Show History
+                </DropdownMenuItem>)}
                 {s.status !== "expired" && (<DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => setActionState({ type: "kick", session: s })}
@@ -284,6 +349,58 @@ export default function SessionsPage() {
           );
         }}
       />
+
+      {/* History Dialog */}
+      <Dialog open={historyDialog.isOpen} onOpenChange={(open) => {
+        if (!open) setHistoryDialog({ isOpen: false, loading: false, sessions: [], currentSession: null });
+      }}>
+        <DialogContent className={`!max-w-[${historyDialog.loading ? 30:80}vw] overflow-hidden flex flex-col`}>
+          <DialogHeader>
+            <DialogTitle>
+              Session History
+              {historyDialog.currentSession && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  for {historyDialog.currentSession.username} ({historyDialog.currentSession.network.mac})
+                </span>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Historical sessions for this user
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-auto min-h-0">
+            {historyDialog.loading ? (
+              <div className="flex flex-col items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                <p className="text-sm text-muted-foreground">Loading session history...</p>
+              </div>
+            ) : historyDialog.sessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full">
+                <History className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">No historical sessions found</p>
+              </div>
+            ) : (
+              <div className="w-full">
+                <DataTable
+                  data={historyDialog.sessions as unknown as Record<string, unknown>[]}
+                  columns={historyColumns as never}
+                  loading={false}
+                  searchable={false}
+                  emptyMessage="No historical sessions found"
+                  pageSize={10}
+                />
+              </div>
+            )}
+          </div>
+
+          {!historyDialog.loading && (<DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryDialog({ isOpen: false, loading: false, sessions: [], currentSession: null })}>
+              Close
+            </Button>
+          </DialogFooter>)}
+        </DialogContent>
+      </Dialog>
 
       {/* Action Confirmation Dialog */}
       <Dialog open={!!actionState} onOpenChange={(open) => { if (!open) setActionState(null); }}>

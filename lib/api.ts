@@ -18,7 +18,8 @@ import type {
 export const BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
 
-export const imageUrl = (logo: string) => `${BASE.replace("v1",`logo/${logo}`)}`
+export const imageUrl = (logo: string) =>
+  `${BASE.replace("v1", `logo/${logo}`)}`;
 
 // Token storage keys
 const TOKEN_KEY = "netbill_token";
@@ -417,6 +418,9 @@ export const apiClient = {
         `/sessions${params ? "?" + new URLSearchParams(params) : ""}`,
       ),
 
+    history: (id: string) =>
+      req<Array<HotspotSession>>(`/sessions/${id}/history`),
+
     disconnect: (id: string) =>
       req<{ success: boolean }>(`/sessions/${id}/disconnect`, {
         method: "POST",
@@ -536,9 +540,11 @@ export const apiClient = {
       ),
 
     standAlonePaymentInfo: (token: string) =>
-      req<{ packages: Package[]; configs: TenantPortalSettings, packageId?: string }>(
-        `/standalone/info?id=${token}`,
-      ),
+      req<{
+        packages: Package[];
+        configs: TenantPortalSettings;
+        packageId?: string;
+      }>(`/standalone/info?id=${token}`),
 
     standAlonePayment: (
       token: string,
@@ -550,10 +556,7 @@ export const apiClient = {
         { method: "POST", body: JSON.stringify({ packageId, phoneNumber }) },
       ),
 
-    standAloneStatus: (data: {
-      orderId: string;
-      token: string;
-    }) =>
+    standAloneStatus: (data: { orderId: string; token: string }) =>
       req<{ success: boolean; message: string; voucher: string }>(
         `/standalone/${data.orderId}/status?id=${data.token}`,
       ),
