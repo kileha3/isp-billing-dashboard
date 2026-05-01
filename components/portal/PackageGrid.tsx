@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Package } from "@/lib/types";
-import { Wifi, Clock, Database, Zap, ChevronUp } from "lucide-react";
-import { formatData, formatDuration, formatSpeed } from "@/app/(admin)/dashboard/packages/page";
+import { Wifi, Clock, ChevronUp } from "lucide-react";
 import { labels } from "./CaptivePortalClient";
+import { formatData, formatDuration } from "@/lib/utils";
 
 interface PackageGridProps {
   packages: Package[];

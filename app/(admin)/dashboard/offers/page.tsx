@@ -19,6 +19,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { format } from "date-fns";
+import { formatDate } from "@/lib/utils";
 
 // Types
 interface OfferWithQualified extends Offer {
@@ -407,7 +408,7 @@ export default function OffersPage() {
       label: "Created",
       render: (v: unknown) => {
         if (!v) return "-";
-        return new Date(v as string).toLocaleDateString();
+        return formatDate(v);
       }
     },
   ];

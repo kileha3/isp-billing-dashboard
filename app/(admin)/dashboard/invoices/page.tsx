@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { phoneSchemaDef } from "@/components/portal/PackageGrid";
 import SocketClient from "@/lib/socket.util";
 import { PayResult } from "@/components/portal/CaptivePortalClient";
+import { formatDate } from "@/lib/utils";
 
 
 export default function InvoicesPage() {
@@ -74,8 +75,8 @@ export default function InvoicesPage() {
     { key: "amount", label: "Amount", render: (v: unknown) => (v === 0 ? "Exempted": Number(v).toLocaleString("en-US")) },
     { key: "description", label: "Description", render: (v: unknown) => v },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
-    { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
-    { key: "dueDate", label: "Due Date", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
+    { key: "createdAt", label: "Created", render: (v: unknown) => formatDate(String(v))},
+    { key: "dueDate", label: "Due Date", render: (v: unknown) => formatDate(String(v))},
   ].filter(Boolean);
 
   const filteredInvoices = statusFilter === "all" ? invoices : invoices.filter(v => v.status === statusFilter);

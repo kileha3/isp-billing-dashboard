@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import type { User, Tenant } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
 
 const userSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -114,7 +115,7 @@ export default function UsersPage() {
   const userFormValid = userSchema.safeParse(form).success;
 
   const columns = [
-    { key: "createdAt", label: "Joined", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
+    { key: "createdAt", label: "Joined", render: (v: unknown) => formatDate(v) },
     { key: "name", label: "Name" },
     { key: "email", label: "Email", render: (v: unknown) => <span className="text-muted-foreground text-sm">{String(v)}</span> },
     {

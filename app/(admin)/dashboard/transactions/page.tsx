@@ -13,9 +13,10 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuth } from "@/lib/auth-context";
 import SocketClient from "@/lib/socket.util";
 import { DateRange } from "react-day-picker";
-import { addDays, format as formatDate } from "date-fns";
+import { addDays, format as formatDateFn } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
+import { formatDate } from "@/lib/utils";
 
 export const formatCurrency = (n: number, currency: string) => {
   return `${currency} ${n.toLocaleString()}`;
@@ -42,8 +43,8 @@ export default function TransactionsPage() {
       setLoading(showLoading);
       // Pass date range to API calls if they support it
       const dateFilter = dateRange?.from && dateRange?.to ? {
-        startDate: formatDate(dateRange.from, 'yyyy-MM-dd'),
-        endDate: formatDate(dateRange.to, 'yyyy-MM-dd')
+        startDate: formatDateFn(dateRange.from, 'yyyy-MM-dd'),
+        endDate: formatDateFn(dateRange.to, 'yyyy-MM-dd')
       } : {};
       
       const data = await apiClient.transactions.list(dateFilter);
@@ -78,8 +79,8 @@ export default function TransactionsPage() {
   // Format display date range
   const formatDateRange = () => {
     if (!dateRange?.from) return "Select date range";
-    if (!dateRange?.to) return formatDate(dateRange.from, "MMM dd, yyyy");
-    return `${formatDate(dateRange.from, "MMM dd")} - ${formatDate(dateRange.to, "MMM dd, yyyy")}`;
+    if (!dateRange?.to) return formatDateFn(dateRange.from, "MMM dd, yyyy");
+    return `${formatDateFn(dateRange.from, "MMM dd")} - ${formatDateFn(dateRange.to, "MMM dd, yyyy")}`;
   };
 
   // Apply client-side date filtering as fallback
@@ -107,7 +108,7 @@ export default function TransactionsPage() {
     },
     { key: "customer", label: "Customer" },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v).toLowerCase()} /> },
-    { key: "createdAt", label: "Date", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
+    { key: "createdAt", label: "Date", render: (v: unknown) => formatDate(v) },
   ].filter(Boolean);
 
   // Calculate summary statistics for the filtered transactions

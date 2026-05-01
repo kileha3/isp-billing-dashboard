@@ -20,6 +20,7 @@ import { pdf, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer
 import SocketClient from "@/lib/socket.util";
 import { useAuth } from "@/lib/auth-context";
 import { formatAgoTime } from "../page";
+import { formatDate } from "@/lib/utils";
 
 const generateSchema = z.object({
   packageId: z.string().min(1, "Select a package"),
@@ -244,7 +245,7 @@ export default function VouchersPage() {
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
     { key: "usedAt", label: "Used At", render: (v: unknown) => v ? formatAgoTime(v as any) : "-" },
-    { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
+    { key: "createdAt", label: "Created", render: (v: unknown) => formatDate(v) },
   ];
 
   const filteredVouchers = statusFilter === "all" ? vouchers : vouchers.filter(v => v.status === statusFilter);

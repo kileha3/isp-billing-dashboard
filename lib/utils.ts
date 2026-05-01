@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from 'clsx'
+import { format } from 'date-fns';
 import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {
@@ -12,20 +13,20 @@ export const capitalizeFirstLetter = (str: string): string => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export const generateVoucher = (length = 8) => {
-  const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 chars
+export const formatDate = (date: any) => format(date, "MMM d, yyyy h:mma")
 
-  if (length > charset.length) {
-    throw new Error("Length cannot exceed unique charset size");
-  }
-  const chars = charset.split("");
-  let voucher = "";
+export const formatDuration = (value: number, unit: string, lan: string) => {
+  return lan === "en" ? `${value} ${unit}`: `${unit} ${value} `;
+}
 
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * chars.length);
-    voucher += chars[randomIndex];
-    chars.splice(randomIndex, 1);
-  }
+export const formatData = (mb: number, unit: string, unlimited: string) => {
+  if (mb === 0) return unlimited;
+  if (unit === "GB") return `${mb}${unit}`
+  if (mb >= 1024 && unit === "MB") return `${(mb / 1024).toFixed(0)}GB`;
+  return `${mb}MB`;
+}
 
-  return voucher;
-};
+export const formatSpeed = (mb: number, unlimited: string) => {
+  if (mb === 0) return unlimited;
+  return `${mb}Mbps`;
+}

@@ -11,7 +11,7 @@ import { apiClient, imageUrl } from "@/lib/api";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
 import { phoneSchemaDef } from "@/components/portal/PackageGrid";
-import { formatData, formatDuration, formatSpeed } from "../(admin)/dashboard/packages/page";
+import { formatData, formatDuration, formatSpeed } from "@/lib/utils";
 
 // Labels with English and Swahili translations
 export const labels: any = {

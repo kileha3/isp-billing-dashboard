@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter, Calendar, History, Loader2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { StatCard } from "@/components/admin/StatCard";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -18,8 +18,9 @@ import { HotspotSession, Package } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import SocketClient from "@/lib/socket.util";
 import { DateRange, DayPicker } from "react-day-picker";
-import { addDays, format as formatDate } from "date-fns";
+import { addDays, format as formatDateFn } from "date-fns";
 import "react-day-picker/style.css";
+import { formatDate } from "@/lib/utils";
 
 
 function formatBytes(octate: number) {
@@ -74,8 +75,8 @@ export default function SessionsPage() {
     try {
       // Pass date range to API calls if they support it
       const dateFilter = dateRange?.from && dateRange?.to ? {
-        startDate: formatDate(dateRange.from, 'yyyy-MM-dd'),
-        endDate: formatDate(dateRange.to, 'yyyy-MM-dd')
+        startDate: formatDateFn(dateRange.from, 'yyyy-MM-dd'),
+        endDate: formatDateFn(dateRange.to, 'yyyy-MM-dd')
       } : {};
 
       const [_sessions, { data: _packages }] = await Promise.all([
@@ -175,10 +176,10 @@ export default function SessionsPage() {
   };
 
   // Format display date range
-  const formatDateRange = () => {
+  const formatDateFnRange = () => {
     if (!dateRange?.from) return "Select date range";
-    if (!dateRange?.to) return formatDate(dateRange.from, "MMM dd, yyyy");
-    return `${formatDate(dateRange.from, "MMM dd")} - ${formatDate(dateRange.to, "MMM dd, yyyy")}`;
+    if (!dateRange?.to) return formatDateFn(dateRange.from, "MMM dd, yyyy");
+    return `${formatDateFn(dateRange.from, "MMM dd")} - ${formatDateFn(dateRange.to, "MMM dd, yyyy")}`;
   };
 
   // Filter sessions by date range if needed
@@ -212,7 +213,7 @@ export default function SessionsPage() {
   const columns = [
     { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
     { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.ip },
-    { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} - ${(row as HotspotSession).nas.location} (${(row as HotspotSession).nas.ip})` },
+    { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} (${(row as HotspotSession).nas.ip})` },
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
     { key: "type", label: "Type", render: (v: unknown, row: unknown) => (row as HotspotSession).isPPPoE ? "PPPoE" : "Hotspot" },
@@ -222,7 +223,7 @@ export default function SessionsPage() {
         return formatBytes(Number(sess.usage.output + sess.usage.input))
       }
     },
-    { key: "sessions", label: "Sessions", render: (v: unknown, row: unknown) => (row as HotspotSession).sessions },
+    { key: "startedAt", label: "Started", render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.start) },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
   ];
 
@@ -241,7 +242,7 @@ export default function SessionsPage() {
             className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors"
           >
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{formatDateRange()}</span>
+            <span className="font-medium">{formatDateFnRange()}</span>
           </button>
 
           {showDatePicker && (

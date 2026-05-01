@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { formatDate } from "@/lib/utils";
 
 // PPPoE User Schema
 const pppoeUserSchema = z.object({
@@ -240,7 +241,7 @@ export default function PPPoEUsersPage() {
     {
       key: "createdAt",
       label: "Created",
-      render: (v: unknown) => new Date(String(v)).toLocaleDateString()
+      render: (v: unknown) => formatDate(v)
     },
   ];
 

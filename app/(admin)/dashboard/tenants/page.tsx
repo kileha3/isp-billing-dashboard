@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Tenant } from "@/lib/types";
 import { z } from "zod";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { formatDate } from "@/lib/utils";
 
 // Updated Zod schema with proper conditional validation for paymentPref
 const tenantSchema = z.object({
@@ -245,7 +246,7 @@ export default function TenantsPage() {
   }
 
   const columns = [
-    { key: "createdAt", label: "Created", render: (v: unknown) => new Date(String(v)).toLocaleDateString() },
+    { key: "createdAt", label: "Created", render: (v: unknown) => formatDate(v)},
     { key: "name", label: "Business Name" },
     {
       key: "branding",

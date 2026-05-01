@@ -21,6 +21,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { labels } from "@/components/portal/CaptivePortalClient";
+import { formatDuration, formatData, formatSpeed } from "@/lib/utils";
 
 const packageSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -34,22 +35,6 @@ const packageSchema = z.object({
 });
 
 type DurationUnit = "minutes" | "hours" | "days" | "months";
-
-export const formatDuration = (value: number, unit: string, lan: string) => {
-  return lan === "en" ? `${value} ${unit}`: `${unit} ${value} `;
-}
-
-export const formatData = (mb: number, unit: string, unlimited: string) => {
-  if (mb === 0) return unlimited;
-  if (unit === "GB") return `${mb}${unit}`
-  if (mb >= 1024 && unit === "MB") return `${(mb / 1024).toFixed(0)}GB`;
-  return `${mb}MB`;
-}
-
-export const formatSpeed = (mb: number, unlimited: string) => {
-  if (mb === 0) return unlimited;
-  return `${mb}Mbps`;
-}
 
 type DataLimitUnit = "GB" | "MB"
 
