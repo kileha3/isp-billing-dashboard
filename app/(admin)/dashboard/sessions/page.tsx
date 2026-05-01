@@ -354,7 +354,7 @@ export default function SessionsPage() {
       <Dialog open={historyDialog.isOpen} onOpenChange={(open) => {
         if (!open) setHistoryDialog({ isOpen: false, loading: false, sessions: [], currentSession: null });
       }}>
-        <DialogContent className={`!max-w-[${historyDialog.loading ? 30:80}vw] overflow-hidden flex flex-col`}>
+        <DialogContent className={`!w-[${historyDialog.loading ? 30:80}vw] !max-w-[${historyDialog.loading ? 30:80}vw] overflow-hidden flex flex-col`}>
           <DialogHeader>
             <DialogTitle>
               Session History
