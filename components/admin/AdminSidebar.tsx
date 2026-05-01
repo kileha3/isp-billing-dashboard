@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -21,7 +20,6 @@ import {
   CreditCard,
   Activity,
   Settings,
-  Wifi,
   Building2,
   Users,
   Palette,
@@ -90,7 +88,7 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarMenu>
             {(isSuperAdmin ? [...navMain]: navMain.toSpliced(2, 0, { label: "Packages", href: "/dashboard/packages", icon: Package },
-              { label: "Hotspot Vouchers", href: "/dashboard/vouchers", icon: Ticket }, { label: "Offers", href: "/dashboard/offers", icon: Gift },{ label: "PPPoE Users", href: "/dashboard/pppoe", icon: EthernetPort })).map((item) => (
+              { label: "Vouchers", href: "/dashboard/vouchers", icon: Ticket }, { label: "Offers", href: "/dashboard/offers", icon: Gift },{ label: "PPPoE Users", href: "/dashboard/pppoe", icon: EthernetPort })).map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
                     <Link href={item.href}>
