@@ -338,7 +338,7 @@ export default function VouchersPage() {
                 <Select value={form.packageId} onValueChange={(v) => setForm(f => ({ ...f, packageId: v }))}>
                   <SelectTrigger><SelectValue placeholder="Select package…" /></SelectTrigger>
                   <SelectContent>
-                    {(packages || []).filter(pkg => !pkg.isFree).map(p => <SelectItem key={p._id} value={p._id}>{p.name} — Tsh {p.price}</SelectItem>)}
+                    {(packages || []).map(p => <SelectItem key={p._id} value={p._id}>{p.name} — Tsh {p.price}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
