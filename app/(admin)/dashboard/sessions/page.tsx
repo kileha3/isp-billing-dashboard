@@ -83,6 +83,7 @@ export default function SessionsPage() {
         apiClient.sessions.list(dateFilter as any),
         apiClient.packages.list()
       ]);
+      
       setSessions(_sessions);
       setPackages(_packages);
     } catch {
@@ -118,7 +119,7 @@ export default function SessionsPage() {
     const { type, session, selectedPackageId } = actionState;
     try {
       if (type === "kick") {
-        const { success } = await apiClient.sessions.disconnect(session._id);
+        const { success } = await apiClient.sessions.disconnect(session.username);
         toast({ title: success ? "User kicked out" : undefined, description: success ? `Session for ${session.network.ip} disconnected.` : "Failed to kick out user, try again" });
       } else if (type === "clear_mac") {
         const { success } = await apiClient.sessions.clearMac(session._id);
@@ -207,6 +208,7 @@ export default function SessionsPage() {
       }
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
+    { key: "startedAt", label: "Started", render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.start) },
   ];
 
   // Main table columns
@@ -355,8 +357,8 @@ export default function SessionsPage() {
       <Dialog open={historyDialog.isOpen} onOpenChange={(open) => {
         if (!open) setHistoryDialog({ isOpen: false, loading: false, sessions: [], currentSession: null });
       }}>
-        <DialogContent 
-        style={{ width: `${historyDialog.loading ? 30:80}vw`, maxWidth: `${historyDialog.loading ? 30:80}vw` }}
+        <DialogContent
+          style={{ width: `${historyDialog.loading ? 30 : 80}vw`, maxWidth: `${historyDialog.loading ? 30 : 80}vw` }}
         >
           <DialogHeader>
             <DialogTitle>

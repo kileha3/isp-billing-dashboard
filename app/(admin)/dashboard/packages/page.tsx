@@ -57,8 +57,8 @@ type PackageForm = {
 };
 
 const DEFAULT_FORM: PackageForm = {
-  name: "", maxUsers: 1, maxReconnects: 3, description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
-  dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: true, tenantId: "", routerIds: [],
+  name: "", maxUsers: 1, maxReconnects: 0, description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
+  dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: false, tenantId: "", routerIds: [],
 };
 
 export default function PackagesPage() {
@@ -136,7 +136,7 @@ export default function PackagesPage() {
     setForm({
       name: pkg.name,
       maxUsers: pkg.maxUsers ?? 1,
-      maxReconnects: pkg.maxReconnects ?? 3,
+      maxReconnects: pkg.maxReconnects ?? 0,
       description: pkg.description ?? "",
       price: pkg.price,
       duration: String(pkg.duration),
@@ -496,7 +496,7 @@ export default function PackagesPage() {
                   min="1"
                   max="10"
                   placeholder="1"
-                  value={form.maxReconnects === 0 ? "" : form.maxReconnects}
+                  value={form.maxReconnects === 0 ? "0" : form.maxReconnects}
                   onChange={(e) => {
                     const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
                     setForm(f => ({ ...f, maxReconnects: value }));

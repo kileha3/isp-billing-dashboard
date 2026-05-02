@@ -1,7 +1,7 @@
 export type UserRole = "super_admin" | "tenant_admin" | "operator";
 export type RouterStatus = "online" | "offline" | "pending";
 export type VoucherStatus = "unused" | "used" | "expired";
-export type TransactionStatus = "COMPLETED" | "PENDING" | "FAILED" | "REFUNDED";
+export type TransactionStatus = "COMPLETED" | "PENDING" | "FAILED";
 export type SessionStatus = "active" | "disconnected" | "expired";
 export type PortalDisplayMode = "packages_only" | "vouchers_only" | "both";
 

@@ -85,7 +85,7 @@ export default function TransactionsPage() {
 
   // Apply client-side date filtering as fallback
   const getFilteredTransactions = () => {
-    let filtered = statusFilter === "all" ? transactions : transactions.filter(t => t.status === statusFilter);
+    let filtered = statusFilter === "all" ? transactions : transactions.filter(t => t.status.toLowerCase() === statusFilter.toLowerCase());
     filtered = categoryFilter === "all" ? filtered : filtered.filter(t => t.source === categoryFilter);
     
     return filtered;
@@ -112,10 +112,10 @@ export default function TransactionsPage() {
   ].filter(Boolean);
 
   // Calculate summary statistics for the filtered transactions
-  const totalAmount = filteredTransactions.filter(t => t.status === "COMPLETED" && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-  const completedCount = filteredTransactions.filter(t => t.status === "COMPLETED" && t.amount > 0).length;
-  const pendingCount = filteredTransactions.filter(t => t.status === "PENDING" && t.amount > 0).length;
-  const failedCount = filteredTransactions.filter(t => t.status === "FAILED" && t.amount > 0).length;
+  const totalAmount = filteredTransactions.filter(t => t.status.toLowerCase() === "COMPLETED".toLowerCase() && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  const completedCount = filteredTransactions.filter(t => t.status.toLowerCase() === "COMPLETED".toLowerCase() && t.amount > 0).length;
+  const pendingCount = filteredTransactions.filter(t => t.status.toLowerCase() === "PENDING".toLowerCase() && t.amount > 0).length;
+  const failedCount = filteredTransactions.filter(t => t.status.toLowerCase() === "FAILED".toLowerCase() && t.amount > 0).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -146,7 +146,7 @@ export default function TransactionsPage() {
                   mode="range"
                   selected={dateRange}
                   onSelect={handleDateRangeSelect}
-                  numberOfMonths={2}
+                  numberOfMonths={1}
                   defaultMonth={dateRange?.from}
                 />
               </div>
