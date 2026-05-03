@@ -230,7 +230,7 @@ export default function VouchersPage() {
 
   const columns = [
     { key: "code", label: "Code", render: (v: unknown) => String(v) },
-    { key: "packageId", label: "Package", render: (v: unknown) => (v as { name: string })?.name ?? "—" },
+    { key: "package", label: "Package", render: (v: unknown) => (v as { name: string })?.name ?? "—" },
     {
       key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => {
         const voucher = row as unknown as Voucher;
@@ -244,7 +244,7 @@ export default function VouchersPage() {
       }
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
-    { key: "usedAt", label: "Used At", render: (v: unknown) => v ? formatAgoTime(v as any) : "-" },
+    { key: "usedAt", label: "Used", render: (v: unknown) => v ? formatAgoTime(v as any) : "-" },
     { key: "createdAt", label: "Created", render: (v: unknown) => formatDate(v) },
   ];
 
@@ -280,7 +280,7 @@ export default function VouchersPage() {
         columns={columns as never}
         loading={loading}
         searchable
-        searchKeys={["code", "batchId"] as never}
+        searchKeys={["code","macAddress","ipAddress", "package"] as never}
         searchPlaceholder="vouchers"
         emptyMessage="No vouchers yet. Generate some to get started."
         pageSize={10}

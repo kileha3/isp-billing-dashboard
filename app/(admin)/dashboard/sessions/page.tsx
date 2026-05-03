@@ -278,7 +278,7 @@ export default function SessionsPage() {
         columns={columns as never}
         loading={loading}
         searchable
-        searchKeys={["macAddress", "ipAddress"] as never}
+        searchKeys={["macAddress", "ipAddress","username","package"] as never}
         searchPlaceholder="by MAC or IP"
         emptyMessage="No sessions recorded for the selected period."
         pageSize={10}
