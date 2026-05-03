@@ -94,7 +94,7 @@ export default function TransactionsPage() {
   const filteredTransactions = getFilteredTransactions();
 
   const columns = [
-    { key: "voucher", label: "Voucher" },
+    { key: "username", label: "Voucher"},
     isSuperAdmin ? { key: "tenant", label: "Tenant", render: (v: unknown) => (v as any)?.name } : null,
     { key: "package", label: "Package", render: (v: unknown) => (v as any)?.name },
     { key: "router", label: "Router", render: (v: unknown) => (v as any)?.name },
@@ -203,7 +203,7 @@ export default function TransactionsPage() {
         columns={columns as never}
         loading={loading}
         searchable
-        searchKeys={["amount", "package","voucher"] as never}
+        searchKeys={["amount", "package","username"] as never}
         searchPlaceholder="Search transactions..."
         emptyMessage={dateRange?.from && dateRange?.to 
           ? `No transactions found for ${formatDateRange()}`
