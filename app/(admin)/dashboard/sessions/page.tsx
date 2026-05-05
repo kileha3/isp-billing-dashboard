@@ -214,8 +214,8 @@ export default function SessionsPage() {
   // Main table columns
   const columns = [
     { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
-    { key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.ip },
-    { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name} (${(row as HotspotSession).nas.ip})` },
+    { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac },
+    { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name}` },
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
     { key: "type", label: "Type", render: (v: unknown, row: unknown) => (row as HotspotSession).isPPPoE ? "PPPoE" : "Hotspot" },
@@ -226,7 +226,8 @@ export default function SessionsPage() {
       }
     },
     { key: "startedAt", label: "Started", render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.start) },
-    { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
+    { key: "expireOn", label: "Expires", render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.expireOn) },
+    { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v) === "active" ? "online": String(v)} /> },
   ];
 
   return (
@@ -279,7 +280,7 @@ export default function SessionsPage() {
         loading={loading}
         searchable
         searchKeys={["macAddress", "ipAddress","username","package"] as never}
-        searchPlaceholder="by MAC or IP"
+        searchPlaceholder="by MAC Address, Username .."
         emptyMessage="No sessions recorded for the selected period."
         pageSize={10}
         filterSlot={

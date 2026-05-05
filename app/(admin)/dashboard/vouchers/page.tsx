@@ -230,7 +230,7 @@ export default function VouchersPage() {
 
   const columns = [
     { key: "code", label: "Code", render: (v: unknown) => String(v) },
-    { key: "package", label: "Package", render: (v: unknown) => (v as { name: string })?.name ?? "—" },
+    { key: "package", label: "Package", render: (v: unknown, row: unknown) => ((row as any).packageId as { name: string })?.name ?? "—" },
     {
       key: "ipAddress", label: "IP Address", render: (v: unknown, row: unknown) => {
         const voucher = row as unknown as Voucher;

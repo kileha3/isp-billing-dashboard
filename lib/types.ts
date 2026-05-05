@@ -215,6 +215,7 @@ export interface HotspotSession {
     id: string;
     start: Date;
     stop: null;
+    expireOn: Date;
     duration: number;
   };
   isPPPoE: boolean;
