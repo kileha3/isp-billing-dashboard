@@ -417,7 +417,7 @@ export default function DashboardPage() {
           {recentTransactions.map((tx) => (
             <div key={tx._id} className="flex items-center justify-between px-5 py-3.5 gap-4 hover:bg-muted/20 transition-colors">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-sm font-medium tabular-nums">{tx.customer}</span>
+                <span className="text-sm font-medium tabular-nums">{tx.customer} - {tx.appliedVoucher}</span>
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                   <span className="text-xs text-muted-foreground">{tx.package?.name ?? "Voucher"}</span>
                   {tx.router && (

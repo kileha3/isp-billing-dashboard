@@ -194,7 +194,7 @@ export interface Transaction {
   customer: string;
   amount: number;
   status: TransactionStatus;
-  voucherApplied: string;
+  appliedVoucher: string;
   source: string;
   currency: string;
   paymentMethod: string;

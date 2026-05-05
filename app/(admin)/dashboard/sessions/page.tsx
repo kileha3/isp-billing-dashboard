@@ -217,8 +217,7 @@ export default function SessionsPage() {
     { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac },
     { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name}` },
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
-    { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
-    { key: "type", label: "Type", render: (v: unknown, row: unknown) => (row as HotspotSession).isPPPoE ? "PPPoE" : "Hotspot" },
+    //{ key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
     {
       key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
