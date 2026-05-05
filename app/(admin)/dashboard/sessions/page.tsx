@@ -336,10 +336,10 @@ export default function SessionsPage() {
                   Clear MAC Address
                 </DropdownMenuItem>
 
-                {s.sessions > 1 && (<DropdownMenuItem onClick={() => showHistory(s)}>
+                <DropdownMenuItem onClick={() => showHistory(s)}>
                   <History className="mr-2 h-4 w-4" />
                   Show History
-                </DropdownMenuItem>)}
+                </DropdownMenuItem>
                 {s.status !== "expired" && (<DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => setActionState({ type: "kick", session: s })}
@@ -365,9 +365,9 @@ export default function SessionsPage() {
               Session History
               {historyDialog.currentSession && (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  for {historyDialog.currentSession.username} ({historyDialog.currentSession.network.mac})
+                  for {historyDialog.currentSession.username} by {historyDialog.currentSession.network.mac} - 
                 </span>
-              )}
+              )}{historyDialog.currentSession && (historyDialog.currentSession.network.host)}
             </DialogTitle>
             <DialogDescription>
               Historical sessions for this user

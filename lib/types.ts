@@ -209,7 +209,7 @@ export interface HotspotSession {
   createdAt: Date;
   lastUpdateAt: Date;
   nas: { ip: string; name: string; location: string };
-  network: { ip: string; mac: string };
+  network: { ip: string; mac: string, host: string };
   package: { id: string; name: string; price: number };
   session: {
     id: string;
