@@ -213,10 +213,11 @@ export const termsLabels: Record<string, any> = {
 };
 
 export default function TermsPageContent() {
-  const searchParams = useSearchParams();
-  const nasName = searchParams.get("nasname") ?? "";
-  const authToken = searchParams.get("token") ?? "";
-  const referrer = searchParams.get("ref") ?? "";
+  const params = useSearchParams(); 
+  const referrer = params.get("ref") ?? "";
+  const nasName = decodeURIComponent(params.get("nasname") ?? "");
+  const authToken = decodeURIComponent(params.get("token") ?? "");
+
   const router = useRouter();
   const [config, setConfig] = useState<TenantPortalSettings>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
@@ -375,7 +376,7 @@ export default function TermsPageContent() {
                   {labels.agreeAndContinue}
                 </button>
                 <Link
-                  href={`/pay?${searchParams.toString()}`}
+                  href={`/pay?${params.toString()}`}
                   className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   {labels.backButton}

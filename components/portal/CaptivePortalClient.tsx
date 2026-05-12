@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiClient, BASE } from "@/lib/api";
+import { apiClient } from "@/lib/api";
 import { PortalHeader } from "@/components/portal/PortalHeader";
 import { PackageGrid } from "@/components/portal/PackageGrid";
 import { VoucherInput } from "@/components/portal/VoucherInput";
@@ -286,11 +286,11 @@ function PaymentOverlay({
 
 export function CaptivePortalClient() {
   const params = useSearchParams(); 
-  const nasName = params.get("nasname") ?? "";
-  const deviceMac = params.get("mac") ?? "";
-  const deviceIp = params.get("ip") ?? "";
-  const deviceName = params.get("hostName") ?? "";
-  const authToken = params.get("token") ?? "";
+  const nasName = decodeURIComponent(params.get("nasname") ?? "");
+  const deviceMac = decodeURIComponent(params.get("mac") ?? "");
+  const deviceIp = decodeURIComponent(params.get("ip") ?? "");
+  const deviceName = decodeURIComponent(params.get("hostName") ?? "");
+  const authToken = decodeURIComponent(params.get("token") ?? "");
 
   const [config, setConfig] =
     useState<TenantPortalSettings>(DEFAULT_CONFIG);
