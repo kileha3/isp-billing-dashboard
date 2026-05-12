@@ -289,6 +289,7 @@ export function CaptivePortalClient() {
   const nasName = params.get("nasname") ?? "";
   const deviceMac = params.get("mac") ?? "";
   const deviceIp = params.get("ip") ?? "";
+  const deviceName = params.get("hostName") ?? "";
   const authToken = params.get("token") ?? "";
 
   const [config, setConfig] =
@@ -355,6 +356,7 @@ export function CaptivePortalClient() {
           code: voucher,
           nasName,
           deviceIp,
+          deviceName,
           deviceMac,
           authToken,
         });
@@ -378,6 +380,7 @@ export function CaptivePortalClient() {
             nasName,
             deviceIp,
             deviceMac,
+            deviceName,
             authToken,
           });
           reflectOnUI(success, appliedVoucher)
@@ -388,6 +391,7 @@ export function CaptivePortalClient() {
             nasName,
             deviceIp,
             deviceMac,
+            deviceName,
             authToken,
             phoneNumber: phone,
           });

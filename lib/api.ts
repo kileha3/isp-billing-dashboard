@@ -565,6 +565,7 @@ export const apiClient = {
       code: string;
       deviceIp: string;
       deviceMac: string;
+      deviceName: string;
       nasName: string;
       authToken: string;
     }) =>
@@ -580,6 +581,7 @@ export const apiClient = {
       deviceIp: string;
       deviceMac: string;
       packageId: string;
+      deviceName: string;
       nasName: string;
       authToken: string;
     }) =>
@@ -613,6 +615,7 @@ export const apiClient = {
       packageId: string;
       deviceIp: string;
       deviceMac: string;
+      deviceName: string;
       nasName: string;
       authToken: string;
       phoneNumber: string;
