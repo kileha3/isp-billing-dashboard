@@ -353,7 +353,7 @@ export function CaptivePortalClient() {
       setPayState("processing");
 
       try {
-        const { success, appliedVoucher } = await apiClient.portal.redeemVoucher({
+        const { success, voucher: _voucher } = await apiClient.portal.redeemVoucher({
           code: voucher,
           nasName,
           deviceIp,
@@ -361,7 +361,7 @@ export function CaptivePortalClient() {
           deviceMac,
           authToken,
         });
-        reflectOnUI(success, appliedVoucher)
+        reflectOnUI(success, _voucher)
       } catch (err: unknown) {
         setPayState("failure");
       }
@@ -376,7 +376,7 @@ export function CaptivePortalClient() {
       setIsFree(pkg.isFree);
       try {
         if (pkg.isFree) {
-          const { appliedVoucher, success } = await apiClient.portal.connectFreePackage({
+          const { voucher, success } = await apiClient.portal.connectFreePackage({
             packageId: pkg._id,
             nasName,
             deviceIp,
@@ -384,7 +384,7 @@ export function CaptivePortalClient() {
             deviceName,
             authToken,
           });
-          reflectOnUI(success, appliedVoucher)
+          reflectOnUI(success, voucher)
           return;
         } else {
           const { orderId, success } = await apiClient.portal.initiatePayment({
