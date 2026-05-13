@@ -311,6 +311,7 @@ export function CaptivePortalClient() {
   useEffect(() => {
     const init = async () => {
       try {
+        setLoading(true);
         const [cfg, pkgs, session] = await Promise.all([
           apiClient.portal.getConfig(nasName, authToken),
           apiClient.portal.getPackages({nasName, authToken, deviceMac}),
