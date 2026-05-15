@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
 import SocketClient from "@/lib/socket.util";
+import { WifiOff } from "lucide-react";
 
 const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
@@ -78,7 +79,7 @@ export const labels: any = {
     connectionLabel: "Connect to the internet",
     needHelp:"Need help?",
     outOfService: "Service Temporarily Unavailable",
-    outOfServiceDescription: "Our service is currently unavailable. Please contact our support team for assistance.",
+    outOfServiceDescription: "Our service is currently unavailable. We are handling technical faults, Please contact our support team for assistance.",
   },
   sw: {
     buyPackage: "Nunua Bando",
@@ -120,7 +121,7 @@ export const labels: any = {
     connectionLabel: "Peruzi bila Kikomo",
     needHelp:"Wahitaji Msaada?",
     outOfService: "Huduma Haipatikani Kwa Sasa",
-    outOfServiceDescription: "Huduma yetu haipatikani kwa sasa. Tafadhali wasiliana na timu yetu ya usaidizi kwa msaada.",
+    outOfServiceDescription: "Huduma yetu haipatikani kwa sasa. Kuna matatizo ya kiufundi tunarekebisha, tafadhali wasiliana na timu yetu ya usaidizi kwa msaada wa haraka.",
   }
 }
 
@@ -290,7 +291,7 @@ function PaymentOverlay({
 }
 
 function OutOfServiceNotification({ config }: { config: TenantPortalSettings }) {
-  const { primaryColor } = config.branding;
+  const primaryColor = "#EF4444";
   
   return (
     <div className="mt-4">
@@ -308,26 +309,14 @@ function OutOfServiceNotification({ config }: { config: TenantPortalSettings }) 
               boxShadow: `0 10px 25px -5px ${primaryColor}40`
             }}
           >
-            <svg
-              className="h-10 w-10 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-              />
-            </svg>
+            <WifiOff className="text-white h-10 w-14"/>
           </div>
           
-          <h2 className="text-2xl font-bold py-6" style={{ color: primaryColor }}>
+          <h2 className="text-2xl font-bold py-6" style={{ color: config.branding.primaryColor }}>
             {labels[config.language]?.outOfService || "Service Temporarily Unavailable"}
           </h2>
           
-          <p className="text-muted-foreground text-lg max-w-sm mx-auto">
+          <p className="text-muted-foreground text-sm max-w-sm mx-auto">
             {labels[config.language]?.outOfServiceDescription || 
               "Our service is currently unavailable. Please contact our support team for assistance."}
           </p>
