@@ -581,7 +581,7 @@ export function CaptivePortalClient() {
             {labels[config.language]?.connecting || "By connecting you agree to our"}{" "}
             <a
               href={`/terms-and-conditions?${params.toString()}&ref=portal`}
-              target="_self"
+              target="_self" 
               rel="noopener noreferrer"
               className="underline"
               style={{ color: primaryColor }}
