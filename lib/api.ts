@@ -231,6 +231,11 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    removeWhitelistedAp: (data: { routerId: string; mac: string }) =>
+      req<{ data: RouterDevice }>(`/routers/${data.routerId}/whitelist`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
 
     checkStatus: (id: string) =>
       req<any>("/routers/status", {

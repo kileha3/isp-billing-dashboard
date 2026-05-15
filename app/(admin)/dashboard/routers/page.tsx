@@ -124,6 +124,8 @@ export default function RoutersPage() {
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
+  const [routerToViewWhitelist, setRouterToViewWhitelist] = useState<RouterDevice | null>(null);
+  const [deletingApMac, setDeletingApMac] = useState<string | null>(null);
   const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "" });
   const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof typeof basicForm, string>>>({});
   const [submittingBasic, setSubmittingBasic] = useState(false);
@@ -165,6 +167,29 @@ export default function RoutersPage() {
     setWhitelistForm({ name: "", mac: "" });
     setRouterToAddWhiteList(null);
     toast({ title: "AP Whitelisting", description: 'You have successfully whitelisted an access point' })
+  };
+
+  const handleDeleteWhitelistedAp = async (routerId: string, apMac: string) => {
+    setDeletingApMac(apMac);
+    try {
+      await apiClient.routers.removeWhitelistedAp({ routerId, mac: apMac });
+      toast({ title: "AP Removed", description: "Access point has been removed from whitelist" });
+      // Refresh the router data
+      await load(false);
+      // Update the router in view
+      if (routerToViewWhitelist && routerToViewWhitelist._id === routerId) {
+        const updatedRouter = routers.find(r => r._id === routerId);
+        if (updatedRouter) {
+          setRouterToViewWhitelist(updatedRouter);
+        } else {
+          setRouterToViewWhitelist(null);
+        }
+      }
+    } catch (error: any) {
+      toast({ title: error.message, variant: "destructive" });
+    } finally {
+      setDeletingApMac(null);
+    }
   };
 
   const isFormValid =
@@ -563,6 +588,12 @@ export default function RoutersPage() {
                   <Grid2X2Plus className="mr-2 h-4 w-4" />
                   Whitelist AP
                 </DropdownMenuItem>)}
+                {r.aps && r.aps.length > 0 && (
+                  <DropdownMenuItem onClick={() => setRouterToViewWhitelist(r)}>
+                    <Wifi className="mr-2 h-4 w-4" />
+                    Whitelisted APs
+                  </DropdownMenuItem>
+                )}
                 {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Sync Device
@@ -955,11 +986,78 @@ export default function RoutersPage() {
             </Button>
 
             <Button disabled={!isFormValid} onClick={handleWhitelist}>
-              Whitelist Now
+             {loading ? "Whitelisting...":" Whitelist Now"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>)}
+
+      {/* View Whitelisted APs Dialog */}
+      {routerToViewWhitelist && (
+        <Dialog open={routerToViewWhitelist !== null} onOpenChange={() => setRouterToViewWhitelist(null)}>
+          <DialogContent className="w-full max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Whitelisted Access Points</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {routerToViewWhitelist.name} - {routerToViewWhitelist.location}
+              </p>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-4">
+              {routerToViewWhitelist.aps && routerToViewWhitelist.aps.length > 0 ? (
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-muted/50">
+                      <tr className="border-b border-border">
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">AP Name</th>
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">MAC Address</th>
+                        <th className="text-right p-3 text-sm font-medium text-muted-foreground w-20">Actions</th>
+                       </tr>
+                    </thead>
+                    <tbody>
+                      {routerToViewWhitelist.aps.map((ap, index) => (
+                        <tr key={ap.mac} className={index !== routerToViewWhitelist.aps.length - 1 ? "border-b border-border" : ""}>
+                          <td className="p-3 text-sm">{ap.name}</td>
+                          <td className="p-3">
+                            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{ap.mac}</code>
+                          </td>
+                          <td className="p-3 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteWhitelistedAp(routerToViewWhitelist._id, ap.mac)}
+                              disabled={deletingApMac === ap.mac}
+                            >
+                              {deletingApMac === ap.mac ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                   </table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Wifi className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No whitelisted access points</p>
+                  <p className="text-sm mt-1">Add APs using the "Whitelist AP" option</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setRouterToViewWhitelist(null)}>
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {routerToDelete && (<ConfirmDialog
         open={routerToDelete !== null}

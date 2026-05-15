@@ -40,6 +40,7 @@ export interface TenantPortalSettings {
   };
   currency: string;
   language: string;
+  active: boolean;
 }
 
 export interface PPPoEUser {
@@ -118,6 +119,7 @@ export interface RouterDevice {
   portalInterface?: DevicePortalInterface;
   uptime: string;
   script?: string;
+  aps: Array<{ mac: string; name: string }>;
   info: RouterInfo;
 }
 

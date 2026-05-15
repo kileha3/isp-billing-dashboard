@@ -33,7 +33,8 @@ const DEFAULT_CONFIG: TenantPortalSettings = {
     showPoweredBy: true,
   },
   currency: "TZS",
-  language: "en"
+  language: "en",
+  active: false
 };
 
 export const labels: any = {
@@ -75,13 +76,15 @@ export const labels: any = {
     tryError: "Service Not Available",
     tryErrorDescription: "You have already tried our service, please purchase a package to continue.",
     connectionLabel: "Connect to the internet",
-    needHelp:"Need help?"
+    needHelp:"Need help?",
+    outOfService: "Service Temporarily Unavailable",
+    outOfServiceDescription: "Our service is currently unavailable. Please contact our support team for assistance.",
   },
   sw: {
     buyPackage: "Nunua Bando",
     haveVoucher: "Tumia Vocha",
     poweredBy: "Imedhaminiwa na",
-    terms: "Miongozo na Sharti",
+    terms: "Miongozo na masharti",
     connecting: "Ukiunganisha unakubali",
     noPackages: "Hakuna bando zinazopatikana kwenye mtandao huu.",
     close: "Funga",
@@ -115,7 +118,9 @@ export const labels: any = {
     tryError: "Huduma haipatikani",
     tryErrorDescription: "Umekwishajaribu huduma yetu tayari, tafadhali nunua bando kupata huduma",
     connectionLabel: "Peruzi bila Kikomo",
-    needHelp:"Wahitaji Msaada?"
+    needHelp:"Wahitaji Msaada?",
+    outOfService: "Huduma Haipatikani Kwa Sasa",
+    outOfServiceDescription: "Huduma yetu haipatikani kwa sasa. Tafadhali wasiliana na timu yetu ya usaidizi kwa msaada.",
   }
 }
 
@@ -280,6 +285,54 @@ function PaymentOverlay({
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function OutOfServiceNotification({ config }: { config: TenantPortalSettings }) {
+  const { primaryColor } = config.branding;
+  
+  return (
+    <div className="mt-4">
+      {/* Main Card */}
+      <div className="overflow-hidden">
+        {/* Gradient Header */}
+        <div 
+          className="px-2 py-8 text-center"
+         
+        >
+          <div
+            className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl mb-4 mt-5"
+            style={{ 
+              background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}cc 100%)`,
+              boxShadow: `0 10px 25px -5px ${primaryColor}40`
+            }}
+          >
+            <svg
+              className="h-10 w-10 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+          
+          <h2 className="text-2xl font-bold py-6" style={{ color: primaryColor }}>
+            {labels[config.language]?.outOfService || "Service Temporarily Unavailable"}
+          </h2>
+          
+          <p className="text-muted-foreground text-lg max-w-sm mx-auto">
+            {labels[config.language]?.outOfServiceDescription || 
+              "Our service is currently unavailable. Please contact our support team for assistance."}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -466,14 +519,16 @@ export function CaptivePortalClient() {
       <PortalHeader config={config} connectionLabel={labels[config.language]?.connectionLabel || "Connect to the internet"} />
 
       <div className="mx-auto max-w-md w-full px-4 py-6 flex flex-col gap-5">
-        {config.portalSettings.welcomeMessage && (
+        {config.portalSettings.welcomeMessage && config.active && (
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
             {config.portalSettings.welcomeMessage}
           </p>
         )}
 
         <div className="mt-4">
-          {resolvedMode === "both" ? (
+          {!config.active ? (
+            <OutOfServiceNotification config={config} />
+          ) : resolvedMode === "both" ? (
             <Tabs defaultValue="packages">
               <TabsList className="w-full">
                 <TabsTrigger value="packages" className="flex-1">
@@ -521,7 +576,7 @@ export function CaptivePortalClient() {
           )}
         </div>
 
-        {config.portalSettings.termsUrl && (
+        {config.portalSettings.termsUrl &&  config.active && (
           <p className="text-center text-xs text-muted-foreground">
             {labels[config.language]?.connecting || "By connecting you agree to our"}{" "}
             <a
@@ -537,7 +592,7 @@ export function CaptivePortalClient() {
         )}
       </div>
 
-      {config.support.showOnPortal && (
+      {config.support.showOnPortal &&  (
         <SupportInfo support={config.support} language={config.language} primaryColor={primaryColor} />
       )}
 
