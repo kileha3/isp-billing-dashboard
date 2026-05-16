@@ -44,8 +44,8 @@ export function VoucherInput({ primaryColor, onRedeem, loading, language }: Vouc
       </div>
 
       <Button
-        onClick={() => onRedeem(code)}
-        disabled={loading || !code.trim() || code.length < 8}
+        onClick={() => onRedeem(code.trim())}
+        disabled={loading || !code.trim() || code.length < 8 || code.length > 10}
         className="w-full h-11 font-semibold text-sm"
         style={{ background: primaryColor, color: "white" }}
       >
