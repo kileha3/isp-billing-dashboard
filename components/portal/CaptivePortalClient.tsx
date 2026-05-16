@@ -345,9 +345,9 @@ export function CaptivePortalClient() {
 
 
   const reflectOnUI = (success: boolean, voucher: string | null | undefined) => {
-    if (success && voucher) setTimeout(() => grantAccess(voucher), 3000)
+    if (success && voucher) setTimeout(() => grantAccess(voucher), 1500)
     setPayState(success && voucher ? "success" : "failure");
-    setTimeout(() => resetUi, 4000);
+    setTimeout(() => resetUi, 3000);
   }
 
   useEffect(() => {
