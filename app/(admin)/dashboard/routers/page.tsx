@@ -348,7 +348,7 @@ export default function RoutersPage() {
     if (!setupTarget) return;
     setShowWizard(false);
     await apiClient.routers.update(setupTarget._id, { portalInterface: serviceInterfaces });
-    await load();
+    await load(false);
     toast({ title: "Configuration saved successfully" });
   }
 
@@ -1071,7 +1071,7 @@ export default function RoutersPage() {
           try {
             const { message } = await apiClient.routers.delete(routerId);
             toast({ title: "Device deletion", description: message });
-            load();
+            load(false);
           } catch (error: any) {
             toast({ title:  error.message, variant: "destructive" });
           }
