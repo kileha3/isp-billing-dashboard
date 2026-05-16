@@ -374,7 +374,7 @@ export function CaptivePortalClient() {
       }
     }
     init();
-  }, [nasName, deviceMac, deviceIp, authToken]);
+  }, [nasName, deviceMac, authToken]);
 
   const resetUi = () => {
     document.body.style.transition = "opacity 1s";

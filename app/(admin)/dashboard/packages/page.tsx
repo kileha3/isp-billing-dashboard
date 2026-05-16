@@ -40,8 +40,8 @@ type DataLimitUnit = "GB" | "MB"
 
 type PackageForm = {
   name: string;
-  maxUsers: number;
-  maxReconnects: number;
+  maxUsers: string;
+  maxReconnects: string;
   description: string;
   price: number;
   duration: string;
@@ -57,7 +57,7 @@ type PackageForm = {
 };
 
 const DEFAULT_FORM: PackageForm = {
-  name: "", maxUsers: 1, maxReconnects: 0, description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
+  name: "", maxUsers: "1", maxReconnects: "0", description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
   dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: false, tenantId: "", routerIds: [],
 };
 
@@ -135,8 +135,8 @@ export default function PackagesPage() {
     setEditTarget(pkg);
     setForm({
       name: pkg.name,
-      maxUsers: pkg.maxUsers ?? 1,
-      maxReconnects: pkg.maxReconnects ?? 0,
+      maxUsers: `${pkg.maxUsers ?? ""}`,
+      maxReconnects: `${pkg.maxReconnects ?? ""}`,
       description: pkg.description ?? "",
       price: pkg.price,
       duration: String(pkg.duration),
@@ -218,11 +218,11 @@ export default function PackagesPage() {
     { key: "name", label: "Name" },
     { key: "maxUsers", label: "Connections", render: (v: unknown, row: unknown) => {
       const pkg = row as unknown as Package;
-      return pkg.isPpPoe && v == 0 ? "Unlimited": Number(v)
+      return pkg.maxUsers === 0 ? "Unlimited": Number(v)
     }},
     { key: "maxReconnects", label: "Reconnets", render: (v: unknown, row: unknown) => {
       const pkg = row as unknown as Package;
-      return pkg.isPpPoe && v == 0 ? "Unlimited": Number(v)
+      return pkg.maxReconnects == 0 ? "Unlimited": Number(v)
     }},
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
     { key: "price", label: "Price", render: (v: unknown, row: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `${(row as Package).currency ?? "TZS"} ${Number(v).toLocaleString()}`}</span> },
@@ -468,20 +468,19 @@ export default function PackagesPage() {
               </div>
             </div>
 
-            {/* Max Users & Max Sessions Row */}
+            {/* Max Users & Max Sessions Row - Updated to behave like speed and data limit */}
             {!form.isPpPoe && (<div className="col-span-2 grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label className="flex items-center gap-2">
-                  Connections
+                  Connections (0 = unlimited)
                 </Label>
                 <Input
                   type="number"
-                  min="1"
-                  placeholder="1"
-                  value={form.maxUsers === 0 ? "" : form.maxUsers}
+                  min="0"
+                  placeholder="0"
+                  value={ form.maxUsers}
                   onChange={(e) => {
-                    const value = e.target.value === "" ? 1 : parseInt(e.target.value) || 1;
-                    setForm(f => ({ ...f, maxUsers: value }));
+                    setForm(f => ({ ...f, maxUsers: e.target.value }));
                   }}
                 />
                 <span className="text-xs text-muted-foreground">Simultaneous connections per device</span>
@@ -493,13 +492,11 @@ export default function PackagesPage() {
                 </Label>
                 <Input
                   type="number"
-                  min="1"
-                  max="10"
-                  placeholder="1"
-                  value={form.maxReconnects === 0 ? "0" : form.maxReconnects}
+                  min="0"
+                  placeholder="0"
+                  value={form.maxReconnects}
                   onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
-                    setForm(f => ({ ...f, maxReconnects: value }));
+                    setForm(f => ({ ...f, maxReconnects: e.target.value }));
                   }}
                 />
                 <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
@@ -529,7 +526,7 @@ export default function PackagesPage() {
               <div className="flex items-center gap-3">
                 <Switch
                   checked={form.isPpPoe}
-                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v, maxUsers: v ? 0:1, maxReconnects: v ? 0: 3 }))}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v}))}
                   id="isPpPoe" 
                 />
                 <Label htmlFor="isPpPoe">Is PPPoE</Label>
