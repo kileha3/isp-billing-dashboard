@@ -2,16 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiClient } from "@/lib/api";
-import { PortalHeader } from "@/components/portal/PortalHeader";
-import { PackageGrid } from "@/components/portal/PackageGrid";
-import { VoucherInput } from "@/components/portal/VoucherInput";
-import { SupportInfo } from "@/components/portal/SupportInfo";
+import { apiClient, imageUrl } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
 import SocketClient from "@/lib/socket.util";
-import { WifiOff } from "lucide-react";
+import { Mail, Phone, Ticket, WifiOff } from "lucide-react";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Wifi, Clock, ChevronUp } from "lucide-react";
+import { formatData, formatDuration } from "@/lib/utils";
 
 const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
@@ -127,12 +129,325 @@ export const labels: any = {
   }
 }
 
+
+interface VoucherInputProps {
+  primaryColor: string;
+  loading: boolean;
+  language: string;
+  onRedeem: (voucher: string) => void;
+}
+
+export function VoucherInput({ primaryColor, onRedeem, loading, language }: VoucherInputProps) {
+  const [code, setCode] = useState("");
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col items-center gap-2 py-2">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: `${primaryColor}15` }}>
+          <Ticket className="h-6 w-6" style={{ color: primaryColor }} />
+        </div>
+        <p className="text-sm font-medium text-foreground">{labels[language]?.enterVoucher || "Enter your voucher code"}</p>
+        <p className="text-xs text-muted-foreground text-center">{labels[language]?.enterVoucherDescription || "Scratched from a card or provided by your ISP"}</p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-medium">{labels[language]?.voucherCode || "Voucher Code"}</Label>
+        <Input
+          placeholder={labels[language]?.placeholder}
+          value={code}
+          onChange={(e) => { setCode(e.target.value.replace(/\s/g, '').toUpperCase()); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onRedeem(code)
+            }
+          }}
+          /* className="h-10 focus-visible:outline-none focus-visible:ring-2 text-center font-mono text-lg tracking-widest uppercase" */
+           className="h-10 bg-background text-foreground placeholder:text-muted-foreground text-center font-mono text-lg tracking-widest uppercase"
+          style={{
+            borderColor: primaryColor,
+            boxShadow: `0 0 0 2px ${primaryColor}33`,
+          }}
+          maxLength={20}
+        />
+      </div>
+
+      <Button
+        onClick={(e) => {
+          e.preventDefault();
+          onRedeem(code.trim());
+        }}
+        disabled={loading || !code.trim() || code.length < 8 || code.length > 10}
+        className="w-full h-11 font-semibold text-sm"
+        style={{ background: primaryColor, color: "white" }}
+      >
+        {loading ? labels[language]?.checking || "Checking..." : labels[language]?.redeemVoucher || "Redeem Voucher"}
+      </Button>
+    </div>
+  );
+}
+
+interface PortalHeaderProps {
+  config: TenantPortalSettings;
+  connectionLabel: string;
+}
+
+export function PortalHeader({ config, connectionLabel }: PortalHeaderProps) {
+  const { primaryColor, secondaryColor, logo, businessName } = config.branding;
+
+
+  return (
+    <header
+      className="w-full px-6 py-5 flex items-center gap-4 text-white"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+      }}
+    >
+      {/* Logo */}
+      <div className={`flex h-${logo && logo.length > 9 ? "13" : "12"} w-${logo && logo.length > 9 ? "13" : "12"} items-center justify-center rounded-${logo && logo.length > 9 ? "3xl" : "xl"} bg-white/20 shrink-0 overflow-hidden`}>
+        {logo && logo.length > 9 ? (
+          <img src={imageUrl(logo)} alt={businessName} className="h-13 w-13 object-contain rounded-3xl" />
+        ) : (
+          <Wifi className="h-6 w-6 text-white" />
+        )}
+      </div>
+
+      <div>
+        <h1 className="text-lg font-bold text-white leading-tight">{businessName || `${appName}`}</h1>
+        <p className="text-sm text-white/70">{connectionLabel}</p>
+      </div>
+    </header>
+  );
+}
+
 type PayState = "idle" | "processing" | "success" | "failure";
 
 export interface PayResult {
   success: boolean;
   voucher: string | null | undefined
 }
+
+
+interface PackageGridProps {
+  packages: Package[];
+  primaryColor: string;
+  currency: string;
+  language: string;
+  onPay: (params: { pkg: Package; phone: string }) => void;
+}
+
+export const phoneSchemaDef = (params?: {
+  min?: number;
+  max?: number;
+  language: string;
+}) => {
+  const min = params?.min ?? 10;
+  const max = params?.max ?? 15;
+
+  return z.string().refine(
+    (val) => {
+      const phoneRegex = new RegExp(`^\\+?[\\d\\s\\-\\(]{${min},${max}}$`);
+      return phoneRegex.test(val);
+    },
+    {
+      message: labels[params!.language]?.phoneError || `Enter a valid phone number (e.g. 0712 XXX XXX)`
+    }
+  );
+};
+
+interface SupportInfoProps {
+  support: TenantPortalSettings["support"];
+  language: string;
+  primaryColor: string;
+}
+
+export function SupportInfo({ support, primaryColor, language }: SupportInfoProps) {
+  if (!support.phone && !support.email && !support.whatsapp) return null;
+
+  return (
+    <div className="mx-auto max-w-md px-4 pb-6">
+      <div className="rounded-xl border border-border p-4 flex flex-col gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{labels[language]?.needHelp}</p>
+        <div className="flex flex-wrap gap-3">
+          {support.phone && (
+            <a
+              href={`tel:${support.phone}`}
+              className="flex items-center gap-1.5 text-sm font-medium hover:underline"
+              style={{ color: primaryColor }}
+            >
+              <Phone className="h-3.5 w-3.5" />
+              {support.phone}
+            </a>
+          )}
+          {support.email && (
+            <a
+              href={`mailto:${support.email}`}
+              className="flex items-center gap-1.5 text-sm font-medium hover:underline"
+              style={{ color: primaryColor }}
+            >
+              <Mail className="h-3.5 w-3.5" />
+              {support.email}
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+export function PackageGrid({ packages, primaryColor, onPay, currency, language }: PackageGridProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const phoneSchema = phoneSchemaDef({ min: 10, max: 13, language: language });
+
+  const phoneResult = phoneSchema.safeParse(phone);
+  const phoneError = phone.length >= 10 && !phoneResult.success
+    ? phoneResult.error.errors[0]?.message
+    : null;
+  const canPay = phoneResult.success;
+
+  function handleSelect(pkg: Package) {
+    if (pkg.isFree) {
+      onPay({ pkg, phone: "" });
+    } else {
+      if (selectedId === pkg._id) {
+        setSelectedId(null);
+        setPhone("");
+      } else {
+        setSelectedId(pkg._id);
+        setPhone("");
+      }
+    }
+  }
+
+  if (packages.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-12 text-center">
+        <Wifi className="h-10 w-10 text-muted-foreground/40" />
+        <p className="text-sm text-muted-foreground">{labels[language]?.noPackages || "No packages available on this network."}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {packages.map((pkg) => {
+        const isOpen = selectedId === pkg._id;
+
+        return (
+          <div
+            key={pkg._id}
+            className="rounded-2xl border-2 overflow-hidden transition-all portal-card"
+            style={{
+              borderColor: isOpen ? primaryColor : "var(--border)",
+              /* background: "var(--card)", */
+            }}
+          >
+            {/* Package row */}
+            <div className="flex items-center justify-between gap-3 p-4">
+              <div className="flex flex-col gap-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground leading-tight">{pkg.name}</span>
+                {pkg.description && (
+                  <span className="text-xs text-muted-foreground leading-snug">{pkg.description}</span>
+                )}
+                <div className="flex items-center gap-3 mt-1 flex-wrap">
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {formatDuration(pkg.duration, labels[language]?.duration[pkg.durationUnit], language)}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Wifi className="h-3 w-3" />
+                    {formatData(pkg.dataLimit, pkg.dataLimitUnit, labels[language]?.unlimited)}
+                  </span>
+                  {/* <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Zap className="h-3 w-3" />
+                    {formatSpeed(pkg.speedLimit, labels[language]?.unlimited)}
+                  </span> */}
+                </div>
+              </div>
+
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                {!pkg.isFree && (<div
+                  className="px-3 py-1.5 text-center"
+
+                >
+                  <p className="portal-price text-2xl leading-none">
+                    <span className="portal-currency text-xs font-medium leading-none mb-0.5">{currency}</span>
+                    {pkg.price.toLocaleString()}</p>
+                </div>)}
+                <Button
+                  size="sm"
+                  onClick={() => handleSelect(pkg)}
+                  className="portal-button h-8 px-4 text-xs font-semibold flex items-center gap-1"
+                  style={
+                    isOpen
+                      ? { background: "var(--muted)", color: "var(--muted-foreground)" }
+                      : { background: primaryColor, color: "#fff" }
+                  }
+                >
+                  {pkg.isFree ? labels[language]?.connect || "Connect" : isOpen ? <><ChevronUp className="h-3 w-3" />{labels[language]?.close || "Close"}</> : labels[language]?.select || "Select"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Inline phone input section */}
+            {isOpen && (
+              <div
+                className="border-t px-4 pb-4 pt-4 flex flex-col gap-3"
+                style={{ borderColor: `${primaryColor}30`, background: `${primaryColor}06` }}
+              >
+                <p className="text-xs font-semibold text-foreground">
+                  {labels[language]?.payFor || "Paying for"}:
+                  <span style={{ color: primaryColor }}>{pkg.name}</span>
+                  <span className="text-muted-foreground font-normal"> - {currency} {pkg.price.toLocaleString()}</span>
+                </p>
+
+                {/* Phone input */}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">{labels[language]?.phone || "Phone Number"}</Label>
+                  <Input
+                    type="tel"
+                    placeholder="0712 XXX XXX"
+                    value={phone}
+                    autoFocus
+                    onChange={(e) => setPhone(e.target.value.replace(/\s/g, ''))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && canPay) {
+                        e.preventDefault();
+                        onPay({ pkg, phone })
+                      }
+                    }}
+                    /* className="h-10 focus-visible:outline-none focus-visible:ring-2" */
+                    className="h-10 bg-background text-foreground placeholder:text-muted-foreground"
+                    style={{
+                      borderColor: primaryColor,
+                      boxShadow: `0 0 0 2px ${primaryColor}33`,
+                    }}
+                  />
+                  {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
+                </div>
+
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onPay({ pkg, phone });
+                  }}
+                  disabled={!canPay}
+                  className="portal-button w-full h-11 font-semibold text-sm"
+                  style={canPay ? { background: primaryColor, color: "#fff" } : { background: `${primaryColor}2a`, color: "#000" }}
+                >
+                  {`${labels[language]?.pay || "Pay Now"} ${currency} ${pkg.price.toLocaleString()}`}
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 
 function SpinnerRing({ color }: { color: string }) {
   return (
