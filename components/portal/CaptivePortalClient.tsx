@@ -368,8 +368,7 @@ export function CaptivePortalClient() {
         setConfig(cfg.data ?? cfg);
         (pkgs).sort((a, b) => a.price - b.price);
         setPackages(pkgs ?? pkgs);
-      } catch(error) {
-        alert(error)
+      } catch {
         setConfig(DEFAULT_CONFIG);
         setPackages([]);
       } finally {
