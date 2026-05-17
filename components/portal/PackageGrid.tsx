@@ -80,7 +80,7 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
         return (
           <div
             key={pkg._id}
-            className="rounded-2xl border-2 overflow-hidden transition-all bg-card"
+            className="rounded-2xl border-2 overflow-hidden transition-all portal-card"
             style={{
               borderColor: isOpen ? primaryColor : "var(--border)",
               /* background: "var(--card)", */
@@ -114,12 +114,14 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
                   className="px-3 py-1.5 text-center"
 
                 >
-                  <p className="text-xl font-bold leading-none" style={{ color: primaryColor }}><span className="text-xs font-medium leading-none mb-0.5" style={{ color: primaryColor }}>{currency}</span> {pkg.price.toLocaleString()}</p>
+                  <p className="portal-price text-2xl leading-none">
+                    <span className="portal-currency text-xs font-medium leading-none mb-0.5">{currency}</span>
+                    {pkg.price.toLocaleString()}</p>
                 </div>)}
                 <Button
                   size="sm"
                   onClick={() => handleSelect(pkg)}
-                  className="h-8 px-4 text-xs font-semibold flex items-center gap-1"
+                  className="portal-button h-8 px-4 text-xs font-semibold flex items-center gap-1"
                   style={
                     isOpen
                       ? { background: "var(--muted)", color: "var(--muted-foreground)" }
@@ -174,7 +176,7 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
                     onPay({ pkg, phone });
                   }}
                   disabled={!canPay}
-                  className="w-full h-11 font-semibold text-sm"
+                  className="portal-button w-full h-11 font-semibold text-sm"
                   style={canPay ? { background: primaryColor, color: "#fff" } : { background: `${primaryColor}2a`, color: "#000" }}
                 >
                   {`${labels[language]?.pay || "Pay Now"} ${currency} ${pkg.price.toLocaleString()}`}

@@ -522,7 +522,7 @@ export function CaptivePortalClient() {
             <OutOfServiceNotification config={config} />
           ) : resolvedMode === "both" ? (
             <Tabs defaultValue="packages">
-              <TabsList className="w-full">
+              <TabsList className="portal-tabs w-full">
                 <TabsTrigger value="packages" className="flex-1">
                   {labels[config.language]?.buyPackage || "Buy Package"}
                 </TabsTrigger>
