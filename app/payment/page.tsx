@@ -10,7 +10,7 @@ import SocketClient from "@/lib/socket.util";
 import { apiClient, imageUrl } from "@/lib/api";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
-import { phoneSchemaDef } from "@/components/portal/PackageGrid";
+import { phoneSchemaDef } from "@/components/portal/CaptivePortalClient";
 import { formatData, formatDuration, formatSpeed } from "@/lib/utils";
 
 // Labels with English and Swahili translations

@@ -16,9 +16,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { phoneSchemaDef } from "@/components/portal/PackageGrid";
 import SocketClient from "@/lib/socket.util";
-import { PayResult } from "@/components/portal/CaptivePortalClient";
+import { PayResult, phoneSchemaDef } from "@/components/portal/CaptivePortalClient";
 import { formatDate } from "@/lib/utils";
 
 
