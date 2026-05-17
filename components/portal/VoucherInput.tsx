@@ -33,7 +33,12 @@ export function VoucherInput({ primaryColor, onRedeem, loading, language }: Vouc
           placeholder="e.g. NB1234"
           value={code}
           onChange={(e) => { setCode(e.target.value.toUpperCase()); }}
-          onKeyDown={(e) => e.key === "Enter" && onRedeem(code)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onRedeem(code)
+            }
+          }}
           className="h-10 focus-visible:outline-none focus-visible:ring-2 text-center font-mono text-lg tracking-widest uppercase"
           style={{
             borderColor: primaryColor,
@@ -44,7 +49,10 @@ export function VoucherInput({ primaryColor, onRedeem, loading, language }: Vouc
       </div>
 
       <Button
-        onClick={() => onRedeem(code.trim())}
+        onClick={(e) => {
+          e.preventDefault();
+          onRedeem(code.trim());
+        }}
         disabled={loading || !code.trim() || code.length < 8 || code.length > 10}
         className="w-full h-11 font-semibold text-sm"
         style={{ background: primaryColor, color: "white" }}

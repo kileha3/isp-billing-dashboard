@@ -152,7 +152,12 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
                     value={phone}
                     autoFocus
                     onChange={(e) => setPhone(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && canPay && onPay({ pkg, phone })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && canPay) {
+                        e.preventDefault();
+                        onPay({ pkg, phone })
+                      }
+                    }}
                     className="h-10 focus-visible:outline-none focus-visible:ring-2"
                     style={{
                       borderColor: primaryColor,
@@ -163,7 +168,10 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
                 </div>
 
                 <Button
-                  onClick={() => onPay({ pkg, phone })}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onPay({ pkg, phone });
+                  }}
                   disabled={!canPay}
                   className="w-full h-11 font-semibold text-sm"
                   style={canPay ? { background: primaryColor, color: "#fff" } : { background: `${primaryColor}2a`, color: "#000" }}
