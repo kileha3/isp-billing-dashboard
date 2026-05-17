@@ -438,7 +438,7 @@ export default function RoutersPage() {
 
   const handleChangeState = async (router: RouterDevice) => {
     await apiClient.routers.update(router._id, { isActive: !router.isActive });
-    load();
+    load(false);
     toast({ title: `Router ${router.isActive ? "deactivated" : "activated"} successfully` });
   }
 
@@ -602,10 +602,10 @@ export default function RoutersPage() {
                   <BrushCleaning className="mr-2 h-4 w-4" />
                   Reset Device
                 </DropdownMenuItem>)}
-                <DropdownMenuItem onClick={() => handleChangeState(r)}>
+                {r.status !== "offline" && (<DropdownMenuItem onClick={() => handleChangeState(r)}>
                   {r.isActive ? (<RouteOff className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
                   {r.isActive ? "Deactivate" : "Activate"}
-                </DropdownMenuItem>
+                </DropdownMenuItem>)}
                 {isSuperAdmin && (<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete

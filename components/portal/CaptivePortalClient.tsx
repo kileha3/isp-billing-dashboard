@@ -342,7 +342,11 @@ export function CaptivePortalClient() {
   const [isFree, setIsFree] = useState(false);
   const [payState, setPayState] = useState<PayState>("idle");
 
-
+  const loadingCompleted = () => {
+    window.parent.postMessage({
+      type: "HIDE_LOADING"
+    }, "*");
+  }
 
   const reflectOnUI = (success: boolean, voucher: string | null | undefined) => {
     if (success && voucher) setTimeout(() => grantAccess(voucher), 1500)
@@ -371,6 +375,7 @@ export function CaptivePortalClient() {
         setPackages([]);
       } finally {
         setLoading(false);
+        loadingCompleted();
       }
     }
     init();
