@@ -71,15 +71,16 @@ export const labels: any = {
     processPay: "Processing Payment",
     voucherConfirmation: "Please wait for confirmation...",
     paymentConfirmation: "Enter your PIN on your phone to confirm.",
-    duration: { minutes: "minutes", hours: "hours", days: "days", week:"week", weeks:"weeks", months: "months" },
+    duration: { minutes: "minutes", hours: "hours", days: "days", week: "week", weeks: "weeks", months: "months" },
     unlimited: "Unlimited",
     phoneError: "Enter a valid phone number (e.g. 0712 XXX XXX)",
     tryError: "Service Not Available",
     tryErrorDescription: "You have already tried our service, please purchase a package to continue.",
     connectionLabel: "Connect to the internet",
-    needHelp:"Need help?",
+    needHelp: "Need help?",
     outOfService: "Service Temporarily Unavailable",
     outOfServiceDescription: "Our service is currently unavailable. We are handling technical faults, Please contact our support team for assistance.",
+    placeholder: "e.g XYZ12ABC"
   },
   sw: {
     buyPackage: "Nunua Bando",
@@ -113,15 +114,16 @@ export const labels: any = {
     processPay: "Inachakata Malipo",
     voucherConfirmation: "Tafadhali subiri uthibitisho...",
     paymentConfirmation: "Weka PIN yako kwenye simu yako kuthibitisha.",
-    duration: { minutes: "dakika", hours: "saa", days: "siku",week:"wiki", weeks:"wiki", months: "mwezi" },
+    duration: { minutes: "dakika", hours: "saa", days: "siku", week: "wiki", weeks: "wiki", months: "mwezi" },
     unlimited: "Bila Kikomo",
     phoneError: "Weka namba ya simu sahihi (mfano 0712 XXX XXX)",
     tryError: "Huduma haipatikani",
     tryErrorDescription: "Umekwishajaribu huduma yetu tayari, tafadhali nunua bando kupata huduma",
     connectionLabel: "Peruzi bila Kikomo",
-    needHelp:"Wahitaji Msaada?",
+    needHelp: "Wahitaji Msaada?",
     outOfService: "Huduma Haipatikani Kwa Sasa",
     outOfServiceDescription: "Huduma yetu haipatikani kwa sasa. Kuna matatizo ya kiufundi tunarekebisha, tafadhali wasiliana na timu yetu ya usaidizi kwa msaada wa haraka.",
+    placeholder: "Mfano. XYZ12ABC"
   }
 }
 
@@ -178,11 +180,7 @@ function PaymentOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6 text-center"
-      style={{
-        background: "rgba(255,255,255,0.97)",
-        backdropFilter: "blur(6px)",
-      }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6 text-center bg-background/95 backdrop-blur"
     >
       {isProcessing && (
         <div className="flex flex-col items-center gap-6">
@@ -292,32 +290,32 @@ function PaymentOverlay({
 
 function OutOfServiceNotification({ config }: { config: TenantPortalSettings }) {
   const primaryColor = "#EF4444";
-  
+
   return (
     <div className="mt-4">
       {/* Main Card */}
       <div className="overflow-hidden">
         {/* Gradient Header */}
-        <div 
+        <div
           className="px-2 py-8 text-center"
-         
+
         >
           <div
             className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl mb-4 mt-5"
-            style={{ 
-              background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}cc 100%)`,
+            style={{
+              background: primaryColor,
               boxShadow: `0 10px 25px -5px ${primaryColor}40`
             }}
           >
-            <WifiOff className="text-white h-10 w-14"/>
+            <WifiOff className="text-white h-10 w-14" />
           </div>
-          
+
           <h2 className="text-2xl font-bold py-6" style={{ color: config.branding.primaryColor }}>
             {labels[config.language]?.outOfService || "Service Temporarily Unavailable"}
           </h2>
-          
+
           <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-            {labels[config.language]?.outOfServiceDescription || 
+            {labels[config.language]?.outOfServiceDescription ||
               "Our service is currently unavailable. Please contact our support team for assistance."}
           </p>
         </div>
@@ -327,7 +325,7 @@ function OutOfServiceNotification({ config }: { config: TenantPortalSettings }) 
 }
 
 export function CaptivePortalClient() {
-  const params = useSearchParams(); 
+  const params = useSearchParams();
   const nasName = decodeURIComponent(params.get("nasname") ?? "");
   const deviceMac = decodeURIComponent(params.get("mac") ?? "");
   const deviceIp = decodeURIComponent(params.get("ip") ?? "");
@@ -360,7 +358,7 @@ export function CaptivePortalClient() {
         setLoading(true);
         const [cfg, pkgs, session] = await Promise.all([
           apiClient.portal.getConfig(nasName, authToken),
-          apiClient.portal.getPackages({nasName, authToken, deviceMac}),
+          apiClient.portal.getPackages({ nasName, authToken, deviceMac }),
           apiClient.portal.checkSession({ deviceMac, nasName, authToken }),
         ]);
         if (session.success && session.voucher) {
@@ -448,7 +446,7 @@ export function CaptivePortalClient() {
               ({ success, voucher }) => reflectOnUI(success, voucher), 24 * 1000, () => apiClient.portal.checkStatus({
                 orderId, nasName, authToken
               }))
-          }else {
+          } else {
             reflectOnUI(false, null);
           }
         }
@@ -498,7 +496,7 @@ export function CaptivePortalClient() {
   }
 
   return (
-    <div className="min-h-screen bg-background" style={portalVars}>
+    <div className="min-h-screen bg-background cp-theme" style={portalVars}>
       {payState !== "idle" && (
         <PaymentOverlay
           state={payState}
@@ -570,12 +568,12 @@ export function CaptivePortalClient() {
           )}
         </div>
 
-        {config.portalSettings.termsUrl &&  config.active && (
+        {config.portalSettings.termsUrl && config.active && (
           <p className="text-center text-xs text-muted-foreground">
             {labels[config.language]?.connecting || "By connecting you agree to our"}{" "}
             <a
               href={`/terms-and-conditions?${params.toString()}&ref=portal`}
-              target="_self" 
+              target="_self"
               rel="noopener noreferrer"
               className="underline"
               style={{ color: primaryColor }}
@@ -586,7 +584,7 @@ export function CaptivePortalClient() {
         )}
       </div>
 
-      {config.support.showOnPortal &&  (
+      {config.support.showOnPortal && (
         <SupportInfo support={config.support} language={config.language} primaryColor={primaryColor} />
       )}
 

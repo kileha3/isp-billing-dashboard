@@ -8,19 +8,21 @@ interface PortalHeaderProps {
   connectionLabel: string;
 }
 
-export function PortalHeader({ config, connectionLabel}: PortalHeaderProps) {
+export function PortalHeader({ config, connectionLabel }: PortalHeaderProps) {
   const { primaryColor, secondaryColor, logo, businessName } = config.branding;
 
 
   return (
     <header
-      className="w-full px-6 py-5 flex items-center gap-4"
-      style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
+      className="w-full px-6 py-5 flex items-center gap-4 text-white"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+      }}
     >
       {/* Logo */}
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 shrink-0 overflow-hidden">
+      <div className={`flex h-${logo && logo.length > 9 ? "13" : "12"} w-${logo && logo.length > 9 ? "13" : "12"} items-center justify-center rounded-${logo && logo.length > 9 ? "3xl" : "xl"} bg-white/20 shrink-0 overflow-hidden`}>
         {logo && logo.length > 9 ? (
-          <img src={imageUrl(logo)} alt={businessName} className="h-10 w-10 object-contain" />
+          <img src={imageUrl(logo)} alt={businessName} className="h-13 w-13 object-contain rounded-3xl" />
         ) : (
           <Wifi className="h-6 w-6 text-white" />
         )}

@@ -30,16 +30,17 @@ export function VoucherInput({ primaryColor, onRedeem, loading, language }: Vouc
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs font-medium">{labels[language]?.voucherCode || "Voucher Code"}</Label>
         <Input
-          placeholder="e.g. NB1234"
+          placeholder={labels[language]?.placeholder}
           value={code}
-          onChange={(e) => { setCode(e.target.value.toUpperCase()); }}
+          onChange={(e) => { setCode(e.target.value.replace(/\s/g, '').toUpperCase()); }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
               onRedeem(code)
             }
           }}
-          className="h-10 focus-visible:outline-none focus-visible:ring-2 text-center font-mono text-lg tracking-widest uppercase"
+          /* className="h-10 focus-visible:outline-none focus-visible:ring-2 text-center font-mono text-lg tracking-widest uppercase" */
+           className="h-10 bg-background text-foreground placeholder:text-muted-foreground text-center font-mono text-lg tracking-widest uppercase"
           style={{
             borderColor: primaryColor,
             boxShadow: `0 0 0 2px ${primaryColor}33`,

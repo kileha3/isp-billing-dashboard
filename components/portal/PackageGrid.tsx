@@ -80,10 +80,10 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
         return (
           <div
             key={pkg._id}
-            className="rounded-2xl border-2 overflow-hidden transition-all"
+            className="rounded-2xl border-2 overflow-hidden transition-all bg-card"
             style={{
               borderColor: isOpen ? primaryColor : "var(--border)",
-              background: "var(--card)",
+              /* background: "var(--card)", */
             }}
           >
             {/* Package row */}
@@ -151,14 +151,15 @@ export function PackageGrid({ packages, primaryColor, onPay, currency, language 
                     placeholder="0712 XXX XXX"
                     value={phone}
                     autoFocus
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/\s/g, ''))}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && canPay) {
                         e.preventDefault();
                         onPay({ pkg, phone })
                       }
                     }}
-                    className="h-10 focus-visible:outline-none focus-visible:ring-2"
+                    /* className="h-10 focus-visible:outline-none focus-visible:ring-2" */
+                    className="h-10 bg-background text-foreground placeholder:text-muted-foreground"
                     style={{
                       borderColor: primaryColor,
                       boxShadow: `0 0 0 2px ${primaryColor}33`,
