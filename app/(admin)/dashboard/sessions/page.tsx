@@ -192,7 +192,11 @@ export default function SessionsPage() {
   };
 
   const filteredSessions = getFilteredSessions();
+  
+  // Calculate session statistics
   const active = filteredSessions.filter(s => s.status === "active");
+  const offline = filteredSessions.filter(s => s.status === "offline");
+  const expired = filteredSessions.filter(s => s.status === "expired");
   const totalData = filteredSessions.reduce((sum, s) => sum + ((s.usage.output + s.usage.input)), 0);
 
   // History table columns (without sessions column)
@@ -267,8 +271,10 @@ export default function SessionsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <StatCard label="Active Sessions" value={active.length} icon={Activity} changePositive />
+        <StatCard label="Offline Sessions" value={offline.length} icon={WifiOff} />
+        <StatCard label="Expired Sessions" value={expired.length} icon={Clock} />
         <StatCard label="Total Sessions" value={filteredSessions.length} icon={Wifi} />
         <StatCard label="Total Data Used" value={formatBytes(totalData)} icon={Clock} />
       </div>
