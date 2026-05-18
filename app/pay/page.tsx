@@ -1,11 +1,12 @@
 import { Suspense } from "react";
-import { CaptivePortalClient } from "@/components/portal/CaptivePortalClient";
+import { CaptivePortalClientTemp2 } from "@/components/portal/CaptivePortalClientTemp2";
+import { CaptivePortalClientTemp1 } from "@/components/portal/CaptivePortalClientTemp1";
 
 export default function PayPage() {
   return (
     <div className="cp-theme min-h-screen">
       <Suspense fallback={<PortalSkeleton />}>
-        <CaptivePortalClient />
+        <CaptivePortalClientTemp2 />
       </Suspense>
     </div>
   );

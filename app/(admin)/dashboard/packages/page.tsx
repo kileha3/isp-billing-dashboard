@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { labels } from "@/components/portal/CaptivePortalClient";
+import { labels } from "@/components/portal/CaptivePortalClientTemp1";
 import { formatDuration, formatData, formatSpeed } from "@/lib/utils";
 
 const packageSchema = z.object({

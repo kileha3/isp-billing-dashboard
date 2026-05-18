@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Wifi, Clock, ChevronUp } from "lucide-react";
 import { formatData, formatDuration } from "@/lib/utils";
 
-const DEFAULT_CONFIG: TenantPortalSettings = {
+export const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
     logo: "",
     primaryColor: "#3B82F6",
@@ -163,7 +163,7 @@ export function VoucherInput({ primaryColor, onRedeem, loading, language }: Vouc
             }
           }}
           /* className="h-10 focus-visible:outline-none focus-visible:ring-2 text-center font-mono text-lg tracking-widest uppercase" */
-           className="h-10 bg-background text-foreground placeholder:text-muted-foreground text-center font-mono text-lg tracking-widest uppercase"
+          className="h-10 bg-background text-foreground placeholder:text-muted-foreground text-center font-mono text-lg tracking-widest uppercase"
           style={{
             borderColor: primaryColor,
             boxShadow: `0 0 0 2px ${primaryColor}33`,
@@ -639,7 +639,7 @@ function OutOfServiceNotification({ config }: { config: TenantPortalSettings }) 
   );
 }
 
-export function CaptivePortalClient() {
+export function CaptivePortalClientTemp1() {
   const params = useSearchParams();
   const nasName = decodeURIComponent(params.get("nasname") ?? "");
   const deviceMac = decodeURIComponent(params.get("mac") ?? "");
@@ -664,39 +664,6 @@ export function CaptivePortalClient() {
   const reflectOnUI = (success: boolean, voucher: string | null | undefined) => {
     if (success && voucher) setTimeout(() => grantAccess(voucher), 1500)
     setPayState(success && voucher ? "success" : "failure");
-    setTimeout(() => resetUi, 3000);
-  }
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        setLoading(true);
-        const [cfg, pkgs, session] = await Promise.all([
-          apiClient.portal.getConfig(nasName, authToken),
-          apiClient.portal.getPackages({ nasName, authToken, deviceMac }),
-          apiClient.portal.checkSession({ deviceMac, nasName, authToken }),
-        ]);
-        if (session.success && session.voucher) {
-          grantAccess(session.voucher);
-          return;
-        }
-        setConfig(cfg.data ?? cfg);
-        (pkgs).sort((a, b) => a.price - b.price);
-        setPackages(pkgs ?? pkgs);
-      } catch {
-        setConfig(DEFAULT_CONFIG);
-        setPackages([]);
-      } finally {
-        setLoading(false);
-        loadingCompleted();
-      }
-    }
-    init();
-  }, [nasName, deviceMac, authToken]);
-
-  const resetUi = () => {
-    document.body.style.transition = "opacity 1s";
-    document.body.style.opacity = "0";
   }
 
   const grantAccess = (voucher: string) => {
@@ -779,6 +746,36 @@ export function CaptivePortalClient() {
   const handleDismissFailure = useCallback(() => {
     setPayState("idle");
   }, []);
+
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        setLoading(true);
+        const [cfg, pkgs, session] = await Promise.all([
+          apiClient.portal.getConfig(nasName, authToken),
+          apiClient.portal.getPackages({ nasName, authToken, deviceMac }),
+          apiClient.portal.checkSession({ deviceMac, nasName, authToken }),
+        ]);
+        if (session.success && session.voucher) {
+          grantAccess(session.voucher);
+          return;
+        }
+        setConfig(cfg.data ?? cfg);
+        (pkgs).sort((a, b) => a.price - b.price);
+        setPackages(pkgs ?? pkgs);
+      } catch {
+        setConfig(DEFAULT_CONFIG);
+        setPackages([]);
+      } finally {
+        setLoading(false);
+        loadingCompleted();
+      }
+    }
+    init();
+  }, [nasName, deviceMac, authToken]);
+
+
 
   const { primaryColor, secondaryColor } = config.branding;
   const { displayMode } = config.portalSettings;

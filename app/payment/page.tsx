@@ -10,7 +10,7 @@ import SocketClient from "@/lib/socket.util";
 import { apiClient, imageUrl } from "@/lib/api";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
-import { phoneSchemaDef } from "@/components/portal/CaptivePortalClient";
+import { DEFAULT_CONFIG, phoneSchemaDef } from "@/components/portal/CaptivePortalClientTemp1";
 import { formatData, formatDuration, formatSpeed } from "@/lib/utils";
 
 // Labels with English and Swahili translations
@@ -99,30 +99,6 @@ export const labels: any = {
     email: "Barua pepe",
     whatsapp: "WhatsApp",
   }
-};
-
-// Default configuration
-const DEFAULT_CONFIG: TenantPortalSettings = {
-  branding: {
-    logo: "",
-    primaryColor: "#3B82F6",
-    secondaryColor: "#1E40AF",
-    businessName: "NetBill WiFi",
-  },
-  support: {
-    phone: "+255700000000",
-    email: "support@example.com",
-    whatsapp: "",
-    showOnPortal: true,
-  },
-  portalSettings: {
-    displayMode: "packages_only",
-    welcomeMessage: "Welcome! Select a package to get connected.",
-    termsUrl: "",
-    showPoweredBy: true,
-  },
-  currency: "TZS",
-  language: "en"
 };
 
 

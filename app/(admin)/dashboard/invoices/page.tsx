@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import SocketClient from "@/lib/socket.util";
-import { PayResult, phoneSchemaDef } from "@/components/portal/CaptivePortalClient";
+import { PayResult, phoneSchemaDef } from "@/components/portal/CaptivePortalClientTemp1";
 import { formatDate } from "@/lib/utils";
 
 
