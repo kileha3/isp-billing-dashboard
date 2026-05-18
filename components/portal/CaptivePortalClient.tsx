@@ -117,7 +117,7 @@ export const labels: any = {
     processPay: "Inachakata Malipo",
     voucherConfirmation: "Tafadhali subiri uthibitisho...",
     paymentConfirmation: "Weka PIN kwenye simu yako kuthibitisha malipo.",
-    duration: { minutes: "dakika", hours: "saa", days: "siku", week: "wiki", weeks: "wiki", months: "mwezi" },
+    duration: { minutes: "Dakika", hours: "Saa", days: "Siku", week: "Wiki", weeks: "Wiki", months: "Mwezi" },
     unlimited: "Bila Kikomo",
     phoneError: "Weka namba ya simu sahihi (mfano 0712 XXX XXX)",
     tryError: "Huduma haipatikani",
@@ -202,13 +202,13 @@ function VoucherInputTemplateOne({ primaryColor, loading, language, onRedeem }: 
           <div
             className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl"
             style={{
-              background: `${primaryColor}14`,
+              background: `${primaryColor}90`,
             }}
           >
             <Ticket
-              className="h-5 w-5"
+              className="h-7 w-7"
               style={{
-                color: primaryColor,
+                color: `${primaryColor}5`,
               }}
             />
           </div>
