@@ -41,6 +41,7 @@ export interface TenantPortalSettings {
   currency: string;
   language: string;
   active: boolean;
+  template: string;
 }
 
 export interface PPPoEUser {
