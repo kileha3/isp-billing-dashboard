@@ -253,23 +253,31 @@ export default function VouchersPage() {
 
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 md:gap-6">
+      {/* Header Section - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Vouchers</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create vochers for your customer to consume
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Vouchers</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1">
+            Create vouchers for your customer to consume
           </p>
         </div>
-        <div className="flex items-center gap-2">
-
-
-          <Button variant="outline" onClick={() => setShowPrintDialog(true)}>
-            <Printer className="h-4 w-4 mr-2" />
+        
+        {/* Action Buttons - Responsive layout */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowPrintDialog(true)}
+            className="w-full sm:w-auto h-9 md:h-10 text-xs md:text-sm"
+          >
+            <Printer className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
             Print Vouchers
           </Button>
-          <Button onClick={() => setShowGenerate(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={() => setShowGenerate(true)}
+            className="w-full sm:w-auto h-9 md:h-10 text-xs md:text-sm"
+          >
+            <Plus className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
             Generate Vouchers
           </Button>
         </div>
@@ -285,10 +293,10 @@ export default function VouchersPage() {
         emptyMessage="No vouchers yet. Generate some to get started."
         pageSize={10}
         filterSlot={
-          <div className="flex flex-row gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
-              <SelectTrigger className="h-10 w-40 bg-background">
-                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              <SelectTrigger className="h-9 md:h-10 w-full sm:w-40 bg-background text-xs md:text-sm">
+                <Filter className="h-3 w-3 md:h-3.5 md:w-3.5 mr-1 md:mr-2 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -299,8 +307,13 @@ export default function VouchersPage() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            <Button 
+              variant="outline" 
+              onClick={() => load(false)} 
+              disabled={loading} 
+              className="hidden sm:flex h-9 md:h-10 text-xs md:text-sm"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
           </div>
@@ -311,102 +324,94 @@ export default function VouchersPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="h-4 w-4" />
+                  <MoreHorizontal className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {voucher.status === "used" && (<DropdownMenuItem onClick={() => setVoucherToRevoke(row as unknown as Voucher)}>
-                  <Lock className="mr-2 h-4 w-4" />Revoke Access
-                </DropdownMenuItem>)}
-                {voucher.status !== "used" && (<DropdownMenuItem className="text-destructive" onClick={() => setVoucherToDelete(row as unknown as Voucher)}>
-                  <Trash2 className="mr-2 h-4 w-4" />Delete
-                </DropdownMenuItem>)}
+                {voucher.status === "used" && (
+                  <DropdownMenuItem onClick={() => setVoucherToRevoke(row as unknown as Voucher)}>
+                    <Lock className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                    Revoke Access
+                  </DropdownMenuItem>
+                )}
+                {voucher.status !== "used" && (
+                  <DropdownMenuItem className="text-destructive" onClick={() => setVoucherToDelete(row as unknown as Voucher)}>
+                    <Trash2 className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           );
         }}
       />
 
+      {/* Generate Voucher Dialog - Mobile Friendly */}
       <Dialog open={showGenerate} onOpenChange={setShowGenerate}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-[95vw] sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Generate Vouchers</DialogTitle>
+            <DialogTitle className="text-base md:text-lg">Generate Vouchers</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label>Package</Label>
+                <Label className="text-sm md:text-base">Package</Label>
                 <Select value={form.packageId} onValueChange={(v) => setForm(f => ({ ...f, packageId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select package…" /></SelectTrigger>
+                  <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm">
+                    <SelectValue placeholder="Select package…" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {(packages || []).map(p => <SelectItem key={p._id} value={p._id}>{p.name} — Tsh {p.price}</SelectItem>)}
+                    {(packages || []).map(p => (
+                      <SelectItem key={p._id} value={p._id} className="text-xs md:text-sm">
+                        {p.name} — Tsh {p.price}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Quantity</Label>
-                <Input type="number" min="1" max="500" value={form.quantity} onChange={(e) => setForm(f => ({ ...f, quantity: e.target.value }))} />
+                <Label className="text-sm md:text-base">Quantity</Label>
+                <Input 
+                  type="number" 
+                  min="1" 
+                  max="500" 
+                  value={form.quantity} 
+                  onChange={(e) => setForm(f => ({ ...f, quantity: e.target.value }))}
+                  className="h-9 md:h-10 text-xs md:text-sm"
+                />
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGenerate(false)}>Cancel</Button>
-            <Button onClick={handleGenerate} disabled={submitting || !generateValid}>
-              <Printer className="h-4 w-4 mr-2" />
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowGenerate(false)}
+              className="flex-1 sm:flex-none h-9 md:h-10 text-xs md:text-sm"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleGenerate} 
+              disabled={submitting || !generateValid}
+              className="flex-1 sm:flex-none h-9 md:h-10 text-xs md:text-sm"
+            >
+              <Printer className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2" />
               {submitting ? "Generating…" : `Generate ${form.quantity}`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {voucherToDelete && (<ConfirmDialog
-        open={voucherToDelete !== null}
-        title="Delete Voucher"
-        message={`Are you sure you want to delete ${voucherToDelete!.code}? This action cannot be undone.`}
-        variant="destructive"
-        onCancel={() => setVoucherToDelete(null)}
-        onConfirm={async () => {
-          const id = voucherToDelete!._id;
-          setVoucherToDelete(null);
-          try {
-            const { message } = await apiClient.vouchers.delete(id);
-            toast({ title: message });
-            load();
-          } catch (error: any) {
-            toast({ title:  error.message, variant: "destructive" });
-          }
-        }}
-      />)}
-
-
-      {voucherToRevoke && (<ConfirmDialog
-        open={voucherToRevoke !== null}
-        title="Revoke Access"
-        message={`Are you sure you want to revoke clients with code ${voucherToRevoke!.code} access?`}
-        variant="destructive"
-        onCancel={() => setVoucherToRevoke(null)}
-        onConfirm={async () => {
-          const id = voucherToRevoke!._id;
-          setVoucherToRevoke(null);
-          try {
-            const { message } = await apiClient.vouchers.revoke(id);
-            toast({ title: message });
-            load();
-          } catch (error: any) {
-            toast({ title:  error.message, variant: "destructive" });
-          }
-        }}
-      />)}
-
+      {/* Print Settings Dialog - Mobile Friendly */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Print Settings</DialogTitle>
+            <DialogTitle className="text-base md:text-lg">Print Settings</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
-            <div>
-              <Label>Columns</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm md:text-base">Columns</Label>
               <Input
                 type="number"
                 value={printConfig.columns}
@@ -419,11 +424,12 @@ export default function VouchersPage() {
                         : Number(e.target.value),
                   }))
                 }
+                className="h-9 md:h-10 text-xs md:text-sm"
               />
             </div>
 
-            <div>
-              <Label>Rows</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm md:text-base">Rows</Label>
               <Input
                 type="number"
                 value={printConfig.rowsPerPage}
@@ -436,22 +442,71 @@ export default function VouchersPage() {
                         : Number(e.target.value),
                   }))
                 }
+                className="h-9 md:h-10 text-xs md:text-sm"
               />
             </div>
-            <div className="text-right text-xs text-muted-foreground">
+            <div className="text-right text-xs md:text-sm text-muted-foreground">
               Total per page
-              <div className="text-sm font-medium text-foreground">
+              <div className="text-sm md:text-base font-medium text-foreground">
                 {totalPerPage} / Page
               </div>
             </div>
           </div>
 
           <DialogFooter>
-
-            <Button onClick={handlePrint}>Print</Button>
+            <Button 
+              onClick={handlePrint}
+              className="w-full sm:w-auto h-9 md:h-10 text-xs md:text-sm"
+            >
+              Print
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      {voucherToDelete && (
+        <ConfirmDialog
+          open={voucherToDelete !== null}
+          title="Delete Voucher"
+          message={`Are you sure you want to delete ${voucherToDelete!.code}? This action cannot be undone.`}
+          variant="destructive"
+          onCancel={() => setVoucherToDelete(null)}
+          onConfirm={async () => {
+            const id = voucherToDelete!._id;
+            setVoucherToDelete(null);
+            try {
+              const { message } = await apiClient.vouchers.delete(id);
+              toast({ title: message });
+              load();
+            } catch (error: any) {
+              toast({ title: error.message, variant: "destructive" });
+            }
+          }}
+        />
+      )}
+
+      {/* Revoke Access Confirmation Dialog */}
+      {voucherToRevoke && (
+        <ConfirmDialog
+          open={voucherToRevoke !== null}
+          title="Revoke Access"
+          message={`Are you sure you want to revoke clients with code ${voucherToRevoke!.code} access?`}
+          variant="destructive"
+          onCancel={() => setVoucherToRevoke(null)}
+          onConfirm={async () => {
+            const id = voucherToRevoke!._id;
+            setVoucherToRevoke(null);
+            try {
+              const { message } = await apiClient.vouchers.revoke(id);
+              toast({ title: message });
+              load();
+            } catch (error: any) {
+              toast({ title: error.message, variant: "destructive" });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

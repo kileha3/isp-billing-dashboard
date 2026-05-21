@@ -215,40 +215,62 @@ export default function SessionsPage() {
     { key: "startedAt", label: "Started", render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.start) },
   ];
 
-  // Main table columns
+  // Main table columns (hide some columns on mobile)
   const columns = [
     { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
-    { key: "macAddress", label: "MAC Address", render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac },
-    { key: "router", label: "Router", render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name}` },
+    { 
+      key: "macAddress", 
+      label: "MAC Address", 
+      className: "hidden sm:table-cell",
+      render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac 
+    },
+    { 
+      key: "router", 
+      label: "Router", 
+      className: "hidden md:table-cell",
+      render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name}` 
+    },
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
-    //{ key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
     {
-      key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
+      key: "dataUsed", 
+      label: "Data Used", 
+      render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
         return formatBytes(Number(sess.usage.output + sess.usage.input))
       }
     },
-    { key: "startedAt", label: "Started", render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.start) },
-    { key: "expireOn", label: "Expires", render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.expireOn) },
+    { 
+      key: "startedAt", 
+      label: "Started", 
+      className: "hidden lg:table-cell",
+      render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.start) 
+    },
+    { 
+      key: "expireOn", 
+      label: "Expires", 
+      className: "hidden lg:table-cell",
+      render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.expireOn) 
+    },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v) === "active" ? "online": String(v)} /> },
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 md:gap-6">
+      {/* Header Section - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sessions</h1>
-          <p className="text-sm text-muted-foreground mt-1">Live and historical hotspot sessions</p>
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Sessions</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1">Live and historical hotspot sessions</p>
         </div>
 
-        {/* Date Range Picker */}
-        <div className="relative">
+        {/* Date Range Picker - Responsive */}
+        <div className="relative self-start sm:self-auto">
           <button
             onClick={() => setShowDatePicker(!showDatePicker)}
-            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors"
+            className="flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors"
           >
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{formatDateFnRange()}</span>
+            <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+            <span className="font-medium text-xs md:text-sm">{formatDateFnRange()}</span>
           </button>
 
           {showDatePicker && (
@@ -257,7 +279,7 @@ export default function SessionsPage() {
                 className="fixed inset-0 z-40"
                 onClick={() => setShowDatePicker(false)}
               />
-              <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-3">
+              <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-2 md:p-3">
                 <DayPicker
                   mode="range"
                   selected={dateRange}
@@ -271,12 +293,13 @@ export default function SessionsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-4">
+      {/* Stat Cards - Mobile Friendly Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         <StatCard label="Active Sessions" value={active.length} icon={Activity} changePositive />
         <StatCard label="Offline Sessions" value={offline.length} icon={WifiOff} />
         <StatCard label="Expired Sessions" value={expired.length} icon={Clock} />
         <StatCard label="Total Sessions" value={filteredSessions.length} icon={Wifi} />
-        <StatCard label="Total Data Used" value={formatBytes(totalData)} icon={Clock} />
+        <StatCard label="Total Data" value={formatBytes(totalData)} icon={Clock} />
       </div>
 
       <DataTable
@@ -285,114 +308,124 @@ export default function SessionsPage() {
         loading={loading}
         searchable
         searchKeys={["macAddress", "ipAddress","username","package"] as never}
-        searchPlaceholder="by MAC Address, Username .."
+        searchPlaceholder="by MAC, Username .."
         emptyMessage="No sessions recorded for the selected period."
         pageSize={10}
         filterSlot={
-          <div className="flex items-center gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
-                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Online</SelectItem>
-                <SelectItem value="offline">Offline</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 md:h-10 flex-1 sm:w-36 md:w-44 bg-background text-xs md:text-sm">
+                  <Filter className="h-3 w-3 md:h-3.5 md:w-3.5 mr-1 md:mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Online</SelectItem>
+                  <SelectItem value="offline">Offline</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
-                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="pppoe">PPPoE</SelectItem>
-                <SelectItem value="hotspot">Hotspot</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-9 md:h-10 flex-1 sm:w-36 md:w-44 bg-background text-xs md:text-sm">
+                  <Filter className="h-3 w-3 md:h-3.5 md:w-3.5 mr-1 md:mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="pppoe">PPPoE</SelectItem>
+                  <SelectItem value="hotspot">Hotspot</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Hide refresh button on mobile, show only on sm and up */}
+            <Button 
+              variant="outline" 
+              onClick={() => load(false)} 
+              disabled={loading} 
+              className="h-9 md:h-10 hidden sm:flex"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
           </div>
         }
         actions={(row) => {
           const s = row as unknown as HotspotSession;
-          //if (s.status !== "active") return null;
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="h-4 w-4" />
+                  <MoreHorizontal className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => setActionState({ type: "change_package", session: s, selectedPackageId: s.package.id })}
                 >
-                  <PackageOpen className="mr-2 h-4 w-4" />
+                  <PackageOpen className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
                   Change Package
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setActionState({ type: "clear_mac", session: s })}>
-                  <Eraser className="mr-2 h-4 w-4" />
-                  Clear MAC Address
+                  <Eraser className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                  Clear MAC
                 </DropdownMenuItem>
 
                 <DropdownMenuItem onClick={() => showHistory(s)}>
-                  <History className="mr-2 h-4 w-4" />
-                  Show History
+                  <History className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                  History
                 </DropdownMenuItem>
-                {s.status !== "expired" && (<DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setActionState({ type: "kick", session: s })}
-                >
-                  <WifiOff className="mr-2 h-4 w-4" />
-                  Kick Out User
-                </DropdownMenuItem>)}
+                {s.status !== "expired" && (
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setActionState({ type: "kick", session: s })}
+                  >
+                    <WifiOff className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                    Kick Out
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           );
         }}
       />
 
-      {/* History Dialog */}
+      {/* History Dialog - Responsive width */}
       <Dialog open={historyDialog.isOpen} onOpenChange={(open) => {
         if (!open) setHistoryDialog({ isOpen: false, loading: false, sessions: [], currentSession: null });
       }}>
         <DialogContent
-          style={{ width: `${historyDialog.loading ? 30 : 80}vw`, maxWidth: `${historyDialog.loading ? 30 : 80}vw` }}
+          className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[70vw] lg:max-w-[80vw]"
         >
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base md:text-lg">
               Session History
               {historyDialog.currentSession && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  for {historyDialog.currentSession.username} by {historyDialog.currentSession.network.mac} - 
+                <span className="text-xs md:text-sm font-normal text-muted-foreground ml-1 md:ml-2">
+                  for {historyDialog.currentSession.username}
                 </span>
-              )}{historyDialog.currentSession && (historyDialog.currentSession.network.host)}
+              )}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs md:text-sm">
               Historical sessions for this user
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-auto min-h-0">
             {historyDialog.loading ? (
-              <div className="flex flex-col items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-                <p className="text-sm text-muted-foreground">Loading session history...</p>
+              <div className="flex flex-col items-center justify-center h-full py-8">
+                <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-primary mb-2 md:mb-3" />
+                <p className="text-xs md:text-sm text-muted-foreground">Loading session history...</p>
               </div>
             ) : historyDialog.sessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full">
-                <History className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-sm text-muted-foreground">No historical sessions found</p>
+              <div className="flex flex-col items-center justify-center h-full py-8">
+                <History className="h-8 w-8 md:h-12 md:w-12 text-muted-foreground/50 mb-2 md:mb-3" />
+                <p className="text-xs md:text-sm text-muted-foreground">No historical sessions found</p>
               </div>
             ) : (
-              <div className="w-full">
+              <div className="w-full overflow-x-auto">
                 <DataTable
                   data={historyDialog.sessions as unknown as Record<string, unknown>[]}
                   columns={historyColumns as never}
@@ -405,28 +438,36 @@ export default function SessionsPage() {
             )}
           </div>
 
-          {!historyDialog.loading && (<DialogFooter>
-            <Button variant="outline" onClick={() => setHistoryDialog({ isOpen: false, loading: false, sessions: [], currentSession: null })}>
-              Close
-            </Button>
-          </DialogFooter>)}
+          {!historyDialog.loading && (
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setHistoryDialog({ isOpen: false, loading: false, sessions: [], currentSession: null })}
+                className="h-9 md:h-10 text-xs md:text-sm"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Action Confirmation Dialog */}
+      {/* Action Confirmation Dialog - Responsive */}
       <Dialog open={!!actionState} onOpenChange={(open) => { if (!open) setActionState(null); }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-[95vw] sm:max-w-sm">
           {actionState?.type === "kick" && (
             <>
               <DialogHeader>
-                <DialogTitle>Kick Out User</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-base md:text-lg">Kick Out User</DialogTitle>
+                <DialogDescription className="text-xs md:text-sm">
                   This will immediately disconnect the session for <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.network.mac}</code>.
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setActionState(null)}>Cancel</Button>
-                <Button variant="destructive" onClick={executeAction} disabled={acting}>
+              <DialogFooter className="flex gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setActionState(null)} className="flex-1 sm:flex-none h-9 md:h-10 text-xs md:text-sm">
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={executeAction} disabled={acting} className="flex-1 sm:flex-none h-9 md:h-10 text-xs md:text-sm">
                   {acting ? "Kicking…" : "Kick Out"}
                 </Button>
               </DialogFooter>
@@ -436,14 +477,16 @@ export default function SessionsPage() {
           {actionState?.type === "clear_mac" && (
             <>
               <DialogHeader>
-                <DialogTitle>Clear MAC Address</DialogTitle>
-                <DialogDescription>
-                  This removes <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.network.mac}</code> from the router&apos;s ARP and hotspot binding tables. The device will need to reconnect.
+                <DialogTitle className="text-base md:text-lg">Clear MAC Address</DialogTitle>
+                <DialogDescription className="text-xs md:text-sm">
+                  This removes <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.network.mac}</code> from the router&apos;s ARP and hotspot binding tables.
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setActionState(null)}>Cancel</Button>
-                <Button onClick={executeAction} disabled={acting}>
+              <DialogFooter className="flex gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setActionState(null)} className="flex-1 sm:flex-none h-9 md:h-10 text-xs md:text-sm">
+                  Cancel
+                </Button>
+                <Button onClick={executeAction} disabled={acting} className="flex-1 sm:flex-none h-9 md:h-10 text-xs md:text-sm">
                   {acting ? "Clearing…" : "Clear MAC"}
                 </Button>
               </DialogFooter>
@@ -453,30 +496,34 @@ export default function SessionsPage() {
           {actionState?.type === "change_package" && (
             <>
               <DialogHeader>
-                <DialogTitle>Change Package</DialogTitle>
-                <DialogDescription>
-                  Select a new package for <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.network.ip}</code>. The change takes effect immediately.
+                <DialogTitle className="text-base md:text-lg">Change Package</DialogTitle>
+                <DialogDescription className="text-xs md:text-sm">
+                  Select a new package for <code className="font-mono text-xs bg-muted px-1 rounded">{actionState.session.network.ip}</code>.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-2">
-                <Label className="mb-2 block">New Package</Label>
+                <Label className="mb-2 block text-sm md:text-base">New Package</Label>
                 <Select
                   value={actionState.selectedPackageId}
                   onValueChange={(v) => setActionState(a => a ? { ...a, selectedPackageId: v } : null)}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
+                  <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm">
+                    <SelectValue placeholder="Select package" />
+                  </SelectTrigger>
                   <SelectContent>
                     {packages.map(p => (
-                      <SelectItem key={p._id} value={p._id}>
+                      <SelectItem key={p._id} value={p._id} className="text-xs md:text-sm">
                         {p.name} — {p.currency ?? "TZS"}{p.price.toLocaleString()}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setActionState(null)}>Cancel</Button>
-                <Button onClick={executeAction} disabled={acting || !actionState.selectedPackageId}>
+              <DialogFooter className="flex gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setActionState(null)} className="flex-1 sm:flex-none h-9 md:h-10 text-xs md:text-sm">
+                  Cancel
+                </Button>
+                <Button onClick={executeAction} disabled={acting || !actionState.selectedPackageId} className="flex-1 sm:flex-none h-9 md:h-10 text-xs md:text-sm">
                   {acting ? "Applying…" : "Apply Package"}
                 </Button>
               </DialogFooter>
