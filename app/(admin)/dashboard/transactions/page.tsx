@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/api";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, Calendar } from "lucide-react";
+import { Filter, Calendar, Trash2 } from "lucide-react";
 import type { Transaction } from "@/lib/types";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuth } from "@/lib/auth-context";
@@ -15,6 +15,8 @@ import { addDays, format as formatDateFn } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { formatDate } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export const formatCurrency = (n: number, currency: string) => {
   return `${currency} ${n.toLocaleString()}`;
@@ -29,6 +31,9 @@ export default function TransactionsPage() {
   const { isRole, user } = useAuth();
   const isSuperAdmin = isRole("super_admin");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
   
   // Date range state - initialize to last 7 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -81,6 +86,63 @@ export default function TransactionsPage() {
     return `${formatDateFn(dateRange.from, "MMM dd")} - ${formatDateFn(dateRange.to, "MMM dd, yyyy")}`;
   };
 
+  // Format date range for confirmation message
+  const formatDateRangeForMessage = () => {
+    if (!dateRange?.from && !dateRange?.to) return "all time";
+    if (dateRange?.from && !dateRange?.to) return `since ${formatDateFn(dateRange.from, "MMMM dd, yyyy")}`;
+    if (!dateRange?.from && dateRange?.to) return `up to ${formatDateFn(dateRange.to, "MMMM dd, yyyy")}`;
+    return `from ${formatDateFn(dateRange.from!, "MMMM dd, yyyy")} to ${formatDateFn(dateRange.to!, "MMMM dd, yyyy")}`;
+  };
+
+  // Delete failed transactions
+  const handleDeleteFailedTransactions = async () => {
+    setDeleting(true);
+    try {
+      const failedTransactions = transactions.filter(
+        t => t.status.toLowerCase() === "failed"
+      );
+      
+      if (failedTransactions.length === 0) {
+        toast({ 
+          title: "No failed transactions", 
+          description: "There are no failed transactions to delete.",
+          variant: "default"
+        });
+        setShowDeleteConfirm(false);
+        return;
+      }
+
+      // Call API to delete failed transactions
+      const {success, message} = await apiClient.transactions.deleteFailed({
+        startDate: formatDateFn(dateRange?.from  || new Date(), 'yyyy-MM-dd'),
+        endDate: formatDateFn(dateRange?.to || new Date(), 'yyyy-MM-dd')
+      });
+      
+      toast({ 
+        title: success ? "Success" : "Failed", 
+        description: message || `${failedTransactions.length} failed transaction(s) have been deleted.`,
+        variant: "default"
+      });
+      
+      // Reload transactions
+      await load(false);
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete failed transactions.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  // Get count of failed transactions in current view
+  const getFailedCount = () => {
+    return filteredTransactions.filter(t => t.status.toLowerCase() === "failed").length;
+  };
+
   // Apply client-side date filtering as fallback
   const getFilteredTransactions = () => {
     let filtered = statusFilter === "all" ? transactions : transactions.filter(t => t.status.toLowerCase() === statusFilter.toLowerCase());
@@ -90,6 +152,7 @@ export default function TransactionsPage() {
   };
 
   const filteredTransactions = getFilteredTransactions();
+  const failedCount = getFailedCount();
 
   const columns = [
     { key: "appliedVoucher", label: "Voucher", render: (v: unknown, row: unknown) => (row as any)?.appliedVoucher || "-" },
@@ -110,131 +173,172 @@ export default function TransactionsPage() {
   ].filter(Boolean);
 
   // Calculate summary statistics for the filtered transactions
-  const totalAmount = filteredTransactions.filter(t => t.status.toLowerCase() === "COMPLETED".toLowerCase() && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-  const completedCount = filteredTransactions.filter(t => t.status.toLowerCase() === "COMPLETED".toLowerCase() && t.amount > 0).length;
-  const pendingCount = filteredTransactions.filter(t => t.status.toLowerCase() === "PENDING".toLowerCase() && t.amount > 0).length;
-  const failedCount = filteredTransactions.filter(t => t.status.toLowerCase() === "FAILED".toLowerCase() && t.amount > 0).length;
+  const totalAmount = filteredTransactions.filter(t => t.status.toLowerCase() === "completed" && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  const completedCount = filteredTransactions.filter(t => t.status.toLowerCase() === "completed" && t.amount > 0).length;
+  const pendingCount = filteredTransactions.filter(t => t.status.toLowerCase() === "pending" && t.amount > 0).length;
+
+  // Generate confirmation message with date range
+  const getConfirmationMessage = () => {
+    const dateRangeText = formatDateRangeForMessage();
+    if (failedCount === 0) {
+      return `No failed transactions found ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}.`;
+    }
+    return `Are you sure you want to delete ${failedCount} failed transaction(s) ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}? This action cannot be undone.`;
+  };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 md:gap-6">
+      {/* Header Section - Mobile Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-          <p className="text-sm text-muted-foreground mt-1">Collected payments from customers</p>
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Transactions</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1">Collected payments from customers</p>
         </div>
         
-        {/* Date Range Picker */}
-        <div className="relative">
-          <button
-            onClick={() => setShowDatePicker(!showDatePicker)}
-            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors"
-          >
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{formatDateRange()}</span>
-          </button>
-          
-          {showDatePicker && (
-            <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setShowDatePicker(false)}
-              />
-              <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-3">
-                <DayPicker
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={handleDateRangeSelect}
-                  numberOfMonths={1}
-                  defaultMonth={dateRange?.from}
-                />
-              </div>
-            </>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          {/* Delete Failed Transactions Button */}
+          {failedCount > 0 && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
+              disabled={deleting}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="whitespace-nowrap">Delete Failed</span>
+            </button>
           )}
+          
+          {/* Date Range Picker */}
+          <div className="relative w-full sm:w-auto">
+            <button
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors w-full sm:w-auto"
+            >
+              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="font-medium truncate max-w-[200px] sm:max-w-none">
+                {formatDateRange()}
+              </span>
+            </button>
+            
+            {showDatePicker && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowDatePicker(false)}
+                />
+                <div className="absolute right-0 left-0 sm:left-auto top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-3 w-full sm:w-auto">
+                  <DayPicker
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={handleDateRangeSelect}
+                    numberOfMonths={1}
+                    defaultMonth={dateRange?.from}
+                    className="mx-auto"
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Total Amount</p>
-          <p className="text-2xl font-bold">
+      {/* Summary Cards - Mobile Responsive Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="rounded-lg border border-border bg-card p-3 md:p-4">
+          <p className="text-xs md:text-sm text-muted-foreground">Total Amount</p>
+          <p className="text-base md:text-2xl font-bold truncate">
             {transactions.length > 0 && filteredTransactions.length > 0 
               ? formatCurrency(totalAmount, transactions[0]?.currency || "TZS")
               : "—"}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">{filteredTransactions.length} transactions</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">{filteredTransactions.length} transactions</p>
         </div>
         
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Completed</p>
-          <p className="text-2xl font-bold text-green-600">{completedCount}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+        <div className="rounded-lg border border-border bg-card p-3 md:p-4">
+          <p className="text-xs md:text-sm text-muted-foreground">Completed</p>
+          <p className="text-base md:text-2xl font-bold text-green-600">{completedCount}</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
             {filteredTransactions.length > 0 
-              ? `${((completedCount / filteredTransactions.length) * 100).toFixed(1)}% of total`
-              : "0% of total"}
+              ? `${((completedCount / filteredTransactions.length) * 100).toFixed(1)}%`
+              : "0%"}
           </p>
         </div>
         
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Pending</p>
-          <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+        <div className="rounded-lg border border-border bg-card p-3 md:p-4">
+          <p className="text-xs md:text-sm text-muted-foreground">Pending</p>
+          <p className="text-base md:text-2xl font-bold text-yellow-600">{pendingCount}</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
             {filteredTransactions.length > 0 
-              ? `${((pendingCount / filteredTransactions.length) * 100).toFixed(1)}% of total`
-              : "0% of total"}
+              ? `${((pendingCount / filteredTransactions.length) * 100).toFixed(1)}%`
+              : "0%"}
           </p>
         </div>
         
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Failed</p>
-          <p className="text-2xl font-bold text-red-600">{failedCount}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+        <div className="rounded-lg border border-border bg-card p-3 md:p-4">
+          <p className="text-xs md:text-sm text-muted-foreground">Failed</p>
+          <p className="text-base md:text-2xl font-bold text-red-600">{failedCount}</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
             {filteredTransactions.length > 0 
-              ? `${((failedCount / filteredTransactions.length) * 100).toFixed(1)}% of total`
-              : "0% of total"}
+              ? `${((failedCount / filteredTransactions.length) * 100).toFixed(1)}%`
+              : "0%"}
           </p>
         </div>
       </div>
 
-      <DataTable
-        data={filteredTransactions as unknown as Record<string, unknown>[]}
-        columns={columns as never}
-        loading={loading}
-        searchable
-        searchKeys={["amount","customer", "package","appliedVoucher"] as never}
-        searchPlaceholder="Search transactions..."
-        emptyMessage={dateRange?.from && dateRange?.to 
-          ? `No transactions found for ${formatDateRange()}`
-          : "No transactions found."}
-        pageSize={10}
-        filterSlot={
-          <div className="flex items-center gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
-                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="COMPLETED">Paid</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="FAILED">Failed</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* Filter Section - Mobile Responsive */}
+      <div className="overflow-x-auto">
+        <DataTable
+          data={filteredTransactions as unknown as Record<string, unknown>[]}
+          columns={columns as never}
+          loading={loading}
+          searchable
+          searchKeys={["amount","customer", "package","appliedVoucher"] as never}
+          searchPlaceholder="Search transactions..."
+          emptyMessage={dateRange?.from && dateRange?.to 
+            ? `No transactions found for ${formatDateRange()}`
+            : "No transactions found."}
+          pageSize={10}
+          filterSlot={
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
+                  <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground flex-shrink-0" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="COMPLETED">Paid</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="FAILED">Failed</SelectItem>
+                </SelectContent>
+              </Select>
 
-             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
-                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="voucher">Voucher</SelectItem>
-                <SelectItem value="mobile">Mobile</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        }
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
+                  <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground flex-shrink-0" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="voucher">Voucher</SelectItem>
+                  <SelectItem value="mobile">Mobile</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete Failed Transactions"
+        message={getConfirmationMessage()}
+        confirmText={deleting ? "Deleting..." : "Delete"}
+        cancelText="Cancel"
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteFailedTransactions}
+        variant="destructive"
       />
     </div>
   );

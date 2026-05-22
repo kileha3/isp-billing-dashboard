@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter, Calendar, History, Loader2 } from "lucide-react";
+import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter, Calendar, History, Loader2, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { StatCard } from "@/components/admin/StatCard";
@@ -21,6 +21,7 @@ import { DateRange, DayPicker } from "react-day-picker";
 import { addDays, format as formatDateFn } from "date-fns";
 import "react-day-picker/style.css";
 import { formatDate } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 
 function formatBytes(octate: number) {
@@ -57,6 +58,8 @@ export default function SessionsPage() {
   const [acting, setActing] = useState(false);
   const { user } = useAuth();
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingExpired, setDeletingExpired] = useState(false);
   const [historyDialog, setHistoryDialog] = useState<HistoryDialogState>({
     isOpen: false,
     loading: false,
@@ -139,6 +142,50 @@ export default function SessionsPage() {
     setActionState(null);
   }
 
+  // Delete expired sessions
+  const handleDeleteExpiredSessions = async () => {
+    setDeletingExpired(true);
+    try {
+      const expiredSessions = filteredSessions.filter(
+        s => s.status === "expired"
+      );
+      
+      if (expiredSessions.length === 0) {
+        toast({ 
+          title: "No expired sessions", 
+          description: "There are no expired sessions to delete.",
+          variant: "default"
+        });
+        setShowDeleteConfirm(false);
+        return;
+      }
+
+      // Call API to delete expired sessions
+      const { success, message } = await apiClient.sessions.deleteExpired({
+        startDate: formatDateFn(dateRange?.from || new Date(), 'yyyy-MM-dd'),
+        endDate: formatDateFn(dateRange?.to || new Date(), 'yyyy-MM-dd')
+      });
+      
+      toast({ 
+        title: success ? "Success" : "Failed", 
+        description: message || `${expiredSessions.length} expired session(s) have been deleted.`,
+        variant: success ? "default" : "destructive"
+      });
+      
+      // Reload sessions
+      await load(false);
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete expired sessions.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingExpired(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   // Handle date range selection
   const handleDateRangeSelect = (range: DateRange | undefined) => {
     setDateRange(range);
@@ -177,10 +224,18 @@ export default function SessionsPage() {
   };
 
   // Format display date range
-  const formatDateFnRange = () => {
+  const formatDateRangeDisplay = () => {
     if (!dateRange?.from) return "Select date range";
     if (!dateRange?.to) return formatDateFn(dateRange.from, "MMM dd, yyyy");
     return `${formatDateFn(dateRange.from, "MMM dd")} - ${formatDateFn(dateRange.to, "MMM dd, yyyy")}`;
+  };
+
+  // Format date range for confirmation message
+  const formatDateRangeForMessage = () => {
+    if (!dateRange?.from && !dateRange?.to) return "all time";
+    if (dateRange?.from && !dateRange?.to) return `since ${formatDateFn(dateRange.from, "MMMM dd, yyyy")}`;
+    if (!dateRange?.from && dateRange?.to) return `up to ${formatDateFn(dateRange.to, "MMMM dd, yyyy")}`;
+    return `from ${formatDateFn(dateRange.from!, "MMMM dd, yyyy")} to ${formatDateFn(dateRange.to!, "MMMM dd, yyyy")}`;
   };
 
   // Filter sessions by date range if needed
@@ -192,12 +247,22 @@ export default function SessionsPage() {
   };
 
   const filteredSessions = getFilteredSessions();
+  const expiredCount = filteredSessions.filter(s => s.status === "expired").length;
   
   // Calculate session statistics
   const active = filteredSessions.filter(s => s.status === "active");
   const offline = filteredSessions.filter(s => s.status === "offline");
   const expired = filteredSessions.filter(s => s.status === "expired");
   const totalData = filteredSessions.reduce((sum, s) => sum + ((s.usage.output + s.usage.input)), 0);
+
+  // Generate confirmation message with date range
+  const getConfirmationMessage = () => {
+    const dateRangeText = formatDateRangeForMessage();
+    if (expiredCount === 0) {
+      return `No expired sessions found ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}.`;
+    }
+    return `Are you sure you want to delete ${expiredCount} expired session(s) ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}? This action cannot be undone.`;
+  };
 
   // History table columns (without sessions column)
   const historyColumns = [
@@ -257,39 +322,54 @@ export default function SessionsPage() {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       {/* Header Section - Responsive */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Sessions</h1>
           <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1">Live and historical hotspot sessions</p>
         </div>
 
-        {/* Date Range Picker - Responsive */}
-        <div className="relative self-start sm:self-auto">
-          <button
-            onClick={() => setShowDatePicker(!showDatePicker)}
-            className="flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors"
-          >
-            <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-            <span className="font-medium text-xs md:text-sm">{formatDateFnRange()}</span>
-          </button>
-
-          {showDatePicker && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowDatePicker(false)}
-              />
-              <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-2 md:p-3">
-                <DayPicker
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={handleDateRangeSelect}
-                  numberOfMonths={1}
-                  defaultMonth={dateRange?.from}
-                />
-              </div>
-            </>
+        {/* Action Buttons Group - Responsive */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Delete Expired Sessions Button */}
+          {expiredCount > 0 && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center justify-center gap-2 px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
+              disabled={deletingExpired}
+            >
+              <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+              <span>Delete Expired</span>
+            </button>
           )}
+
+          {/* Date Range Picker - Responsive */}
+          <div className="relative">
+            <button
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className="flex items-center justify-center gap-2 px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors w-full sm:w-auto"
+            >
+              <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+              <span className="font-medium text-xs md:text-sm">{formatDateRangeDisplay()}</span>
+            </button>
+
+            {showDatePicker && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowDatePicker(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-2 md:p-3 min-w-[280px] sm:min-w-[auto]">
+                  <DayPicker
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={handleDateRangeSelect}
+                    numberOfMonths={1}
+                    defaultMonth={dateRange?.from}
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -531,6 +611,18 @@ export default function SessionsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Expired Sessions Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete Expired Sessions"
+        message={getConfirmationMessage()}
+        confirmText={deletingExpired ? "Deleting..." : "Delete"}
+        cancelText="Cancel"
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteExpiredSessions}
+        variant="destructive"
+      />
     </div>
   );
 }

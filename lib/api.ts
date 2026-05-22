@@ -15,11 +15,9 @@ import type {
   Offer,
 } from "@/lib/types";
 
-export const BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
+export const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
 
-export const imageUrl = (logo: string) =>
-  `${BASE.replace("v1", `logo/${logo}`)}`;
+export const imageUrl = (logo: string) => `${BASE.replace("v1", `logo/${logo}`)}`;
 
 // Token storage keys
 const TOKEN_KEY = "netbill_token";
@@ -100,9 +98,7 @@ async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = tokenManager.getToken();
 
   const headers: Record<string, string> = {
-    ...(options.body && typeof options.body === "string"
-      ? { "Content-Type": "application/json" }
-      : {}),
+    ...(options.body && typeof options.body === "string" ? { "Content-Type": "application/json" } : {}),
     ...(options.headers as Record<string, string>),
   };
 
@@ -117,10 +113,7 @@ async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
     // Handle 401 unauthorized - clear token and redirect to login
     if (res.status === 401) {
       tokenManager.setToken(null);
-      if (
-        typeof window !== "undefined" &&
-        !window.location.pathname.includes("/login")
-      ) {
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }
     }
@@ -144,18 +137,11 @@ export const apiClient = {
   },
 
   auth: {
-    login: async (
-      email: string,
-      password: string,
-      rememberMe: boolean = false,
-    ) => {
-      const { data } = await req<{ data: { token: string; user: User } }>(
-        "/auth/login",
-        {
-          method: "POST",
-          body: JSON.stringify({ email, password, rememberMe }),
-        },
-      );
+    login: async (email: string, password: string, rememberMe: boolean = false) => {
+      const { data } = await req<{ data: { token: string; user: User } }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
       // Store token with remember preference
       tokenManager.setToken(data.token, rememberMe);
       return data;
@@ -176,12 +162,7 @@ export const apiClient = {
         body: JSON.stringify({ email }),
       }),
 
-    updateProfile: (data: {
-      name?: string;
-      email?: string;
-      currentPassword?: string;
-      newPassword?: string;
-    }) =>
+    updateProfile: (data: { name?: string; email?: string; currentPassword?: string; newPassword?: string }) =>
       req<{ user: User }>("/auth/profile", {
         method: "PATCH",
         body: JSON.stringify(data),
@@ -198,35 +179,25 @@ export const apiClient = {
         sessions: any;
       }>("/dashboard"),
     getReports: (data: { startDate: string; endDate: string }) =>
-      req<{ payment: ReportSummary; session: ReportSummary }>(
-        `/dashboard/report?startDate=${data.startDate}&endDate=${data.endDate}`,
-      ),
+      req<{ payment: ReportSummary; session: ReportSummary }>(`/dashboard/report?startDate=${data.startDate}&endDate=${data.endDate}`),
   },
 
   notifications: {
     list: () => req<{ data: Array<Notification> }>("/notifications"),
-    markAllRead: () =>
-      req<any>("/notifications/mark-all-read", { method: "PATCH" }),
-    markAsRead: (id: string) =>
-      req<any>(`/notifications/mark/${id}`, { method: "PATCH" }),
+    markAllRead: () => req<any>("/notifications/mark-all-read", { method: "PATCH" }),
+    markAsRead: (id: string) => req<any>(`/notifications/mark/${id}`, { method: "PATCH" }),
   },
 
   routers: {
-    list: (params?: Record<string, string>) =>
-      req<{ data: RouterDevice[] }>(
-        `/routers${params ? "?" + new URLSearchParams(params) : ""}`,
-      ),
+    list: (params?: Record<string, string>) => req<{ data: RouterDevice[] }>(`/routers${params ? "?" + new URLSearchParams(params) : ""}`),
 
     services: () => req<Array<string>>(`/routers/services`),
 
     create: (data: Partial<RouterDevice>) =>
-      req<{ message: string; router: RouterDevice; success: boolean }>(
-        "/routers",
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      ),
+      req<{ message: string; router: RouterDevice; success: boolean }>("/routers", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
     whileListAp: (data: { routerId: string; name: string; mac: string }) =>
       req<{ data: RouterDevice }>("/routers/whitelist", {
@@ -252,19 +223,14 @@ export const apiClient = {
       }),
 
     update: (id: string, data: Partial<RouterDevice>) =>
-      req<{ message: string; routerId: string; success: boolean }>(
-        `/routers/${id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify(data),
-        },
-      ),
+      req<{ message: string; routerId: string; success: boolean }>(`/routers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
 
-    delete: (id: string) =>
-      req<{ message: string }>(`/routers/${id}`, { method: "DELETE" }),
+    delete: (id: string) => req<{ message: string }>(`/routers/${id}`, { method: "DELETE" }),
 
-    getScript: (id: string) =>
-      req<{ data: { script: string } }>(`/routers/${id}/script`),
+    getScript: (id: string) => req<{ data: { script: string } }>(`/routers/${id}/script`),
 
     getInfo: (id: string) => req<{ data: RouterDevice }>(`/routers?id=${id}`),
   },
@@ -287,8 +253,7 @@ export const apiClient = {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
-    delete: (id: string) =>
-      req<{ message: string }>(`/pppoe/${id}`, { method: "DELETE" }),
+    delete: (id: string) => req<{ message: string }>(`/pppoe/${id}`, { method: "DELETE" }),
   },
 
   offers: {
@@ -310,8 +275,7 @@ export const apiClient = {
         method: "PATCH",
         body: JSON.stringify({ isActive }),
       }),
-    delete: (id: string) =>
-      req<{ message: string }>(`/offers/${id}`, { method: "DELETE" }),
+    delete: (id: string) => req<{ message: string }>(`/offers/${id}`, { method: "DELETE" }),
   },
 
   packages: {
@@ -339,10 +303,7 @@ export const apiClient = {
   },
 
   invoices: {
-    list: (params?: Record<string, string>) =>
-      req<{ data: Invoice[] }>(
-        `/invoices${params ? "?" + new URLSearchParams(params) : ""}`,
-      ),
+    list: (params?: Record<string, string>) => req<{ data: Invoice[] }>(`/invoices${params ? "?" + new URLSearchParams(params) : ""}`),
     showStatus: () => req<{ shouldShow: boolean }>(`/invoices/show`),
     update: (id: string, status: string) =>
       req<{ success: boolean; message: string }>(`/invoices/${id}`, {
@@ -350,32 +311,20 @@ export const apiClient = {
         body: JSON.stringify({ status }),
       }),
     pay: (id: string, phoneNumber: string) =>
-      req<{ success: boolean; message: string; orderId: string }>(
-        `/invoices/${id}/pay`,
-        {
-          method: "POST",
-          body: JSON.stringify({ phoneNumber }),
-        },
-      ),
+      req<{ success: boolean; message: string; orderId: string }>(`/invoices/${id}/pay`, {
+        method: "POST",
+        body: JSON.stringify({ phoneNumber }),
+      }),
   },
 
   vouchers: {
-    list: (params?: Record<string, string>) =>
-      req<{ data: Voucher[] }>(
-        `/vouchers${params ? "?" + new URLSearchParams(params) : ""}`,
-      ),
+    list: (params?: Record<string, string>) => req<{ data: Voucher[] }>(`/vouchers${params ? "?" + new URLSearchParams(params) : ""}`),
 
-    delete: (id: string) =>
-      req<{ message: string }>(`/vouchers/${id}`, { method: "DELETE" }),
+    delete: (id: string) => req<{ message: string }>(`/vouchers/${id}`, { method: "DELETE" }),
 
-    revoke: (id: string) =>
-      req<{ message: string }>(`/vouchers/${id}/revoke`, { method: "PATCH" }),
+    revoke: (id: string) => req<{ message: string }>(`/vouchers/${id}/revoke`, { method: "PATCH" }),
 
-    generate: (data: {
-      packageId: string;
-      quantity: number;
-      prefix?: string;
-    }) =>
+    generate: (data: { packageId: string; quantity: number; prefix?: string }) =>
       req<{ vouchers: Voucher[] }>("/vouchers", {
         method: "POST",
         body: JSON.stringify(data),
@@ -402,13 +351,12 @@ export const apiClient = {
 
   transactions: {
     list: (params?: Record<string, string | undefined>) => {
-      const clean = Object.fromEntries(
-        Object.entries(params ?? {}).filter(([, v]) => v !== undefined),
-      ) as Record<string, string>;
-      return req<Transaction[]>(
-        `/payments${Object.keys(clean).length ? "?" + new URLSearchParams(clean) : ""}`,
-      );
+      const clean = Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v !== undefined)) as Record<string, string>;
+      return req<Transaction[]>(`/payments${Object.keys(clean).length ? "?" + new URLSearchParams(clean) : ""}`);
     },
+
+    deleteFailed: (data: { startDate: string; endDate: string }) =>
+      req<{ success: boolean; message: string }>(`/payments/delete-failed`, { method: "DELETE", body: JSON.stringify(data) }),
 
     recent: () => {
       return req<Transaction[]>(`/payments/recent`);
@@ -420,21 +368,18 @@ export const apiClient = {
   },
 
   sessions: {
-    list: (params?: Record<string, string>) =>
-      req<Array<HotspotSession>>(
-        `/sessions${params ? "?" + new URLSearchParams(params) : ""}`,
-      ),
+    list: (params?: Record<string, string>) => req<Array<HotspotSession>>(`/sessions${params ? "?" + new URLSearchParams(params) : ""}`),
 
-    history: (id: string) =>
-      req<Array<HotspotSession>>(`/sessions/${id}/history`),
+    history: (id: string) => req<Array<HotspotSession>>(`/sessions/${id}/history`),
 
     disconnect: (id: string) =>
       req<{ success: boolean }>(`/sessions/${id}/disconnect`, {
         method: "POST",
       }),
+    deleteExpired: (data: { startDate: string; endDate: string }) =>
+      req<{ success: boolean; message: string }>(`/sessions/delete-expired`, { method: "DELETE", body: JSON.stringify(data) }),
 
-    clearMac: (id: string) =>
-      req<{ success: boolean }>(`/sessions/${id}/clearmac`, { method: "POST" }),
+    clearMac: (id: string) => req<{ success: boolean }>(`/sessions/${id}/clearmac`, { method: "POST" }),
 
     changePackage: (id: string, packageId: string) =>
       req<{ success: boolean }>(`/sessions/${id}/changepackage`, {
@@ -444,13 +389,9 @@ export const apiClient = {
   },
 
   tenant: {
-    get: (tenantId?: string) =>
-      req<{ data: Tenant }>(`/tenants/${tenantId || "current"}`),
+    get: (tenantId?: string) => req<{ data: Tenant }>(`/tenants/${tenantId || "current"}`),
 
-    getPortalSettings: (tenantId?: string) =>
-      req<{ data: TenantPortalSettings }>(
-        tenantId ? `/tenants/${tenantId}/portal` : "/tenants/portal",
-      ),
+    getPortalSettings: (tenantId?: string) => req<{ data: TenantPortalSettings }>(tenantId ? `/tenants/${tenantId}/portal` : "/tenants/portal"),
 
     updatePortalSettings: (data: TenantPortalSettings, tenantId: string) =>
       req<TenantPortalSettings>(`/tenants/${tenantId}/portal`, {
@@ -463,9 +404,7 @@ export const apiClient = {
       const headers: Record<string, string> = {};
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const url = `${BASE}/tenants/${tenantId}/portal/logo`;
-      return fetch(url, { method: "POST", headers, body: formData }).then((r) =>
-        r.json(),
-      ) as Promise<{ url: string }>;
+      return fetch(url, { method: "POST", headers, body: formData }).then((r) => r.json()) as Promise<{ url: string }>;
     },
 
     updateSettings: (data: any, tenantId: string) =>
@@ -496,22 +435,16 @@ export const apiClient = {
         body: JSON.stringify({ status }),
       }),
 
-    delete: (id: string) =>
-      req<{ message: string }>(`/tenants/${id}`, { method: "DELETE" }),
+    delete: (id: string) => req<{ message: string }>(`/tenants/${id}`, { method: "DELETE" }),
   },
 
   user: {
-    get: (userId?: string) =>
-      req<{ data: import("@/lib/types").User }>(
-        `/users/${userId || "current"}`,
-      ),
+    get: (userId?: string) => req<{ data: import("@/lib/types").User }>(`/users/${userId || "current"}`),
   },
 
   users: {
     list: async (params?: Record<string, string>): Promise<User[]> => {
-      const res = await req<{ data: User[] }>(
-        `/users${params ? "?" + new URLSearchParams(params) : ""}`,
-      );
+      const res = await req<{ data: User[] }>(`/users${params ? "?" + new URLSearchParams(params) : ""}`);
       return res.data;
     },
 
@@ -521,8 +454,7 @@ export const apiClient = {
         body: JSON.stringify(data),
       }),
 
-    delete: (id: string) =>
-      req<{ message: string }>(`/users/${id}`, { method: "DELETE" }),
+    delete: (id: string) => req<{ message: string }>(`/users/${id}`, { method: "DELETE" }),
 
     resetPassword: (id: string, password: string) =>
       req<{ message: string }>(`/users/${id}/reset-password`, {
@@ -532,19 +464,10 @@ export const apiClient = {
   },
 
   portal: {
-    getConfig: (nasname: string, token: string) =>
-      req<{ data: TenantPortalSettings }>(
-        `/tenants/config?nasname=${nasname}&token=${token}`,
-      ),
+    getConfig: (nasname: string, token: string) => req<{ data: TenantPortalSettings }>(`/tenants/config?nasname=${nasname}&token=${token}`),
 
-    getPackages: (data: {
-      nasName: string;
-      authToken: string;
-      deviceMac: string;
-    }) =>
-      req<Package[]>(
-        `/packages/portal?nasname=${data.nasName}&token=${data.authToken}&deviceMac=${data.deviceMac}`,
-      ),
+    getPackages: (data: { nasName: string; authToken: string; deviceMac: string }) =>
+      req<Package[]>(`/packages/portal?nasname=${data.nasName}&token=${data.authToken}&deviceMac=${data.deviceMac}`),
 
     standAlonePaymentInfo: (token: string) =>
       req<{
@@ -553,67 +476,33 @@ export const apiClient = {
         packageId?: string;
       }>(`/standalone/info?id=${token}`),
 
-    standAlonePayment: (
-      token: string,
-      packageId: string,
-      phoneNumber: string,
-    ) =>
-      req<{ success: boolean; message: string; orderId: string }>(
-        `/standalone/pay?id=${token}`,
-        { method: "POST", body: JSON.stringify({ packageId, phoneNumber }) },
-      ),
+    standAlonePayment: (token: string, packageId: string, phoneNumber: string) =>
+      req<{ success: boolean; message: string; orderId: string }>(`/standalone/pay?id=${token}`, {
+        method: "POST",
+        body: JSON.stringify({ packageId, phoneNumber }),
+      }),
 
     standAloneStatus: (data: { orderId: string; token: string }) =>
-      req<{ success: boolean; message: string; voucher: string }>(
-        `/standalone/${data.orderId}/status?id=${data.token}`,
-      ),
+      req<{ success: boolean; message: string; voucher: string }>(`/standalone/${data.orderId}/status?id=${data.token}`),
 
-    redeemVoucher: (data: {
-      code: string;
-      deviceIp: string;
-      deviceMac: string;
-      deviceName: string;
-      nasName: string;
-      authToken: string;
-    }) =>
-      req<{ success: boolean; message: string; voucher: string }>(
-        `/payments/voucher?nasname=${data.nasName}&token=${data.authToken}`,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      ),
+    redeemVoucher: (data: { code: string; deviceIp: string; deviceMac: string; deviceName: string; nasName: string; authToken: string }) =>
+      req<{ success: boolean; message: string; voucher: string }>(`/payments/voucher?nasname=${data.nasName}&token=${data.authToken}`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
-    connectFreePackage: (data: {
-      deviceIp: string;
-      deviceMac: string;
-      packageId: string;
-      deviceName: string;
-      nasName: string;
-      authToken: string;
-    }) =>
-      req<{ success: boolean; message: string; voucher: string }>(
-        `/payments/trial?nasname=${data.nasName}&token=${data.authToken}`,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      ),
+    connectFreePackage: (data: { deviceIp: string; deviceMac: string; packageId: string; deviceName: string; nasName: string; authToken: string }) =>
+      req<{ success: boolean; message: string; voucher: string }>(`/payments/trial?nasname=${data.nasName}&token=${data.authToken}`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
-    checkSession: (data: {
-      deviceMac: string;
-      nasName: string;
-      authToken: string;
-    }) =>
+    checkSession: (data: { deviceMac: string; nasName: string; authToken: string }) =>
       req<{ success: boolean; message: string; voucher: string | null }>(
         `/payments/session?nasname=${data.nasName}&token=${data.authToken}&deviceMac=${data.deviceMac}`,
       ),
 
-    checkStatus: (data: {
-      orderId: string;
-      nasName: string;
-      authToken: string;
-    }) =>
+    checkStatus: (data: { orderId: string; nasName: string; authToken: string }) =>
       req<{ success: boolean; message: string; voucher: string | null }>(
         `/payments/${data.orderId}/status?nasname=${data.nasName}&token=${data.authToken}`,
       ),
@@ -627,12 +516,9 @@ export const apiClient = {
       authToken: string;
       phoneNumber: string;
     }) =>
-      req<{ orderId: string; message: string; success: boolean }>(
-        `/payments/mno?nasname=${data.nasName}&token=${data.authToken}`,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      ),
+      req<{ orderId: string; message: string; success: boolean }>(`/payments/mno?nasname=${data.nasName}&token=${data.authToken}`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 };
