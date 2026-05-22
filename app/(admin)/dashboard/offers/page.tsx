@@ -28,42 +28,75 @@ interface OfferWithQualified extends Offer {
 
 // Schema for offer validation (without discount)
 const offerSchema = z.object({
-  name: z.string().min(3, ""),
-  packageId: z.string().min(1, ""),
+  name: z.string().min(3, "Offer name must be at least 3 characters"),
+  packageId: z.string().min(1, "Please select a target package"),
   criteria: z.object({
     minUsageDays: z.object({
       enabled: z.boolean(),
       operator: z.enum([">", ">=", "=", "<", "<="]),
-      value: z.number().min(0, "Value must be 0 or greater"),
+      value: z.number().min(0, "Value must be 0 or greater").nullable(),
     }),
     totalSpent: z.object({
       enabled: z.boolean(),
       operator: z.enum([">", ">=", "=", "<", "<="]),
-      value: z.number().min(0, "Value must be 0 or greater"),
+      value: z.number().min(0, "Value must be 0 or greater").nullable(),
     }),
     lastPurchaseDays: z.object({
       enabled: z.boolean(),
       operator: z.enum([">", ">=", "=", "<", "<="]),
-      value: z.number().min(0, "Value must be 0 or greater"),
+      value: z.number().min(0, "Value must be 0 or greater").nullable(),
     }),
   }),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   status: z.string(),
-}).refine((data) => {
-  // Ensure at least one criteria is enabled
-  const hasAtLeastOneCriteria = 
-    data.criteria.minUsageDays.enabled ||
-    data.criteria.totalSpent.enabled ||
-    data.criteria.lastPurchaseDays.enabled;
+}).superRefine((data, ctx) => {
+  // Ensure at least one criteria is enabled AND has a valid value
+  const enabledCriteria = [];
   
-  if (!hasAtLeastOneCriteria) {
-    return false;
+  if (data.criteria.minUsageDays.enabled) {
+    if (data.criteria.minUsageDays.value === null || data.criteria.minUsageDays.value === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please enter a value for minimum usage days",
+        path: ["criteria", "minUsageDays", "value"],
+      });
+    } else {
+      enabledCriteria.push("minUsageDays");
+    }
   }
-  return true;
-}, {
-  message: "",
-  path: ["criteria"],
+  
+  if (data.criteria.totalSpent.enabled) {
+    if (data.criteria.totalSpent.value === null || data.criteria.totalSpent.value === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please enter a value for total amount spent",
+        path: ["criteria", "totalSpent", "value"],
+      });
+    } else {
+      enabledCriteria.push("totalSpent");
+    }
+  }
+  
+  if (data.criteria.lastPurchaseDays.enabled) {
+    if (data.criteria.lastPurchaseDays.value === null || data.criteria.lastPurchaseDays.value === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please enter a value for last purchase within",
+        path: ["criteria", "lastPurchaseDays", "value"],
+      });
+    } else {
+      enabledCriteria.push("lastPurchaseDays");
+    }
+  }
+  
+  if (enabledCriteria.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please enable and fill at least one qualification criteria",
+      path: ["criteria"],
+    });
+  }
 }).refine((data) => {
   // Validate end date is after start date
   const start = new Date(data.startDate);
@@ -77,9 +110,9 @@ const offerSchema = z.object({
 type OfferFormData = z.infer<typeof offerSchema>;
 
 const DEFAULT_CRITERIA = {
-  minUsageDays: { enabled: false, operator: ">=" as const, value: 0 },
-  totalSpent: { enabled: false, operator: ">=" as const, value: 0 },
-  lastPurchaseDays: { enabled: false, operator: "<=" as const, value: 30 },
+  minUsageDays: { enabled: false, operator: ">=" as const, value: null },
+  totalSpent: { enabled: false, operator: ">=" as const, value: null },
+  lastPurchaseDays: { enabled: false, operator: "<=" as const, value: null },
 };
 
 const DEFAULT_FORM: OfferFormData = {
@@ -122,7 +155,7 @@ export default function OffersPage() {
       setLoading(show);
       const [offersData, packagesData] = await Promise.all([
         apiClient.offers?.list() || { data: [] },
-        apiClient.packages.list("all","false","false"),
+        apiClient.packages.list("all","false","true"),
       ]);
       
       setOffers(offersData || []);
@@ -235,10 +268,24 @@ export default function OffersPage() {
 
     setSubmitting(true);
     try {
+      // Convert null values to 0 for API submission
       const payload = {
         name: form.name,
         packageId: form.packageId,
-        criteria: form.criteria,
+        criteria: {
+          minUsageDays: {
+            ...form.criteria.minUsageDays,
+            value: form.criteria.minUsageDays.value || 0,
+          },
+          totalSpent: {
+            ...form.criteria.totalSpent,
+            value: form.criteria.totalSpent.value || 0,
+          },
+          lastPurchaseDays: {
+            ...form.criteria.lastPurchaseDays,
+            value: form.criteria.lastPurchaseDays.value || 0,
+          },
+        },
         startDate: new Date(form.startDate).toISOString(),
         endDate: new Date(form.endDate).toISOString(),
         status: form.status,
@@ -292,6 +339,8 @@ export default function OffersPage() {
         [field]: {
           ...prev.criteria[field],
           enabled,
+          // Reset value when disabling
+          value: enabled ? prev.criteria[field].value : null,
         },
       },
     }));
@@ -555,9 +604,9 @@ export default function OffersPage() {
                       <SelectValue placeholder="Select package..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {packages.filter(p => !p.isFree).map(pkg => (
+                      {packages.filter(p => !p.isPublic).map(pkg => (
                         <SelectItem key={pkg._id} value={pkg._id}>
-                          {pkg.name} - {pkg.price === 0 ? "Free" : `TZS ${pkg.price.toLocaleString()}`}
+                          {pkg.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -575,7 +624,7 @@ export default function OffersPage() {
                 <Users className="h-4 w-4" />
                 Customer Qualification Criteria
                 <span className="text-xs text-muted-foreground font-normal">
-                  (At least one required)
+                  (Enable and fill at least one)
                 </span>
               </h3>
               
@@ -612,13 +661,19 @@ export default function OffersPage() {
                         </Select>
                         <Input
                           type="number"
-                          placeholder="Days"
-                          className="w-32"
-                          value={form.criteria.minUsageDays.value}
-                          onChange={(e) => updateCriteria("minUsageDays", "value", parseInt(e.target.value) || 0)}
+                          placeholder="Enter days"
+                          className={`w-32 ${formErrors["criteria.minUsageDays.value"] ? "border-destructive" : ""}`}
+                          value={form.criteria.minUsageDays.value === null ? "" : form.criteria.minUsageDays.value}
+                          onChange={(e) => {
+                            const val = e.target.value === "" ? null : parseInt(e.target.value);
+                            updateCriteria("minUsageDays", "value", val);
+                          }}
                         />
                         <span className="text-sm text-muted-foreground">days</span>
                       </div>
+                    )}
+                    {formErrors["criteria.minUsageDays.value"] && (
+                      <p className="text-xs text-destructive">{formErrors["criteria.minUsageDays.value"]}</p>
                     )}
                   </div>
                 </div>
@@ -651,13 +706,19 @@ export default function OffersPage() {
                         </Select>
                         <Input
                           type="number"
-                          placeholder="Amount"
-                          className="w-32"
-                          value={form.criteria.totalSpent.value}
-                          onChange={(e) => updateCriteria("totalSpent", "value", parseInt(e.target.value) || 0)}
+                          placeholder="Enter amount"
+                          className={`w-32 ${formErrors["criteria.totalSpent.value"] ? "border-destructive" : ""}`}
+                          value={form.criteria.totalSpent.value === null ? "" : form.criteria.totalSpent.value}
+                          onChange={(e) => {
+                            const val = e.target.value === "" ? null : parseInt(e.target.value);
+                            updateCriteria("totalSpent", "value", val);
+                          }}
                         />
                         <span className="text-sm text-muted-foreground">TZS</span>
                       </div>
+                    )}
+                    {formErrors["criteria.totalSpent.value"] && (
+                      <p className="text-xs text-destructive">{formErrors["criteria.totalSpent.value"]}</p>
                     )}
                   </div>
                 </div>
@@ -690,13 +751,19 @@ export default function OffersPage() {
                         </Select>
                         <Input
                           type="number"
-                          placeholder="Days"
-                          className="w-32"
-                          value={form.criteria.lastPurchaseDays.value}
-                          onChange={(e) => updateCriteria("lastPurchaseDays", "value", parseInt(e.target.value) || 0)}
+                          placeholder="Enter days"
+                          className={`w-32 ${formErrors["criteria.lastPurchaseDays.value"] ? "border-destructive" : ""}`}
+                          value={form.criteria.lastPurchaseDays.value === null ? "" : form.criteria.lastPurchaseDays.value}
+                          onChange={(e) => {
+                            const val = e.target.value === "" ? null : parseInt(e.target.value);
+                            updateCriteria("lastPurchaseDays", "value", val);
+                          }}
                         />
                         <span className="text-sm text-muted-foreground">days ago</span>
                       </div>
+                    )}
+                    {formErrors["criteria.lastPurchaseDays.value"] && (
+                      <p className="text-xs text-destructive">{formErrors["criteria.lastPurchaseDays.value"]}</p>
                     )}
                   </div>
                 </div>

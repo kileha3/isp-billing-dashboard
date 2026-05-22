@@ -134,7 +134,7 @@ export default function InvoicesPage() {
                   <BetweenHorizonalEnd className="mr-2 h-4 w-4" />Exempt Invoice
                 </DropdownMenuItem>)}
 
-                {["overdue", "expired", "paid"].includes(invoice.status) && (<DropdownMenuItem className="text-destructive" onClick={() => setInvoiceToUpdate({ ...(row as unknown as Invoice), status: "pending" })}>
+                {["overdue", "expired", "paid"].includes(invoice.status) && isSuperAdmin && (<DropdownMenuItem className="text-destructive" onClick={() => setInvoiceToUpdate({ ...(row as unknown as Invoice), status: "pending" })}>
                   <List className="mr-2 h-4 w-4" />Reactivate Invoice
                 </DropdownMenuItem>)}
               </DropdownMenuContent>
