@@ -253,12 +253,13 @@ export default function PPPoEUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      {/* Mobile responsive header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">PPPoE Users</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your PPPoE users and their packages</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">PPPoE Users</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Manage your PPPoE users and their packages</p>
         </div>
-        <Button onClick={openAdd}>
+        <Button onClick={openAdd} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add PPPoE User
         </Button>
@@ -274,9 +275,9 @@ export default function PPPoEUsersPage() {
         emptyMessage="No PPPoE users found."
         pageSize={10}
         filterSlot={
-          <div className="flex gap-3">
+          <div className="flex gap-3 w-full sm:w-auto">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
+              <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
                 <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -316,15 +317,16 @@ export default function PPPoEUsersPage() {
         )}
       />
 
+      {/* Add/Edit Dialog - Mobile Responsive */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>{editTarget ? "Edit PPPoE User" : "Add PPPoE User"}</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">{editTarget ? "Edit PPPoE User" : "Add PPPoE User"}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
-            {/* Username */}
-            <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
+            {/* Username - full width on mobile */}
+            <div className="flex flex-col gap-1.5 sm:col-span-1">
               <Label>Username *</Label>
               <Input
                 placeholder="e.g. john_doe"
@@ -334,8 +336,8 @@ export default function PPPoEUsersPage() {
               />
             </div>
 
-            {/* Email */}
-            <div className="flex flex-col gap-1.5">
+            {/* Email - full width on mobile */}
+            <div className="flex flex-col gap-1.5 sm:col-span-1">
               <Label>Email *</Label>
               <Input
                 type="email"
@@ -345,7 +347,7 @@ export default function PPPoEUsersPage() {
               />
             </div>
 
-            {/* First Name & Last Name */}
+            {/* First Name */}
             <div className="flex flex-col gap-1.5">
               <Label>First Name *</Label>
               <Input
@@ -355,6 +357,7 @@ export default function PPPoEUsersPage() {
               />
             </div>
 
+            {/* Last Name */}
             <div className="flex flex-col gap-1.5">
               <Label>Last Name *</Label>
               <Input
@@ -364,8 +367,8 @@ export default function PPPoEUsersPage() {
               />
             </div>
 
-            {/* Location (Optional) */}
-            <div className="col-span-2 flex flex-col gap-1.5">
+            {/* Location (Optional) - full width */}
+            <div className="col-span-1 sm:col-span-2 flex flex-col gap-1.5">
               <Label>Location (Optional)</Label>
               <Input
                 placeholder="e.g. Dar es Salaam, Kinondoni"
@@ -374,8 +377,8 @@ export default function PPPoEUsersPage() {
               />
             </div>
 
-            {/* Package Selection - 40% width */}
-            <div className="col-span-2 flex flex-col gap-1.5" style={{ width: "40%" }}>
+            {/* Package Selection - responsive width */}
+            <div className="col-span-1 sm:col-span-2 flex flex-col gap-1.5 max-w-full sm:max-w-[40%]">
               <Label>Package *</Label>
               <Select value={form.packageId} onValueChange={(v) => setForm(f => ({ ...f, packageId: v }))}>
                 <SelectTrigger>
@@ -402,11 +405,11 @@ export default function PPPoEUsersPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting || !isFormValid}>
+            <Button onClick={handleSubmit} disabled={submitting || !isFormValid} className="w-full sm:w-auto">
               {submitting ? "Saving…" : editTarget ? "Update" : "Create"}
             </Button>
           </DialogFooter>

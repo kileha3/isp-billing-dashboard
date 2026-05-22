@@ -480,14 +480,15 @@ export default function OffersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      {/* Mobile responsive header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Customer Offers</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Customer Offers</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
             Create targeted promotions for your customers based on their behavior
           </p>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={openCreate} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Create Offer
         </Button>
@@ -503,9 +504,9 @@ export default function OffersPage() {
         emptyMessage="No offers created yet. Click 'Create Offer' to get started."
         pageSize={10}
         filterSlot={
-          <div className="flex flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
+              <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
                 <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -517,7 +518,7 @@ export default function OffersPage() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={() => load()} disabled={loading} className="h-10">
+            <Button variant="outline" onClick={() => load()} disabled={loading} className="h-10 w-full sm:w-auto">
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
@@ -569,11 +570,11 @@ export default function OffersPage() {
         }}
       />
 
-      {/* Create/Edit Offer Dialog */}
+      {/* Create/Edit Offer Dialog - Mobile Responsive */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
               {editTarget ? "Edit Offer" : "Create New Offer"}
             </DialogTitle>
           </DialogHeader>
@@ -583,8 +584,8 @@ export default function OffersPage() {
             <div className="space-y-4">
               <h3 className="text-sm font-semibold">Basic Information</h3>
               
-              <div className="flex gap-4">
-                <div className="flex-[7] flex flex-col gap-1.5">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 flex flex-col gap-1.5">
                   <Label>Offer Name *</Label>
                   <Input
                     placeholder="e.g., VIP Customer Reward"
@@ -597,7 +598,7 @@ export default function OffersPage() {
                   )}
                 </div>
 
-                <div className="flex-[3] flex flex-col gap-1.5">
+                <div className="flex-1 flex flex-col gap-1.5">
                   <Label>Target Package *</Label>
                   <Select value={form.packageId} onValueChange={(v) => setForm(f => ({ ...f, packageId: v }))}>
                     <SelectTrigger className={formErrors.packageId ? "border-destructive" : ""}>
@@ -620,9 +621,9 @@ export default function OffersPage() {
 
             {/* Qualification Criteria */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Customer Qualification Criteria
+              <h3 className="text-sm font-semibold flex items-center gap-2 flex-wrap">
+                <Users className="h-4 w-4 shrink-0" />
+                <span>Customer Qualification Criteria</span>
                 <span className="text-xs text-muted-foreground font-normal">
                   (Enable and fill at least one)
                 </span>
@@ -632,12 +633,13 @@ export default function OffersPage() {
                 <p className="text-xs text-destructive">{formErrors["criteria"]}</p>
               )}
               
-              <div className="space-y-4 pl-4 border-l-2 border-border">
+              <div className="space-y-4 pl-2 sm:pl-4 border-l-2 border-border">
                 {/* Minimum Usage Days */}
-                <div className="flex items-start gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                   <Switch
                     checked={form.criteria.minUsageDays.enabled}
                     onCheckedChange={(v) => toggleCriteria("minUsageDays", v)}
+                    className="shrink-0"
                   />
                   <div className="flex-1 space-y-2">
                     <Label className="flex items-center gap-2">
@@ -645,12 +647,12 @@ export default function OffersPage() {
                       Minimum usage days
                     </Label>
                     {form.criteria.minUsageDays.enabled && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Select
                           value={form.criteria.minUsageDays.operator}
                           onValueChange={(v) => updateCriteria("minUsageDays", "operator", v)}
                         >
-                          <SelectTrigger className="w-40">
+                          <SelectTrigger className="w-full sm:w-40">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -662,7 +664,7 @@ export default function OffersPage() {
                         <Input
                           type="number"
                           placeholder="Enter days"
-                          className={`w-32 ${formErrors["criteria.minUsageDays.value"] ? "border-destructive" : ""}`}
+                          className={`w-full sm:w-32 ${formErrors["criteria.minUsageDays.value"] ? "border-destructive" : ""}`}
                           value={form.criteria.minUsageDays.value === null ? "" : form.criteria.minUsageDays.value}
                           onChange={(e) => {
                             const val = e.target.value === "" ? null : parseInt(e.target.value);
@@ -679,10 +681,11 @@ export default function OffersPage() {
                 </div>
 
                 {/* Total Amount Spent */}
-                <div className="flex items-start gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                   <Switch
                     checked={form.criteria.totalSpent.enabled}
                     onCheckedChange={(v) => toggleCriteria("totalSpent", v)}
+                    className="shrink-0"
                   />
                   <div className="flex-1 space-y-2">
                     <Label className="flex items-center gap-2">
@@ -690,12 +693,12 @@ export default function OffersPage() {
                       Total amount spent
                     </Label>
                     {form.criteria.totalSpent.enabled && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Select
                           value={form.criteria.totalSpent.operator}
                           onValueChange={(v) => updateCriteria("totalSpent", "operator", v)}
                         >
-                          <SelectTrigger className="w-40">
+                          <SelectTrigger className="w-full sm:w-40">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -707,7 +710,7 @@ export default function OffersPage() {
                         <Input
                           type="number"
                           placeholder="Enter amount"
-                          className={`w-32 ${formErrors["criteria.totalSpent.value"] ? "border-destructive" : ""}`}
+                          className={`w-full sm:w-32 ${formErrors["criteria.totalSpent.value"] ? "border-destructive" : ""}`}
                           value={form.criteria.totalSpent.value === null ? "" : form.criteria.totalSpent.value}
                           onChange={(e) => {
                             const val = e.target.value === "" ? null : parseInt(e.target.value);
@@ -724,10 +727,11 @@ export default function OffersPage() {
                 </div>
 
                 {/* Last Purchase Date */}
-                <div className="flex items-start gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                   <Switch
                     checked={form.criteria.lastPurchaseDays.enabled}
                     onCheckedChange={(v) => toggleCriteria("lastPurchaseDays", v)}
+                    className="shrink-0"
                   />
                   <div className="flex-1 space-y-2">
                     <Label className="flex items-center gap-2">
@@ -735,12 +739,12 @@ export default function OffersPage() {
                       Last purchase within
                     </Label>
                     {form.criteria.lastPurchaseDays.enabled && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Select
                           value={form.criteria.lastPurchaseDays.operator}
                           onValueChange={(v) => updateCriteria("lastPurchaseDays", "operator", v)}
                         >
-                          <SelectTrigger className="w-40">
+                          <SelectTrigger className="w-full sm:w-40">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -752,7 +756,7 @@ export default function OffersPage() {
                         <Input
                           type="number"
                           placeholder="Enter days"
-                          className={`w-32 ${formErrors["criteria.lastPurchaseDays.value"] ? "border-destructive" : ""}`}
+                          className={`w-full sm:w-32 ${formErrors["criteria.lastPurchaseDays.value"] ? "border-destructive" : ""}`}
                           value={form.criteria.lastPurchaseDays.value === null ? "" : form.criteria.lastPurchaseDays.value}
                           onChange={(e) => {
                             const val = e.target.value === "" ? null : parseInt(e.target.value);
@@ -777,7 +781,7 @@ export default function OffersPage() {
                 Validity Period
               </h3>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label>Start Date *</Label>
                   <Input
@@ -816,13 +820,14 @@ export default function OffersPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
             <Button 
               onClick={handleSubmit} 
               disabled={submitting || !isFormValid()}
+              className="w-full sm:w-auto"
             >
               {submitting ? "Saving..." : (editTarget ? "Update Offer" : "Create Offer")}
             </Button>
@@ -830,11 +835,11 @@ export default function OffersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Show Criteria Dialog */}
+      {/* Show Criteria Dialog - Mobile Responsive */}
       <Dialog open={showCriteriaDialog} onOpenChange={setShowCriteriaDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-2xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
               Offer Criteria: {selectedOffer?.name}
             </DialogTitle>
             <DialogDescription>
@@ -860,11 +865,11 @@ export default function OffersPage() {
                     <p className="text-sm text-muted-foreground">No criteria defined</p>
                   ) : (
                     getCriteriaDisplayText(selectedOffer.criteria).map((criteria, index) => (
-                      <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                        <Badge variant="secondary" className="text-xs">
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                        <Badge variant="secondary" className="text-xs w-fit">
                           {index === 0 ? "Must meet:" : "And"}
                         </Badge>
-                        <span className="text-sm">{criteria}</span>
+                        <span className="text-sm break-words">{criteria}</span>
                       </div>
                     ))
                   )}
@@ -874,18 +879,15 @@ export default function OffersPage() {
               {/* Validity Period */}
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Validity Period</h3>
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>
+                <div className="flex items-center gap-2 text-sm flex-wrap">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="break-words">
                     {format(new Date(selectedOffer.startDate), "PPP")} - {format(new Date(selectedOffer.endDate), "PPP")} {isOfferExpired(selectedOffer) ? "(Expired)" : ""}
                   </span>
                 </div>
               </div>
-
-              
             </div>
           )}
-
         </DialogContent>
       </Dialog>
 

@@ -515,12 +515,13 @@ export default function RoutersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      {/* Mobile responsive header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Routers</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your MikroTik routers</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Routers</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Manage your MikroTik routers</p>
         </div>
-        <Button onClick={openWizardForCreate}>
+        <Button onClick={openWizardForCreate} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add Router
         </Button>
@@ -536,9 +537,9 @@ export default function RoutersPage() {
         emptyMessage="No routers yet. Add your first MikroTik router."
         pageSize={10}
         filterSlot={
-          <div className="flex flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
+              <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
                 <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
@@ -550,7 +551,7 @@ export default function RoutersPage() {
             </Select>
 
             <Select value={stateFilter} onValueChange={setStateFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
+              <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
                 <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
@@ -560,7 +561,7 @@ export default function RoutersPage() {
                 <SelectItem value="false">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10">
+            <Button variant="outline" onClick={() => load(false)} disabled={loading} className="h-10 w-full sm:w-auto">
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
@@ -616,13 +617,13 @@ export default function RoutersPage() {
         }}
       />
 
-      {/* Router Wizard Dialog */}
+      {/* Router Wizard Dialog - Make responsive */}
       <Dialog open={showWizard} onOpenChange={(open) => { if (!open && wizard.canClose) closeWizard(); }}>
-        <DialogContent className="w-full max-w-3xl sm:max-w-3xl" onInteractOutside={(e) => {
+        <DialogContent className="w-[95vw] max-w-3xl sm:max-w-3xl p-4 sm:p-6" onInteractOutside={(e) => {
           if (!wizard.canClose) e.preventDefault();
         }}>
           <DialogHeader>
-            <DialogTitle>{wizardTitle}</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">{wizardTitle}</DialogTitle>
           </DialogHeader>
 
           {/* Only show steps for create and setup modes, not for edit */}
@@ -630,13 +631,13 @@ export default function RoutersPage() {
             <StepIndicator current={wizardStep} steps={STEPS} />
           )}
 
-          {/* Step 1 — Basic Info (only for create mode) */}
+          {/* Step 1 — Basic Info (only for create mode) - Responsive */}
           {wizardStep === "basic" && wizard.mode === "create" && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">Enter the router name and location. configuration script will be generated automatically after saving.</p>
 
-              {/* Horizontal row for Router Name and Location */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Horizontal row becomes column on mobile */}
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label>Router Name <span className="text-destructive">*</span></Label>
                   <Input
@@ -680,12 +681,12 @@ export default function RoutersPage() {
             </div>
           )}
 
-          {/* Step 1 — Basic Info (for edit mode) */}
+          {/* Step 1 — Basic Info (for edit mode) - Responsive */}
           {wizardStep === "basic" && wizard.mode === "edit" && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">Edit router details.</p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label>Router Name <span className="text-destructive">*</span></Label>
                   <Input
@@ -729,12 +730,12 @@ export default function RoutersPage() {
             </div>
           )}
 
-          {/* Step 2 — VPN Script */}
+          {/* Step 2 — VPN Script - Make responsive */}
           {wizardStep === "vpn_script" && wizard.mode === "setup" && wizard.router && (
             <div className="flex flex-col gap-4">
               <div className="flex items-start gap-3 rounded-lg border border-border p-3 bg-muted/30">
                 <Info className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   Paste this script into your MikroTik router terminal. It will configure and establish a secure connection back to the {appName} server for other configrations.
                 </p>
               </div>
@@ -767,7 +768,7 @@ export default function RoutersPage() {
                         <Wifi className="h-4 w-4 text-emerald-600 shrink-0" />
                         <p className="text-sm font-semibold text-emerald-600">Router Connected</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs">
                         <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
                         <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
                       </div>
@@ -792,36 +793,39 @@ export default function RoutersPage() {
             </div>
           )}
 
-          {/* Step 3 — Interface Selection */}
+          {/* Step 3 — Interface Selection - Make responsive */}
           {wizardStep === "interfaces" && wizard.mode === "setup" && wizard.routerInfo && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
                 Select your prefered network interfaces where your billing services will be installed.
               </p>
 
-              <div className="grid grid-cols-[30%_70%] gap-4 max-h-72">
+              {/* Stack on mobile, grid on larger screens */}
+              <div className="flex flex-col sm:grid sm:grid-cols-[30%_70%] gap-4 max-h-96 sm:max-h-72">
 
                 {/* LEFT — SERVICES */}
-                <div className="flex flex-col gap-2 border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Services</p>
+                <div className="flex flex-row sm:flex-col gap-2 border rounded-lg p-3 overflow-x-auto sm:overflow-x-visible">
+                  <p className="text-xs text-muted-foreground mb-0 sm:mb-1 shrink-0">Services</p>
 
-                  {services.map((type) => {
-                    const isActive = selectedType === type;
-                    const disabled = false;
+                  <div className="flex flex-row sm:flex-col gap-2">
+                    {services.map((type) => {
+                      const isActive = selectedType === type;
+                      const disabled = false;
 
-                    return (
-                      <button
-                        key={type}
-                        onClick={() => handleSelectService(type)}
-                        className={`text-left px-3 py-2 rounded-md border transition-colors
-              ${isActive ? "border-primary bg-primary/5" : "border-border"}
-              ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted"}
-            `}
-                      >
-                        <span className="text-sm font-medium">{type}</span>
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => handleSelectService(type)}
+                          className={`text-left px-3 py-2 rounded-md border transition-colors whitespace-nowrap sm:whitespace-normal
+                          ${isActive ? "border-primary bg-primary/5" : "border-border"}
+                          ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted"}
+                        `}
+                        >
+                          <span className="text-sm font-medium">{type}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* RIGHT — INTERFACES */}
@@ -838,20 +842,20 @@ export default function RoutersPage() {
                       <button
                         key={iface.name}
                         onClick={() => handleSelectInterface(iface.name)}
-                        className={`flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors
-              ${isSelected ? "border-primary bg-primary/5" : "border-border"}
-              hover:border-primary hover:bg-primary/5
-            `}
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border px-3 sm:px-4 py-2 sm:py-3 text-left transition-colors
+                          ${isSelected ? "border-primary bg-primary/5" : "border-border"}
+                          hover:border-primary hover:bg-primary/5
+                        `}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-2 w-2 rounded-full bg-primary" />
+                          <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
                           <code className="text-sm font-mono font-medium">{iface.name}</code>
-                          <code className="text-sm font-mono text-muted-foreground">
+                          <code className="text-xs sm:text-sm font-mono text-muted-foreground">
                             {iface.isRunning ? "Running" : "Idle"}
                           </code>
                         </div>
 
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs w-fit">
                           {iface.name.includes("wlan")
                             ? "Wireless"
                             : iface.name.includes("bridge")
@@ -867,16 +871,17 @@ export default function RoutersPage() {
               </div>
 
               {/* ACTIONS */}
-              <div className="flex justify-end">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
                 <Button
                   variant="outline"
-                  className="mr-1.5"
+                  className="w-full sm:w-auto"
                   onClick={() => setWizard((w) => ({ ...w, step: "vpn_script", canClose: true }))}
                 >
                   Back
                 </Button>
 
                 <Button
+                  className="w-full sm:w-auto"
                   onClick={() => {
                     setWizard((w) => ({ ...w, step: "done", selectedInterface: serviceInterfaces, canClose: false }));
                   }}
@@ -888,33 +893,33 @@ export default function RoutersPage() {
             </div>
           )}
 
-          {/* Step 4 — Done */}
+          {/* Step 4 — Done - Responsive */}
           {wizardStep === "done" && wizard.mode === "setup" && (
             <div className="flex flex-col items-center gap-4 py-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
                 <Network className="h-8 w-8 text-emerald-600" />
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-semibold">Billing service interfaces summary</h3>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="text-base sm:text-lg font-semibold">Billing service interfaces summary</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   <span className="font-medium">{wizard.router?.name}</span> is configured and ready to serve customers through the following interfaces.
                 </p>
               </div>
               {wizard.routerInfo && (
-                <div className="w-full rounded-lg border border-border p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                  <span className="text-muted-foreground">Model</span><span className="font-medium">{wizard.routerInfo.model}</span>
-                  <span className="text-muted-foreground">RouterOS</span><span className="font-medium">{wizard.routerInfo.version}</span>
+                <div className="w-full rounded-lg border border-border p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                  <span className="text-muted-foreground">Model</span><span className="font-medium break-words">{wizard.routerInfo.model}</span>
+                  <span className="text-muted-foreground">RouterOS</span><span className="font-medium break-words">{wizard.routerInfo.version}</span>
                   <span className="text-muted-foreground">Portal Interfaces</span>
-                  <code className="font-mono font-medium">
+                  <code className="font-mono font-medium break-words">
                     {wizard.selectedInterface?.type} - {wizard.selectedInterface?.interfaces.join(",")}
                   </code>
                 </div>
               )}
-              <div className="flex justify-end gap-2 pt-2">
-                {!loading && (<Button variant="outline" onClick={() => setWizard(w => ({ ...w, step: "interfaces", canClose: true }))}>
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 w-full">
+                {!loading && (<Button variant="outline" className="w-full sm:w-auto" onClick={() => setWizard(w => ({ ...w, step: "interfaces", canClose: true }))}>
                   Back
                 </Button>)}
-                {!loading && (<Button disabled={(wizard.selectedInterface?.interfaces || []).length == 0} onClick={() => {
+                {!loading && (<Button className="w-full sm:w-auto" disabled={(wizard.selectedInterface?.interfaces || []).length == 0} onClick={() => {
                   updateInterfaces();
                 }}>
                   <Check className="h-4 w-4 mr-1.5" />
@@ -928,13 +933,14 @@ export default function RoutersPage() {
       </Dialog>
 
 
+      {/* Whitelist AP Dialog - Responsive */}
       {routerToAddWhiteList && (<Dialog open={routerToAddWhiteList != null} onOpenChange={() => setRouterToAddWhiteList(null)}>
-        <DialogContent className="w-full max-w-3xl sm:max-w-3xl">
+        <DialogContent className="w-[95vw] max-w-3xl sm:max-w-3xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Whitelist Access Point</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">Whitelist Access Point</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
             {/* Name */}
             <div className="flex flex-col gap-1.5">
               <Label>
@@ -977,36 +983,37 @@ export default function RoutersPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 mt-6">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-6">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setRouterToAddWhiteList(null)}
             >
               Cancel
             </Button>
 
-            <Button disabled={!isFormValid} onClick={handleWhitelist}>
+            <Button disabled={!isFormValid} onClick={handleWhitelist} className="w-full sm:w-auto">
              {loading ? "Whitelisting...":" Whitelist Now"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>)}
 
-      {/* View Whitelisted APs Dialog */}
+      {/* View Whitelisted APs Dialog - Responsive */}
       {routerToViewWhitelist && (
         <Dialog open={routerToViewWhitelist !== null} onOpenChange={() => setRouterToViewWhitelist(null)}>
-          <DialogContent className="w-full max-w-2xl">
+          <DialogContent className="w-[95vw] max-w-2xl p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle>Whitelisted Access Points</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <DialogTitle className="text-lg sm:text-xl">Whitelisted Access Points</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1 break-words">
                 {routerToViewWhitelist.name} - {routerToViewWhitelist.location}
               </p>
             </DialogHeader>
 
             <div className="flex flex-col gap-4">
               {routerToViewWhitelist.aps && routerToViewWhitelist.aps.length > 0 ? (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <table className="w-full">
+                <div className="rounded-lg border border-border overflow-x-auto">
+                  <table className="w-full min-w-[300px]">
                     <thead className="bg-muted/50">
                       <tr className="border-b border-border">
                         <th className="text-left p-3 text-sm font-medium text-muted-foreground">AP Name</th>
@@ -1017,9 +1024,9 @@ export default function RoutersPage() {
                     <tbody>
                       {routerToViewWhitelist.aps.map((ap, index) => (
                         <tr key={ap.mac} className={index !== routerToViewWhitelist.aps.length - 1 ? "border-b border-border" : ""}>
-                          <td className="p-3 text-sm">{ap.name}</td>
+                          <td className="p-3 text-sm break-words">{ap.name}</td>
                           <td className="p-3">
-                            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{ap.mac}</code>
+                            <code className="text-xs sm:text-sm font-mono bg-muted px-2 py-1 rounded break-all">{ap.mac}</code>
                           </td>
                           <td className="p-3 text-right">
                             <Button
@@ -1036,7 +1043,7 @@ export default function RoutersPage() {
                               )}
                             </Button>
                           </td>
-                        </tr>
+                         </tr>
                       ))}
                     </tbody>
                    </table>
@@ -1051,7 +1058,7 @@ export default function RoutersPage() {
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setRouterToViewWhitelist(null)}>
+              <Button variant="outline" onClick={() => setRouterToViewWhitelist(null)} className="w-full sm:w-auto">
                 Close
               </Button>
             </div>

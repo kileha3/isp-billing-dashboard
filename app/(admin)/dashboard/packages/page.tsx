@@ -277,12 +277,13 @@ export default function PackagesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      {/* Mobile responsive header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Packages</h1>
-          <p className="text-sm text-muted-foreground mt-1">Create your prefered packages available to customers</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Packages</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Create your prefered packages available to customers</p>
         </div>
-        <Button onClick={openAdd}>
+        <Button onClick={openAdd} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add Package
         </Button>
@@ -298,9 +299,9 @@ export default function PackagesPage() {
         emptyMessage="No packages yet."
         pageSize={10}
         filterSlot={
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
+              <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
                 <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
@@ -312,7 +313,7 @@ export default function PackagesPage() {
             </Select>
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
+              <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
                 <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
@@ -324,7 +325,7 @@ export default function PackagesPage() {
             </Select>
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 w-44 bg-background">
+              <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
                 <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
@@ -355,15 +356,16 @@ export default function PackagesPage() {
         )}
       />
 
+      {/* Add/Edit Dialog - Mobile Responsive */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>{editTarget ? "Edit Package" : "Add Package"}</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">{editTarget ? "Edit Package" : "Add Package"}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
             {/* Package Name - Full width */}
-            <div className="col-span-2 flex flex-col gap-1.5">
+            <div className="col-span-1 sm:col-span-2 flex flex-col gap-1.5">
               <Label>Package Name</Label>
               <Input
                 placeholder="e.g. Daily Unlimited Internet"
@@ -374,7 +376,7 @@ export default function PackagesPage() {
 
             {/* Tenant association (super admin only) */}
             {isSuperAdmin && (
-              <div className="col-span-2 flex flex-col gap-1.5">
+              <div className="col-span-1 sm:col-span-2 flex flex-col gap-1.5">
                 <Label>Tenant</Label>
                 <Select value={form.tenantId} onValueChange={setFormTenantId}>
                   <SelectTrigger>
@@ -389,6 +391,7 @@ export default function PackagesPage() {
               </div>
             )}
 
+            {/* Price */}
             <div className="flex flex-col gap-1.5">
               <Label>Price (Tsh)</Label>
               <Input
@@ -405,7 +408,7 @@ export default function PackagesPage() {
             {/* Duration */}
             <div className="flex flex-col gap-1.5">
               <Label>Duration</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   type="number"
                   placeholder="1"
@@ -417,7 +420,7 @@ export default function PackagesPage() {
                   value={form.durationUnit}
                   onValueChange={(v) => setForm(f => ({ ...f, durationUnit: v as DurationUnit }))}
                 >
-                  <SelectTrigger className="w-28">
+                  <SelectTrigger className="w-full sm:w-28">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -445,7 +448,7 @@ export default function PackagesPage() {
             {/* Data Limit - Split into value + unit (GB/MB) */}
             <div className="flex flex-col gap-1.5">
               <Label>Data Limit (0 = unlimited)</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   type="number"
                   placeholder="1"
@@ -457,7 +460,7 @@ export default function PackagesPage() {
                   value={form.dataLimitUnit || "GB"}
                   onValueChange={(v) => setForm(f => ({ ...f, dataLimitUnit: v as "MB" | "GB" }))}
                 >
-                  <SelectTrigger className="w-24">
+                  <SelectTrigger className="w-full sm:w-24">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -468,43 +471,45 @@ export default function PackagesPage() {
               </div>
             </div>
 
-            {/* Max Users & Max Sessions Row - Updated to behave like speed and data limit */}
-            {!form.isPpPoe && (<div className="col-span-2 grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label className="flex items-center gap-2">
-                  Connections (0 = unlimited)
-                </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={ form.maxUsers}
-                  onChange={(e) => {
-                    setForm(f => ({ ...f, maxUsers: e.target.value }));
-                  }}
-                />
-                <span className="text-xs text-muted-foreground">Simultaneous connections per device</span>
-              </div>
+            {/* Max Users & Max Sessions Row */}
+            {!form.isPpPoe && (
+              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="flex items-center gap-2">
+                    Connections (0 = unlimited)
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.maxUsers}
+                    onChange={(e) => {
+                      setForm(f => ({ ...f, maxUsers: e.target.value }));
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground">Simultaneous connections per device</span>
+                </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label className="flex items-center gap-2">
-                  Reconnects (0 = unlimited)
-                </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={form.maxReconnects}
-                  onChange={(e) => {
-                    setForm(f => ({ ...f, maxReconnects: e.target.value }));
-                  }}
-                />
-                <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="flex items-center gap-2">
+                    Reconnects (0 = unlimited)
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.maxReconnects}
+                    onChange={(e) => {
+                      setForm(f => ({ ...f, maxReconnects: e.target.value }));
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
+                </div>
               </div>
-            </div>)}
+            )}
 
-            {/* Toggle Switches Row */}
-            <div className="col-span-2 flex items-center gap-6">
+            {/* Toggle Switches Row - Wrap on mobile */}
+            <div className="col-span-1 sm:col-span-2 flex flex-wrap items-center gap-4 sm:gap-6">
               <div className="flex items-center gap-3">
                 <Switch
                   checked={form.isPublic}
@@ -534,9 +539,9 @@ export default function PackagesPage() {
             </div>
 
             {/* Router mapping */}
-            <div className="col-span-2 flex flex-col gap-2 mt-4">
-              <div className="flex items-center justify-between">
-                <Label className={!editTarget && form.routerIds.length === 0 ? "" : ""}>
+            <div className="col-span-1 sm:col-span-2 flex flex-col gap-2 mt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <Label className={!editTarget && form.routerIds.length === 0 ? "text-destructive" : ""}>
                   Router Mapping {!editTarget && <span className="text-xs">*</span>}
                 </Label>
                 <span className="text-xs text-muted-foreground">
@@ -585,13 +590,14 @@ export default function PackagesPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
             <Button 
               onClick={handleSubmit} 
               disabled={submitting || !packageFormValid || (!editTarget && form.routerIds.length === 0)}
+              className="w-full sm:w-auto"
             >
               {submitting ? "Saving…" : editTarget ? "Update" : "Create"}
             </Button>

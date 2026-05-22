@@ -11,6 +11,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
@@ -54,6 +55,7 @@ const navAdmin = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const { user, isRole } = useAuth();
+   const { toggleSidebar } = useSidebar()
   const isSuperAdmin = isRole("super_admin");
 
   function isActive(href: string) {
@@ -61,11 +63,13 @@ export function AdminSidebar() {
     return pathname.startsWith(href);
   }
 
+  const onMenuClick = () => toggleSidebar();
+
   return (
     <Sidebar>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem>
+          <SidebarMenuItem onClick={onMenuClick}>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
@@ -89,7 +93,7 @@ export function AdminSidebar() {
           <SidebarMenu>
             {(isSuperAdmin ? [...navMain]: navMain.toSpliced(2, 0, { label: "Packages", href: "/dashboard/packages", icon: Package },
               { label: "Vouchers", href: "/dashboard/vouchers", icon: Ticket }, { label: "Offers", href: "/dashboard/offers", icon: Gift },{ label: "PPPoE Users", href: "/dashboard/pppoe", icon: EthernetPort })).map((item) => (
-                <SidebarMenuItem key={item.href}>
+                <SidebarMenuItem key={item.href} onClick={onMenuClick}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
