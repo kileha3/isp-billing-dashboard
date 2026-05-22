@@ -42,7 +42,7 @@ const notificationIconMap = {
   session_expired: <AlertCircle />,
   payment_success: <CreditCard />,
   payment_failed: <AlertCircle />,
-  setup_complete: <SettingsIcon/>
+  setup_complete: <SettingsIcon />
 }
 
 export function AdminHeader() {
@@ -53,13 +53,13 @@ export function AdminHeader() {
   const [notifOpen, setNotifOpen] = useState(false);
 
   const load = useCallback(async () => {
-      try {
-        const { data } = await apiClient.notifications.list();
-        setNotifications(data);
-      } catch {
-        setNotifications([]);
-      }
-    }, []);
+    try {
+      const { data } = await apiClient.notifications.list();
+      setNotifications(data);
+    } catch {
+      setNotifications([]);
+    }
+  }, []);
 
   function handleLogout() {
     logout();
@@ -69,6 +69,12 @@ export function AdminHeader() {
   async function markAllRead() {
     setNotifications(ns => ns.map(n => ({ ...n, read: true })));
     await apiClient.notifications.markAllRead();
+    load();
+  }
+
+  async function markAsRead(id: string) {
+    setNotifications(ns => ns.map(n => ({ ...n, read: n._id === id ? true : n.read })));
+    await apiClient.notifications.markAsRead(id);
     load();
   }
 
@@ -85,8 +91,8 @@ export function AdminHeader() {
     .sort((a, b) => b[0].length - a[0].length)
     .find(([key]) => pathname?.startsWith(key))?.[1] ?? "Dashboard";
 
-   useEffect(() => { load(); }, [load]);
-   
+  useEffect(() => { load(); }, [load]);
+
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4">
       <SidebarTrigger className="-ml-1" />
@@ -134,7 +140,7 @@ export function AdminHeader() {
                       "flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 w-full",
                       !n.read && "bg-primary/[0.03]"
                     )}
-                    onClick={() => setNotifications(ns => ns.map(x => x._id === n._id ? { ...x, read: true } : x))}
+                    onClick={() => markAsRead(n._id)}
                   >
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted mt-0.5">
                       {notificationIconMap[n.type] || <Bell className="h-4 w-4 text-muted-foreground" />}

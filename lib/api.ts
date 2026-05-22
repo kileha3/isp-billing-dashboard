@@ -207,6 +207,8 @@ export const apiClient = {
     list: () => req<{ data: Array<Notification> }>("/notifications"),
     markAllRead: () =>
       req<any>("/notifications/mark-all-read", { method: "PATCH" }),
+    markAsRead: (id: string) =>
+      req<any>(`/notifications/mark/${id}`, { method: "PATCH" }),
   },
 
   routers: {
