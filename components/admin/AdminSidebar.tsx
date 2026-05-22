@@ -55,7 +55,7 @@ const navAdmin = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const { user, isRole } = useAuth();
-   const { toggleSidebar } = useSidebar()
+   const { toggleSidebar, isMobile } = useSidebar()
   const isSuperAdmin = isRole("super_admin");
 
   function isActive(href: string) {
@@ -63,7 +63,7 @@ export function AdminSidebar() {
     return pathname.startsWith(href);
   }
 
-  const onMenuClick = () => toggleSidebar();
+  const onMenuClick = () => isMobile && toggleSidebar();
 
   return (
     <Sidebar>
