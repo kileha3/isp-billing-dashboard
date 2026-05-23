@@ -22,6 +22,8 @@ class SocketClient {
 
   static event_router_setup_completed = "router_setup_completed";
 
+  static event_notification_sync = "notification_sync_triggered"
+
   static async connect(options: any = {}): Promise<Socket | null> {
     const server = `${process.env.NEXT_PUBLIC_API_URL}`.split("/v")[0];
     

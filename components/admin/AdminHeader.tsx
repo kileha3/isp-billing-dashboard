@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api";
 import { Notification } from "@/lib/types";
+import SocketClient from "@/lib/socket.util";
 
 
 const PAGE_TITLES: Record<string, string> = {
@@ -92,6 +93,18 @@ export function AdminHeader() {
     .find(([key]) => pathname?.startsWith(key))?.[1] ?? "Dashboard";
 
   useEffect(() => { load(); }, [load]);
+
+   useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      const event = SocketClient.event_notification_sync;
+      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4">
