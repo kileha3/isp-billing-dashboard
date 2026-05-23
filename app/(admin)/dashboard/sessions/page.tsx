@@ -380,7 +380,7 @@ export default function SessionsPage() {
         <StatCard label="Offline Sessions" value={offline.length} icon={WifiOff} />
         <StatCard label="Expired Sessions" value={expired.length} icon={Clock} />
         <StatCard label="Total Sessions" value={filteredSessions.length} icon={Wifi} />
-        <StatCard label="Total Data" value={`${formatBytes(totalDataOutput)} / ${formatBytes(totalDataInput)}`} icon={Clock} />
+        <StatCard label="Total Data" value={`${formatBytes(totalDataInput)} / ${formatBytes(totalDataOutput)}`} icon={Clock} />
       </div>
 
       <DataTable
