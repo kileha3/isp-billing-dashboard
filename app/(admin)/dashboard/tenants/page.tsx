@@ -276,12 +276,13 @@ export default function TenantsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      {/* Mobile responsive header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tenants</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage ISP providers on the platform</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Tenants</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Manage ISP providers on the platform</p>
         </div>
-        <Button onClick={() => setShowDialog(true)}>
+        <Button onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add Tenant
         </Button>
@@ -297,17 +298,19 @@ export default function TenantsPage() {
         emptyMessage="No tenants yet."
         pageSize={10}
         filterSlot={
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-10 w-44 bg-background">
-              <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="w-full sm:w-auto">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-10 w-full sm:w-44 bg-background">
+                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
         actions={(row) => {
           const t = row as unknown as Tenant;
@@ -337,7 +340,7 @@ export default function TenantsPage() {
         }}
       />
 
-      {/* Create Tenant Dialog */}
+      {/* Create Tenant Dialog - Mobile Responsive */}
       <Dialog 
         open={showDialog} 
         onOpenChange={(open) => {
@@ -348,9 +351,9 @@ export default function TenantsPage() {
           setShowDialog(open);
         }}
       >
-        <DialogContent className="w-full max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Add New Tenant</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">Add New Tenant</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-6 py-2">
@@ -371,7 +374,7 @@ export default function TenantsPage() {
             {/* Admin Account */}
             <div className="space-y-3 border-t border-border pt-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Admin Account</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Admin Name <span className="text-destructive">*</span></Label>
                   <Input
@@ -397,7 +400,7 @@ export default function TenantsPage() {
 
             {/* Payment Preferences */}
             <div className="space-y-3 border-t border-border pt-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Payment Preferences</p>
                 <div className="flex items-center gap-2">
                   <Label htmlFor="enable-charges" className="text-sm cursor-pointer">Enable Charges</Label>
@@ -410,7 +413,7 @@ export default function TenantsPage() {
               </div>
 
               {form.paymentPref.enableCharges && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div className="space-y-1.5">
                     <Label>Registration Fee <span className="text-destructive">*</span></Label>
                     <Input
@@ -447,7 +450,7 @@ export default function TenantsPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
             <Button
               variant="outline"
               onClick={() => {
@@ -455,12 +458,14 @@ export default function TenantsPage() {
                 setForm(DEFAULT_FORM);
                 setErrors({});
               }}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleCreate} 
               disabled={submitting || !isFormValid()}
+              className="w-full sm:w-auto"
             >
               {submitting ? "Creating Tenant..." : "Create Tenant"}
             </Button>

@@ -131,15 +131,13 @@ export default function UsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      {/* Mobile responsive header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage platform users and their roles</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Users</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Manage platform users and their roles</p>
         </div>
-        {/* <Button onClick={() => setShowDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add User
-        </Button> */}
+        {/* Add User button is commented out in original, keeping as is */}
       </div>
 
       <DataTable
@@ -152,18 +150,20 @@ export default function UsersPage() {
         emptyMessage="No users found."
         pageSize={10}
         filterSlot={
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="h-10 w-48 bg-background">
-              <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="super_admin">Super Admin</SelectItem>
-              <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
-              <SelectItem value="operator">Operator</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="w-full sm:w-auto">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="h-10 w-full sm:w-48 bg-background">
+                <Filter className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+                <SelectItem value="operator">Operator</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
         actions={(row) => {
           const u = row as unknown as User;
@@ -194,89 +194,90 @@ export default function UsersPage() {
         }}
       />
 
-      {/* Create User Dialog */}
+      {/* Update User Dialog - Mobile Responsive */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-md">
-  <DialogHeader>
-    <DialogTitle>Update User</DialogTitle>
-  </DialogHeader>
+        <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl">Update User</DialogTitle>
+          </DialogHeader>
 
-  <div className="flex flex-col gap-4 py-2">
-    <div className="flex flex-col gap-1.5">
-      <Label>Full Name</Label>
-      <Input 
-        placeholder="John Doe" 
-        value={form.name} 
-        onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} 
-      />
-    </div>
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <Label>Full Name</Label>
+              <Input 
+                placeholder="John Doe" 
+                value={form.name} 
+                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} 
+              />
+            </div>
 
-    <div className="flex flex-col gap-1.5">
-      <Label>Email</Label>
-      <Input 
-        type="email" 
-        placeholder="john@example.com" 
-        value={form.email} 
-        onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} 
-      />
-    </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Email</Label>
+              <Input 
+                type="email" 
+                placeholder="john@example.com" 
+                value={form.email} 
+                onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} 
+              />
+            </div>
 
-    {/* ── Role + Tenant side by side ── */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-      {/* Role */}
-      <div className="flex flex-col gap-1.5">
-        <Label>Role</Label>
-        <Select 
-          value={form.role} 
-          onValueChange={(v) => setForm(f => ({ ...f, role: v as UserForm["role"] }))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
-            <SelectItem value="operator">Operator</SelectItem>
-            <SelectItem value="super_admin">Super Admin</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            {/* ── Role + Tenant side by side ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              {/* Role */}
+              <div className="flex flex-col gap-1.5">
+                <Label>Role</Label>
+                <Select 
+                  value={form.role} 
+                  onValueChange={(v) => setForm(f => ({ ...f, role: v as UserForm["role"] }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+                    <SelectItem value="operator">Operator</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-      {/* Tenant – only shown when needed */}
-      {form.role !== "super_admin" && (
-        <div className="flex flex-col gap-1.5">
-          <Label>Assign to Tenant</Label>
-          <Select 
-            value={form.tenantId ?? ""} 
-            onValueChange={(v) => setForm(f => ({ ...f, tenantId: v }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select tenant" />
-            </SelectTrigger>
-            <SelectContent>
-              {tenants.map(t => (
-                <SelectItem key={t._id} value={t._id}>
-                  {t.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-    </div>
-  </div>
+              {/* Tenant – only shown when needed */}
+              {form.role !== "super_admin" && (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Assign to Tenant</Label>
+                  <Select 
+                    value={form.tenantId ?? ""} 
+                    onValueChange={(v) => setForm(f => ({ ...f, tenantId: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tenant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tenants.map(t => (
+                        <SelectItem key={t._id} value={t._id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
 
-  <DialogFooter>
-    <Button variant="outline" onClick={() => setShowDialog(false)}>
-      Cancel
-    </Button>
-    <Button 
-      onClick={handleUpdate} 
-      disabled={submitting || !userFormValid}
-    >
-      {submitting ? "Updating…" : "Update User"}
-    </Button>
-  </DialogFooter>
-</DialogContent>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdate} 
+              disabled={submitting || !userFormValid}
+              className="w-full sm:w-auto"
+            >
+              {submitting ? "Updating…" : "Update User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

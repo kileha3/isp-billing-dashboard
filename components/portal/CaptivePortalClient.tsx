@@ -206,10 +206,7 @@ function VoucherInputTemplateOne({ primaryColor, loading, language, onRedeem }: 
             }}
           >
             <Ticket
-              className="h-7 w-7"
-              style={{
-                color: `${primaryColor}5`,
-              }}
+              className="cp-ticket-icon h-7 w-7"
             />
           </div>
 
@@ -243,10 +240,8 @@ function VoucherInputTemplateOne({ primaryColor, loading, language, onRedeem }: 
         <Button
           disabled={loading || !code.trim() || code.length < 8 || code.length > 10}
           onClick={() => onRedeem(code.trim())}
-          className="h-11 rounded-2xl text-sm font-semibold text-white"
-          style={{
-            background: primaryColor,
-          }}
+          className="cp-voucher-btn h-11 rounded-2xl text-sm font-semibold text-white"
+          
         >
           {loading ? labels[language]?.checking : labels[language]?.redeemVoucher}
         </Button>

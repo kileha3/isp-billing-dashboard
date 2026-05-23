@@ -158,7 +158,7 @@ export default function TransactionsPage() {
     { key: "appliedVoucher", label: "Voucher", render: (v: unknown, row: unknown) => (row as any)?.appliedVoucher || "-" },
     isSuperAdmin ? { key: "tenant", label: "Tenant", render: (v: unknown) => (v as any)?.name } : null,
     { key: "package", label: "Package", render: (v: unknown) => (v as any)?.name },
-    { key: "router", label: "Router", render: (v: unknown) => (v as any)?.name },
+    isSuperAdmin ? null: { key: "router", label: "Router", render: (v: unknown) => (v as any)?.name },
     { key: "paymentMethod", label: "Method", render: (v: unknown) => <span className="capitalize">{String(v)}</span> },
     { key: "source", label: "Category", render: (v: unknown) => <span className="capitalize">{String(v)}</span> },
     {
@@ -167,7 +167,7 @@ export default function TransactionsPage() {
         return <span className="font-semibold tabular-nums">{formatCurrency(Number(v), payment.currency)}</span>;
       }
     },
-    { key: "customer", label: "Customer" },
+    isSuperAdmin ? null: { key: "customer", label: "Customer" },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v).toLowerCase()} /> },
     { key: "createdAt", label: "Date", render: (v: unknown) => formatDate(v) },
   ].filter(Boolean);

@@ -110,7 +110,7 @@ export function AdminSidebar() {
             <SidebarGroupLabel>Configuration</SidebarGroupLabel>
             <SidebarMenu>
               {navTenantConfig.map((item) => (
-                <SidebarMenuItem key={item.href}>
+                <SidebarMenuItem key={item.href} onClick={onMenuClick}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
@@ -128,7 +128,7 @@ export function AdminSidebar() {
             <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarMenu>
               {navAdmin.map((item) => (
-                <SidebarMenuItem key={item.href}>
+                <SidebarMenuItem key={item.href} onClick={onMenuClick}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
