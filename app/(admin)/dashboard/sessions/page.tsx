@@ -274,7 +274,7 @@ export default function SessionsPage() {
     {
       key: "dataUsed", label: "Data Used (Down/Up)", render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
-        return `${formatBytes(Number(sess.usage.output))}/${formatBytes(Number(sess.usage.input))}`
+        return `${formatBytes(Number(sess.usage.input))}/${formatBytes(Number(sess.usage.output))}`
       }
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
@@ -302,7 +302,7 @@ export default function SessionsPage() {
       label: "Data Used (Down/Up)", 
       render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
-        return `${formatBytes(Number(sess.usage.output))} / ${formatBytes(Number(sess.usage.input))}`
+        return `${formatBytes(Number(sess.usage.input))} / ${formatBytes(Number(sess.usage.output))}`
       }
     },
     { 
