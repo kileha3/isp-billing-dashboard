@@ -26,8 +26,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 function formatBytes(octate: number) {
   const mb: number = parseFloat((octate / 1048576).toFixed(2));
-  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
-  return `${mb} MB`;
+  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+  return `${mb.toFixed(2)} MB`;
 }
 
 
@@ -253,7 +253,8 @@ export default function SessionsPage() {
   const active = filteredSessions.filter(s => s.status === "active");
   const offline = filteredSessions.filter(s => s.status === "offline");
   const expired = filteredSessions.filter(s => s.status === "expired");
-  const totalData = filteredSessions.reduce((sum, s) => sum + ((s.usage.output + s.usage.input)), 0);
+  const totalDataInput = filteredSessions.reduce((sum, s) => sum + Number(s.usage.input), 0);
+  const totalDataOutput = filteredSessions.reduce((sum, s) => sum + Number(s.usage.output), 0);
 
   // Generate confirmation message with date range
   const getConfirmationMessage = () => {
@@ -271,9 +272,9 @@ export default function SessionsPage() {
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
     {
-      key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
+      key: "dataUsed", label: "Data Used (Down/Up)", render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
-        return formatBytes(Number(sess.usage.output + sess.usage.input))
+        return `${formatBytes(Number(sess.usage.output))}/${formatBytes(Number(sess.usage.input))}`
       }
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
@@ -298,10 +299,10 @@ export default function SessionsPage() {
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     {
       key: "dataUsed", 
-      label: "Data Used", 
+      label: "Data Used (Down/Up)", 
       render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
-        return formatBytes(Number(sess.usage.output + sess.usage.input))
+        return `${formatBytes(Number(sess.usage.output))} / ${formatBytes(Number(sess.usage.input))}`
       }
     },
     { 
@@ -379,7 +380,7 @@ export default function SessionsPage() {
         <StatCard label="Offline Sessions" value={offline.length} icon={WifiOff} />
         <StatCard label="Expired Sessions" value={expired.length} icon={Clock} />
         <StatCard label="Total Sessions" value={filteredSessions.length} icon={Wifi} />
-        <StatCard label="Total Data" value={formatBytes(totalData)} icon={Clock} />
+        <StatCard label="Total Data" value={`${formatBytes(totalDataOutput)} / ${formatBytes(totalDataInput)}`} icon={Clock} />
       </div>
 
       <DataTable
@@ -484,7 +485,7 @@ export default function SessionsPage() {
               Session History
               {historyDialog.currentSession && (
                 <span className="text-xs md:text-sm font-normal text-muted-foreground ml-1 md:ml-2">
-                  for {historyDialog.currentSession.username}
+                  for {historyDialog.currentSession.username} - {historyDialog.currentSession.network.host}
                 </span>
               )}
             </DialogTitle>
