@@ -272,9 +272,9 @@ export default function SessionsPage() {
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     { key: "timeLapse", label: "Duration", render: (v: unknown, row: unknown) => (row as HotspotSession).timeLapse },
     {
-      key: "dataUsed", label: "Data Used (Down/Up)", render: (v: unknown, row: unknown) => {
+      key: "dataUsed", label: "Data Used", render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
-        return `${formatBytes(Number(sess.usage.input))}/${formatBytes(Number(sess.usage.output))}`
+        return formatBytes(Number(sess.usage.input) + Number(sess.usage.output))
       }
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
@@ -302,7 +302,7 @@ export default function SessionsPage() {
       label: "Data Used (Down/Up)", 
       render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
-        return `${formatBytes(Number(sess.usage.input))} / ${formatBytes(Number(sess.usage.output))}`
+        return formatBytes(Number(sess.usage.input) + Number(sess.usage.output))
       }
     },
     { 
@@ -380,7 +380,7 @@ export default function SessionsPage() {
         <StatCard label="Offline Sessions" value={offline.length} icon={WifiOff} />
         <StatCard label="Expired Sessions" value={expired.length} icon={Clock} />
         <StatCard label="Total Sessions" value={filteredSessions.length} icon={Wifi} />
-        <StatCard label="Total Data" value={`${formatBytes(totalDataInput)} / ${formatBytes(totalDataOutput)}`} icon={Clock} />
+        <StatCard label="Total Data" value={formatBytes(totalDataInput + totalDataOutput)} icon={Clock} />
       </div>
 
       <DataTable
