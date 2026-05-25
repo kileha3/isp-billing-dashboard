@@ -13,10 +13,10 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Save, Key, Shield } from "lucide-react";
+import { Save, Key, Shield, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-import { GatewayConfig } from "@/lib/types";
+import { GatewayConfig, ProviderConfig } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage({ tenantId }: { tenantId: string }) {
@@ -30,7 +30,11 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
   });
 
   const [gateways, setGateways] = useState<Array<GatewayConfig>>([]);
+  const [providers, setProviders] = useState<Array<ProviderConfig>>([])
   const [activeGateway, setActiveGateway] = useState<
+    string | null | undefined
+  >(null);
+  const [activeProvider, setActiveProvider] = useState<
     string | null | undefined
   >(null);
 
@@ -48,6 +52,14 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
     values: {},
   });
 
+  const [smsProvider, setSmsProvider] = useState<{
+    provider: string;
+    values: Record<string, string>;
+  }>({
+    provider: "",
+    values: {},
+  });
+
   const [charges, setCharges] = useState({
     applyCharges: false,
     registrationFee: 0,
@@ -58,13 +70,15 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
   const [saving, setSaving] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
+  const [savingSmsProvider, setSavingSmsProvider] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [{ data }, remoteGateway] = await Promise.all([
+      const [{ data }, remoteGateway, remoteProviders] = await Promise.all([
         apiClient.tenant.get(tenantId),
         apiClient.transactions.gateways(),
+        apiClient.notifications.getProviders()
       ]);
 
       setGeneral({
@@ -74,12 +88,18 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
       });
 
       setGateways(remoteGateway);
+      setProviders(remoteProviders)
 
-      const active = remoteGateway.find(
+      const activeGateway = remoteGateway.find(
         (g) => g.gateway.id === data.paymentGateway?.gateway
       )?.gateway.name;
 
-      if (active) setActiveGateway(active);
+      const activeProvider = remoteProviders.find(
+        (g) => g.provider.id === data.smsSettings?.provider
+      )?.provider.name;
+
+      if (activeGateway) setActiveGateway(activeGateway);
+      if (activeProvider) setActiveProvider(activeProvider);
 
       // Load charges data
       if (data.paymentPref) {
@@ -88,6 +108,14 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
           registrationFee: data.paymentPref.registrationFee || 0,
           monthlyFee: data.paymentPref.monthlyFee || 0,
           monthlyThreshold: data.paymentPref.monthlyThreshold || 0,
+        });
+      }
+
+      // Load SMS provider settings if exists
+      if (data.smsPref) {
+        setSmsProvider({
+          provider: data.smsPref.provider || "",
+          values: data.smsPref.auths || {},
         });
       }
 
@@ -154,11 +182,24 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
     (g) => g.gateway.id === payment.gateway
   );
 
+  const selectedSmsProvider = providers.find(
+    (p) => p.provider.id === smsProvider.provider
+  );
+
   function isPaymentValid(): boolean {
     if (!selectedGateway) return false;
 
     return selectedGateway.fields.every((field) => {
       const value = payment.values[field.name];
+      return typeof value === "string" && value.trim().length > 0;
+    });
+  }
+
+  function isSmsProviderValid(): boolean {
+    if (!selectedSmsProvider) return false;
+
+    return selectedSmsProvider.fields.every((field) => {
+      const value = smsProvider.values[field.name];
       return typeof value === "string" && value.trim().length > 0;
     });
   }
@@ -174,6 +215,21 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
 
     setPayment({
       gateway: gatewayId,
+      values: initialValues,
+    });
+  }
+
+  function handleSmsProviderChange(providerId: string) {
+    const prov = providers.find((p) => p.provider.id === providerId);
+
+    const initialValues: Record<string, string> = {};
+
+    prov?.fields.forEach((f) => {
+      initialValues[f.name] = "";
+    });
+
+    setSmsProvider({
+      provider: providerId,
       values: initialValues,
     });
   }
@@ -214,6 +270,45 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
       });
     } finally {
       setSavingPayment(false);
+    }
+  }
+
+  async function handleSaveSmsProvider() {
+    if (!user) return;
+
+    if (!isSmsProviderValid()) {
+      toast({
+        title: "Please fill all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingSmsProvider(true);
+
+    try {
+      await apiClient.tenant.updateSettings(
+        {
+          smsSettings: {
+            provider: smsProvider.provider,
+            auths: smsProvider.values,
+          },
+        },
+        user!.tenantId!
+      );
+      setSmsProvider({
+        provider: "",
+        values: {},
+      });
+      load();
+      toast({ title: "SMS provider settings saved" });
+    } catch {
+      toast({
+        title: "Error saving SMS provider settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSmsProvider(false);
     }
   }
 
@@ -355,6 +450,87 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
           </CardContent>
         </Card>
 
+        {/* SMS PROVIDERS */}
+        {providers.length > 0 && (
+          <Card className="col-span-6 md:col-span-3">
+            <CardHeader>
+              <CardTitle className="text-base">
+                <div className="flex items-center gap-2">
+                  SMS Providers
+                </div>
+              </CardTitle>
+              <CardDescription>
+                Configure your SMS provider credentials{" "}
+                {activeProvider ? `, right now ` : ""}
+                <strong>{activeProvider || ""}</strong>
+                {activeProvider ? ` is configured for SMS notifications` : ""}
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>SMS Provider</Label>
+                <select
+                  className="border rounded-md h-10 px-3 text-sm"
+                  value={smsProvider.provider}
+                  onChange={(e) =>
+                    handleSmsProviderChange(e.target.value)
+                  }
+                >
+                  <option value="">Select SMS provider</option>
+                  {providers.map((p) => (
+                    <option key={p.provider.id} value={p.provider.id}>
+                      {p.provider.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedSmsProvider &&
+                selectedSmsProvider.fields.map((field) => (
+                  <div
+                    key={field.name}
+                    className="flex flex-col gap-1.5"
+                  >
+                    <Label className="capitalize">
+                      {field.name}
+                    </Label>
+                    <Input
+                      type={field.name.toLowerCase().includes('password') || field.name.toLowerCase().includes('secret') ? "password" : "text"}
+                      placeholder={field.placeholder}
+                      value={smsProvider.values[field.name] || ""}
+                      onChange={(e) =>
+                        setSmsProvider((p) => ({
+                          ...p,
+                          values: {
+                            ...p.values,
+                            [field.name]: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSaveSmsProvider}
+                  disabled={
+                    savingSmsProvider ||
+                    !isSmsProviderValid() ||
+                    !smsProvider.provider
+                  }
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {savingSmsProvider
+                    ? "Saving…"
+                    : "Save SMS Provider Settings"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* PAYMENT */}
         {gateways.length > 0 && (
           <Card className="col-span-6 md:col-span-3">
@@ -399,6 +575,7 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
                       {field.name}
                     </Label>
                     <Input
+                      type={field.name.toLowerCase().includes('password') || field.name.toLowerCase().includes('secret') || field.name.toLowerCase().includes('key') ? "password" : "text"}
                       placeholder={field.placeholder}
                       value={payment.values[field.name] || ""}
                       onChange={(e) =>

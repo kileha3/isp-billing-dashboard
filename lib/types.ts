@@ -67,7 +67,9 @@ export interface Tenant {
   portalSettings: TenantPortalSettings["portalSettings"];
   settings: { currency: string; timezone: string; language: string };
   paymentPref: any;
+  smsPref: any;
   paymentGateway: { gateway: string };
+  smsSettings: { provider: string };
   status: "active" | "suspended";
   createdAt: string;
   updatedAt: string;
@@ -244,6 +246,11 @@ export interface Gateway {
 
 export interface GatewayConfig {
   gateway: Gateway;
+  fields: GatewayField[];
+}
+
+export interface ProviderConfig {
+  provider: Gateway;
   fields: GatewayField[];
 }
 

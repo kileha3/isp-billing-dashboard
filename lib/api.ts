@@ -13,6 +13,7 @@ import type {
   ReportSummary,
   PPPoEUser,
   Offer,
+  ProviderConfig,
 } from "@/lib/types";
 
 export const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4010/v1";
@@ -184,6 +185,9 @@ export const apiClient = {
 
   notifications: {
     list: () => req<{ data: Array<Notification> }>("/notifications"),
+    getProviders: () => {
+      return req<Array<ProviderConfig>>(`/notifications/providers`);
+    },
     markAllRead: () => req<any>("/notifications/mark-all-read", { method: "PATCH" }),
     markAsRead: (id: string) => req<any>(`/notifications/mark/${id}`, { method: "PATCH" }),
   },
