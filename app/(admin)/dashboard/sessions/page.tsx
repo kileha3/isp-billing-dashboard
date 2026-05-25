@@ -288,7 +288,7 @@ export default function SessionsPage() {
       key: "macAddress", 
       label: "MAC Address", 
       className: "hidden sm:table-cell",
-      render: (v: unknown, row: unknown) => (row as HotspotSession).network.mac 
+      render: (v: unknown, row: unknown) =>  `${(row as HotspotSession).network.mac }`
     },
     { 
       key: "router", 
@@ -299,7 +299,7 @@ export default function SessionsPage() {
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     {
       key: "dataUsed", 
-      label: "Data Used (Down/Up)", 
+      label: "Data Used", 
       render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
         return formatBytes(Number(sess.usage.input) + Number(sess.usage.output))
