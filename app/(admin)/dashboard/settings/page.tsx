@@ -453,7 +453,7 @@ export default function SettingsPage({ tenantId }: { tenantId: string }) {
         {/* SMS PROVIDERS */}
         {providers.length > 0 && (
           <Card className="col-span-6 md:col-span-3">
-            <CardHeader>
+            <CardHeader> 
               <CardTitle className="text-base">
                 <div className="flex items-center gap-2">
                   SMS Providers
