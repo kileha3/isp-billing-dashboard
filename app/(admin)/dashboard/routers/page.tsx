@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, WifiSync, BrushCleaning, Grid2X2Plus } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, BrushCleaning, Grid2X2Plus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -131,6 +131,7 @@ export default function RoutersPage() {
   const [submittingBasic, setSubmittingBasic] = useState(false);
   const [services, setServices] = useState<Array<string>>([]);
   const [selectedType, setSelectedType] = useState<typeof services[number]>("Hotspot");
+  const [copiedProps, setCopiedProps] = useState<string | null>(null);
   
   const [whitelistForm, setWhitelistForm] = useState<WhitelistForm>({
     name: "",
@@ -446,6 +447,25 @@ export default function RoutersPage() {
     return tenants.find(t => t._id === tenantId)?.name ?? tenantId;
   }
 
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedProps(field);
+      toast({
+        title: "Copied!",
+        description: `Password copied to clipboard`,
+        duration: 2000,
+      });
+      setTimeout(() => setCopiedProps(null), 2000);
+    } catch (error: any) {
+      toast({
+        title: "Failed to copy",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   const columns = [
     { key: "name", label: "Name/Location" , render: (v: unknown, row: unknown) => {
         const router = (row as RouterDevice);
@@ -508,6 +528,33 @@ export default function RoutersPage() {
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
     { key: "isActive", label: "State", render: (v: unknown) => <StatusBadge status={String(v ? "active" : "inactive")} /> },
+    { 
+          key: "winbox", 
+          label: "WinBox", 
+          render: (v: unknown, row: unknown) => {
+            const router = row as RouterDevice;
+            const isCopied = copiedProps === router.port.toString();
+            const link = `isp.stack.co.tz:${router.port}`
+            return (
+              <div className="flex items-center gap-2 group">
+                <span className="font-mono text-sm ">{link}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => copyToClipboard(link, router._id)}
+                  title="Click to copy Properties"
+                >
+                  {isCopied ? (
+                    <Check className="h-3.5 w-3.5 text-green-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+            );
+          }
+        },
   ];
 
   const wizardStep = wizard.step;

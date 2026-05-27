@@ -122,6 +122,7 @@ export interface RouterDevice {
   portalInterface?: DevicePortalInterface;
   uptime: string;
   script?: string;
+  port: number;
   aps: Array<{ mac: string; name: string }>;
   info: RouterInfo;
 }

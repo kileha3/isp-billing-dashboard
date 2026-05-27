@@ -362,6 +362,9 @@ export const apiClient = {
     deleteFailed: (data: { startDate: string; endDate: string }) =>
       req<{ success: boolean; message: string }>(`/payments/delete-failed`, { method: "DELETE", body: JSON.stringify(data) }),
 
+     reprocess: (id: string) =>
+      req<{ success: boolean; message: string }>(`/payments/${id}/reprocess`, { method: "PATCH" }),
+
     recent: () => {
       return req<Transaction[]>(`/payments/recent`);
     },

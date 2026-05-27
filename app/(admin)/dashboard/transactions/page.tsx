@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/api";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, Calendar, Trash2 } from "lucide-react";
+import { Filter, Calendar, Trash2, RefreshCcwDot, MoreHorizontal } from "lucide-react";
 import type { Transaction } from "@/lib/types";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuth } from "@/lib/auth-context";
@@ -17,6 +17,8 @@ import "react-day-picker/style.css";
 import { formatDate } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export const formatCurrency = (n: number, currency: string) => {
   return `${currency} ${n.toLocaleString()}`;
@@ -34,7 +36,7 @@ export default function TransactionsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
-  
+
   // Date range state - initialize to last 7 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
@@ -49,7 +51,7 @@ export default function TransactionsPage() {
         startDate: formatDateFn(dateRange.from, 'yyyy-MM-dd'),
         endDate: formatDateFn(dateRange.to, 'yyyy-MM-dd')
       } : {};
-      
+
       const data = await apiClient.transactions.list(dateFilter);
       setTransactions(data);
     } catch {
@@ -57,7 +59,7 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [ dateRange]);
+  }, [dateRange]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -101,10 +103,10 @@ export default function TransactionsPage() {
       const failedTransactions = transactions.filter(
         t => t.status.toLowerCase() === "failed"
       );
-      
+
       if (failedTransactions.length === 0) {
-        toast({ 
-          title: "No failed transactions", 
+        toast({
+          title: "No failed transactions",
           description: "There are no failed transactions to delete.",
           variant: "default"
         });
@@ -113,22 +115,22 @@ export default function TransactionsPage() {
       }
 
       // Call API to delete failed transactions
-      const {success, message} = await apiClient.transactions.deleteFailed({
-        startDate: formatDateFn(dateRange?.from  || new Date(), 'yyyy-MM-dd'),
+      const { success, message } = await apiClient.transactions.deleteFailed({
+        startDate: formatDateFn(dateRange?.from || new Date(), 'yyyy-MM-dd'),
         endDate: formatDateFn(dateRange?.to || new Date(), 'yyyy-MM-dd')
       });
-      
-      toast({ 
-        title: success ? "Success" : "Failed", 
+
+      toast({
+        title: success ? "Success" : "Failed",
         description: message || `${failedTransactions.length} failed transaction(s) have been deleted.`,
         variant: "default"
       });
-      
+
       // Reload transactions
       await load(false);
     } catch (error: any) {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message || "Failed to delete failed transactions.",
         variant: "destructive"
       });
@@ -147,7 +149,7 @@ export default function TransactionsPage() {
   const getFilteredTransactions = () => {
     let filtered = statusFilter === "all" ? transactions : transactions.filter(t => t.status.toLowerCase() === statusFilter.toLowerCase());
     filtered = categoryFilter === "all" ? filtered : filtered.filter(t => t.source === categoryFilter);
-    
+
     return filtered;
   };
 
@@ -158,7 +160,7 @@ export default function TransactionsPage() {
     { key: "appliedVoucher", label: "Voucher", render: (v: unknown, row: unknown) => (row as any)?.appliedVoucher || "-" },
     isSuperAdmin ? { key: "tenant", label: "Tenant", render: (v: unknown) => (v as any)?.name } : null,
     { key: "package", label: "Package", render: (v: unknown) => (v as any)?.name },
-    isSuperAdmin ? null: { key: "router", label: "Router", render: (v: unknown) => (v as any)?.name },
+    isSuperAdmin ? null : { key: "router", label: "Router", render: (v: unknown) => (v as any)?.name },
     { key: "paymentMethod", label: "Method", render: (v: unknown) => <span className="capitalize">{String(v)}</span> },
     { key: "source", label: "Category", render: (v: unknown) => <span className="capitalize">{String(v)}</span> },
     {
@@ -167,7 +169,7 @@ export default function TransactionsPage() {
         return <span className="font-semibold tabular-nums">{formatCurrency(Number(v), payment.currency)}</span>;
       }
     },
-    isSuperAdmin ? null: { key: "customer", label: "Customer" },
+    isSuperAdmin ? null : { key: "customer", label: "Customer" },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v).toLowerCase()} /> },
     { key: "createdAt", label: "Date", render: (v: unknown) => formatDate(v) },
   ].filter(Boolean);
@@ -194,7 +196,7 @@ export default function TransactionsPage() {
           <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Transactions</h1>
           <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1">Collected payments from customers</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           {/* Delete Failed Transactions Button */}
           {failedCount > 0 && (
@@ -207,7 +209,7 @@ export default function TransactionsPage() {
               <span className="whitespace-nowrap">Delete Failed</span>
             </button>
           )}
-          
+
           {/* Date Range Picker */}
           <div className="relative w-full sm:w-auto">
             <button
@@ -219,11 +221,11 @@ export default function TransactionsPage() {
                 {formatDateRange()}
               </span>
             </button>
-            
+
             {showDatePicker && (
               <>
-                <div 
-                  className="fixed inset-0 z-40" 
+                <div
+                  className="fixed inset-0 z-40"
                   onClick={() => setShowDatePicker(false)}
                 />
                 <div className="absolute right-0 left-0 sm:left-auto top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-lg p-3 w-full sm:w-auto">
@@ -247,38 +249,38 @@ export default function TransactionsPage() {
         <div className="rounded-lg border border-border bg-card p-3 md:p-4">
           <p className="text-xs md:text-sm text-muted-foreground">Total Amount</p>
           <p className="text-base md:text-2xl font-bold truncate">
-            {transactions.length > 0 && filteredTransactions.length > 0 
+            {transactions.length > 0 && filteredTransactions.length > 0
               ? formatCurrency(totalAmount, transactions[0]?.currency || "TZS")
               : "—"}
           </p>
           <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">{filteredTransactions.length} transactions</p>
         </div>
-        
+
         <div className="rounded-lg border border-border bg-card p-3 md:p-4">
           <p className="text-xs md:text-sm text-muted-foreground">Completed</p>
           <p className="text-base md:text-2xl font-bold text-green-600">{completedCount}</p>
           <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
-            {filteredTransactions.length > 0 
+            {filteredTransactions.length > 0
               ? `${((completedCount / filteredTransactions.length) * 100).toFixed(1)}%`
               : "0%"}
           </p>
         </div>
-        
+
         <div className="rounded-lg border border-border bg-card p-3 md:p-4">
           <p className="text-xs md:text-sm text-muted-foreground">Pending</p>
           <p className="text-base md:text-2xl font-bold text-yellow-600">{pendingCount}</p>
           <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
-            {filteredTransactions.length > 0 
+            {filteredTransactions.length > 0
               ? `${((pendingCount / filteredTransactions.length) * 100).toFixed(1)}%`
               : "0%"}
           </p>
         </div>
-        
+
         <div className="rounded-lg border border-border bg-card p-3 md:p-4">
           <p className="text-xs md:text-sm text-muted-foreground">Failed</p>
           <p className="text-base md:text-2xl font-bold text-red-600">{failedCount}</p>
           <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
-            {filteredTransactions.length > 0 
+            {filteredTransactions.length > 0
               ? `${((failedCount / filteredTransactions.length) * 100).toFixed(1)}%`
               : "0%"}
           </p>
@@ -292,9 +294,9 @@ export default function TransactionsPage() {
           columns={columns as never}
           loading={loading}
           searchable
-          searchKeys={["amount","customer", "package","appliedVoucher"] as never}
+          searchKeys={["amount", "customer", "package", "appliedVoucher"] as never}
           searchPlaceholder="Search transactions..."
-          emptyMessage={dateRange?.from && dateRange?.to 
+          emptyMessage={dateRange?.from && dateRange?.to
             ? `No transactions found for ${formatDateRange()}`
             : "No transactions found."}
           pageSize={10}
@@ -326,6 +328,33 @@ export default function TransactionsPage() {
               </Select>
             </div>
           }
+
+          actions={(row) => {
+            const r = row as unknown as Transaction;
+            return (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                {r.status.toLowerCase() !== "completed" && (<DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => {
+                    toast({
+                      title: "Transaction Sync",
+                      description: "Syncying transaction status...",
+                      variant: "default"
+                    });
+                    apiClient.transactions.reprocess(r._id).then(() => load(false));
+                  }}>
+                    <RefreshCcwDot className="mr-2 h-4 w-4" />
+                    Sync Transaction
+                  </DropdownMenuItem>
+
+                </DropdownMenuContent>)}
+              </DropdownMenu>
+            );
+          }}
         />
       </div>
 
