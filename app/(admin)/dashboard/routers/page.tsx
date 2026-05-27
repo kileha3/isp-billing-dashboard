@@ -453,7 +453,7 @@ export default function RoutersPage() {
       setCopiedProps(field);
       toast({
         title: "Copied!",
-        description: `Password copied to clipboard`,
+        description: `WinBox link copied to clipboard`,
         duration: 2000,
       });
       setTimeout(() => setCopiedProps(null), 2000);
