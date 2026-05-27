@@ -533,7 +533,7 @@ export default function RoutersPage() {
           label: "WinBox", 
           render: (v: unknown, row: unknown) => {
             const router = row as RouterDevice;
-            const isCopied = copiedProps === router.port.toString();
+            const isCopied = copiedProps === `${router.port}`
             const link = `isp.stack.co.tz:${router.port}`
             return (
               <div className="flex items-center gap-2 group">
