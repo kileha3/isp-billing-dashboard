@@ -642,10 +642,10 @@ export default function RoutersPage() {
                     Whitelisted APs
                   </DropdownMenuItem>
                 )}
-                {r.isActive && (<DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
+                <DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Sync Device
-                </DropdownMenuItem>)}
+                </DropdownMenuItem> 
                 {r.isActive && r.status === "online" && (<DropdownMenuItem onClick={() => resetDevice(r._id)}>
                   <BrushCleaning className="mr-2 h-4 w-4" />
                   Reset Device
