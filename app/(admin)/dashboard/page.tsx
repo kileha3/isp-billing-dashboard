@@ -325,8 +325,9 @@ export default function DashboardPage() {
           label="Packages"
           value={loading ? "—" : packageStats.total}
           icon={Package}
-          change={`${packageStats.bestPerforming.length} best perfoming`}
+          change={`${packageStats.bestPerforming}`}
           changePositive
+          changeTextSize="text-[.68em] px-1.5 py-0.5 ml-1"
         />)}
         {voucherStats && (<StatCard
           label="Vouchers"

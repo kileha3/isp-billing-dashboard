@@ -7,11 +7,12 @@ interface StatCardProps {
   icon: LucideIcon;
   change?: string;
   changePositive?: boolean;
+  changeTextSize?: string;
   hero?: boolean;
   className?: string;
 }
 
-export function StatCard({ label, value, icon: Icon, change, changePositive, hero, className }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, change, changePositive, hero, className, changeTextSize }: StatCardProps) {
   return (
     <div
       className={cn(
@@ -34,7 +35,7 @@ export function StatCard({ label, value, icon: Icon, change, changePositive, her
         {change && (
           <span
             className={cn(
-              "text-xs font-semibold px-2 py-0.5 rounded-full",
+              `${changeTextSize || "text-xs px-2 py-0.5 ml-2"} font-semibold rounded-full `,
               hero
                 ? "bg-primary-foreground/15 text-primary-foreground"
                 : changePositive
