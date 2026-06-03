@@ -478,7 +478,7 @@ export default function VouchersPage() {
             try {
               const { message } = await apiClient.vouchers.delete(id);
               toast({ title: message });
-              load();
+              load(false);
             } catch (error: any) {
               toast({ title: error.message, variant: "destructive" });
             }
@@ -500,7 +500,7 @@ export default function VouchersPage() {
             try {
               const { message } = await apiClient.vouchers.revoke(id);
               toast({ title: message });
-              load();
+              load(false);
             } catch (error: any) {
               toast({ title: error.message, variant: "destructive" });
             }
