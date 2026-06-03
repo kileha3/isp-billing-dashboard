@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
 import SocketClient from "@/lib/socket.util";
-import { CalendarDays, Crown, Gauge, Gift, Mail, Phone, ShieldCheck, ShoppingCart, Signal, Star, Ticket, Timer, WifiOff, Zap } from "lucide-react";
+import { CalendarDays, Crown, Gauge, Gift, Mail, Network, Phone, ShieldCheck, ShoppingCart, Signal, Star, Ticket, Timer, WifiOff, Zap } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,7 @@ export const DEFAULT_CONFIG: TenantPortalSettings = {
 export const labels: any = {
   en: {
     buyPackage: "Buy Package",
+    noHuduma: "No Service",
     haveVoucher: "Have a voucher?",
     poweredBy: "Powered by",
     terms: "Terms and Conditions",
@@ -87,6 +88,7 @@ export const labels: any = {
   },
   sw: {
     buyPackage: "Nunua Bando",
+    noHuduma: "Hakuna Huduma",
     haveVoucher: "Tumia Vocha",
     poweredBy: "Imedhaminiwa na",
     terms: "Miongozo na masharti",
@@ -1143,7 +1145,9 @@ export function CaptivePortalClient() {
     }
   };
 
-  const PackageView = () => {
+  const 
+  PackageView = () => {
+    if(!config.active) return OutOfServiceSection();
     switch (config.template) {
       case "default":
         return (
@@ -1197,7 +1201,7 @@ export function CaptivePortalClient() {
           <Tabs defaultValue="packages">
             <TabsList className="portal-tabs w-full">
               <TabsTrigger value="packages" className="flex-1">
-                {labels[config.language]?.buyPackage || "Buy Package"}
+                {(!config.active ? labels[config.language]?.noHuduma: labels[config.language]?.buyPackage) || "Buy Package"}
               </TabsTrigger>
               <TabsTrigger value="voucher" className="flex-1">
                 {labels[config.language]?.haveVoucher || "Have a Voucher?"}
@@ -1218,8 +1222,8 @@ export function CaptivePortalClient() {
           <Tabs defaultValue="packages">
             <TabsList className="h-14 w-full rounded-[24px] border border-[var(--border)] bg-[var(--card)] p-1 shadow-lg">
               <TabsTrigger value="packages" className="flex-1 rounded-[18px] text-sm font-semibold">
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                {labels[config.language]?.buyPackage}
+                {!config.active ? (<Network className="mr-2 h-4 w-4" />): (<ShoppingCart className="mr-2 h-4 w-4" />)}
+                {(!config.active ? labels[config.language]?.noHuduma: labels[config.language]?.buyPackage) || "Buy Package"}
               </TabsTrigger>
 
               <TabsTrigger value="voucher" className="flex-1 rounded-[18px] text-sm font-semibold">
@@ -1336,9 +1340,7 @@ export function CaptivePortalClient() {
         {config.portalSettings.welcomeMessage && config.active && WelcomView()}
 
         <div className="mt-4">
-          {!config.active
-            ? OutOfServiceSection()
-            : resolvedMode === "both"
+          {resolvedMode === "both"
               ? TabsView()
               : resolvedMode === "packages"
                 ? PackageView()
