@@ -37,6 +37,11 @@ export default function TransactionsPage() {
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
+  // === NEW: State for session logging confirmation ===
+  const [showSessionLogConfirm, setShowSessionLogConfirm] = useState(false);
+  const [loggingSession, setLoggingSession] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
   // Date range state - initialize to last 7 days
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
@@ -46,7 +51,6 @@ export default function TransactionsPage() {
   const load = useCallback(async (showLoading: boolean = true) => {
     try {
       setLoading(showLoading);
-      // Pass date range to API calls if they support it
       const dateFilter = dateRange?.from && dateRange?.to ? {
         startDate: formatDateFn(dateRange.from, 'yyyy-MM-dd'),
         endDate: formatDateFn(dateRange.to, 'yyyy-MM-dd')
@@ -114,7 +118,6 @@ export default function TransactionsPage() {
         return;
       }
 
-      // Call API to delete failed transactions
       const { success, message } = await apiClient.transactions.deleteFailed({
         startDate: formatDateFn(dateRange?.from || new Date(), 'yyyy-MM-dd'),
         endDate: formatDateFn(dateRange?.to || new Date(), 'yyyy-MM-dd')
@@ -126,7 +129,6 @@ export default function TransactionsPage() {
         variant: "default"
       });
 
-      // Reload transactions
       await load(false);
     } catch (error: any) {
       toast({
@@ -140,6 +142,37 @@ export default function TransactionsPage() {
     }
   };
 
+  // === NEW: Handle session logging with confirmation ===
+  const handleLogSession = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setShowSessionLogConfirm(true);
+  };
+
+  const confirmLogSession = async () => {
+    if (!selectedTransaction) return;
+    
+    setLoggingSession(true);
+    try {
+      await apiClient.transactions.logSession(selectedTransaction._id);
+      toast({
+        title: "Success",
+        description: "Session logged successfully.",
+        variant: "default"
+      });
+      await load(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to log session.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoggingSession(false);
+      setShowSessionLogConfirm(false);
+      setSelectedTransaction(null);
+    }
+  };
+
   // Get count of failed transactions in current view
   const getFailedCount = () => {
     return filteredTransactions.filter(t => t.status.toLowerCase() === "failed").length;
@@ -149,7 +182,6 @@ export default function TransactionsPage() {
   const getFilteredTransactions = () => {
     let filtered = statusFilter === "all" ? transactions : transactions.filter(t => t.status.toLowerCase() === statusFilter.toLowerCase());
     filtered = categoryFilter === "all" ? filtered : filtered.filter(t => t.source === categoryFilter);
-
     return filtered;
   };
 
@@ -186,6 +218,12 @@ export default function TransactionsPage() {
       return `No failed transactions found ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}.`;
     }
     return `Are you sure you want to delete ${failedCount} failed transaction(s) ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}? This action cannot be undone.`;
+  };
+
+  // === NEW: Generate session log confirmation message ===
+  const getSessionLogConfirmationMessage = () => {
+    if (!selectedTransaction) return "";
+    return `Are you sure you want to log a session for transaction #${selectedTransaction._id.slice(-8)}? This will create a new hotspot session for ${selectedTransaction.customer || selectedTransaction.appliedVoucher || "the customer"}.`;
   };
 
   return (
@@ -338,35 +376,31 @@ export default function TransactionsPage() {
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                {r.status.toLowerCase() !== "completed" && (<DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => {
-                    toast({
-                      title: "Transaction Sync",
-                      description: "Syncying transaction status...",
-                      variant: "default"
-                    });
-                    apiClient.transactions.reprocess(r._id).then(() => load(false));
-                  }}>
-                    <RefreshCcwDot className="mr-2 h-4 w-4" />
-                    Sync Transaction
-                  </DropdownMenuItem>
+                {r.status.toLowerCase() !== "completed" && (
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => {
+                      toast({
+                        title: "Transaction Sync",
+                        description: "Syncing transaction status...",
+                        variant: "default"
+                      });
+                      apiClient.transactions.reprocess(r._id).then(() => load(false));
+                    }}>
+                      <RefreshCcwDot className="mr-2 h-4 w-4" />
+                      Sync Transaction
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                )}
 
-                </DropdownMenuContent>)}
-
-                {r.status.toLowerCase() === "completed" && (<DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => {
-                    toast({
-                      title: "Session Logging",
-                      description: "Logging session...",
-                      variant: "default"
-                    });
-                    apiClient.transactions.logSession(r._id).then(() => load(false));
-                  }}>
-                    <RefreshCcwDot className="mr-2 h-4 w-4" />
-                    Log Session
-                  </DropdownMenuItem>
-
-                </DropdownMenuContent>)}
+                {/* === UPDATED: Use confirmation dialog instead of direct action === */}
+                {r.status.toLowerCase() === "completed" && (
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleLogSession(r)}>
+                      <RefreshCcwDot className="mr-2 h-4 w-4" />
+                      Log Session
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                )}
               </DropdownMenu>
             );
           }}
@@ -383,6 +417,21 @@ export default function TransactionsPage() {
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleDeleteFailedTransactions}
         variant="destructive"
+      />
+
+      {/* === NEW: Session Log Confirmation Dialog === */}
+      <ConfirmDialog
+        open={showSessionLogConfirm}
+        title="Log Session"
+        message={getSessionLogConfirmationMessage()}
+        confirmText={loggingSession ? "Logging..." : "Log Session"}
+        cancelText="Cancel"
+        onCancel={() => {
+          setShowSessionLogConfirm(false);
+          setSelectedTransaction(null);
+        }}
+        onConfirm={confirmLogSession}
+        variant="default"
       />
     </div>
   );
