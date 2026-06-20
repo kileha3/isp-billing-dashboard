@@ -352,6 +352,21 @@ export default function TransactionsPage() {
                   </DropdownMenuItem>
 
                 </DropdownMenuContent>)}
+
+                {r.status.toLowerCase() === "completed" && (<DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => {
+                    toast({
+                      title: "Session Logging",
+                      description: "Logging session...",
+                      variant: "default"
+                    });
+                    apiClient.transactions.logSession(r._id).then(() => load(false));
+                  }}>
+                    <RefreshCcwDot className="mr-2 h-4 w-4" />
+                    Log Session
+                  </DropdownMenuItem>
+
+                </DropdownMenuContent>)}
               </DropdownMenu>
             );
           }}

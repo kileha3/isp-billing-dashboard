@@ -365,6 +365,9 @@ export const apiClient = {
      reprocess: (id: string) =>
       req<{ success: boolean; message: string }>(`/payments/${id}/reprocess`, { method: "PATCH" }),
 
+     logSession: (id: string) =>
+      req<{ success: boolean; message: string }>(`/payments/${id}/log-session`, { method: "PATCH" }),
+
     recent: () => {
       return req<Transaction[]>(`/payments/recent`);
     },
