@@ -393,14 +393,14 @@ export default function TransactionsPage() {
                 )}
 
                 {/* === UPDATED: Use confirmation dialog instead of direct action === */}
-                {r.status.toLowerCase() === "completed" && (
+                {/* {r.status.toLowerCase() === "completed" && (
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => handleLogSession(r)}>
                       <RefreshCcwDot className="mr-2 h-4 w-4" />
                       Log Session
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                )}
+                )} */}
               </DropdownMenu>
             );
           }}
