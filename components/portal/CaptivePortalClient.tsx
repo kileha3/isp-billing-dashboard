@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Wifi, Clock, ChevronUp } from "lucide-react";
 import { formatData, formatDuration } from "@/lib/utils";
+import LogRocket from 'logrocket';
 
 export const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
@@ -1009,8 +1010,9 @@ export function CaptivePortalClient() {
           authToken,
         });
         reflectOnUI(success, _voucher);
-      } catch (err: unknown) {
+      } catch (err: any) {
         setPayState("failure");
+        LogRocket.captureException(err);
       }
     },
     [nasName, deviceMac],
@@ -1060,8 +1062,9 @@ export function CaptivePortalClient() {
             reflectOnUI(false, null);
           }
         }
-      } catch (err: unknown) {
+      } catch (err: any) {
         setPayState("failure");
+        LogRocket.captureException(err);
       }
     },
     [nasName, deviceMac],
@@ -1087,9 +1090,10 @@ export function CaptivePortalClient() {
         setConfig(cfg.data ?? cfg);
         pkgs.sort((a, b) => a.price - b.price);
         setPackages(pkgs ?? pkgs);
-      } catch {
+      } catch (err: any) {
         setConfig(DEFAULT_CONFIG);
         setPackages([]);
+        LogRocket.captureException(err);
       } finally {
         setLoading(false);
         loadingCompleted();

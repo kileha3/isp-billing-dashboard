@@ -60,6 +60,7 @@ export default function SessionsPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingExpired, setDeletingExpired] = useState(false);
+  const [hasExpiredSessions, setExpiredSessions] = useState(false);
   const [historyDialog, setHistoryDialog] = useState<HistoryDialogState>({
     isOpen: false,
     loading: false,
@@ -82,11 +83,12 @@ export default function SessionsPage() {
         endDate: formatDateFn(dateRange.to, 'yyyy-MM-dd')
       } : {};
 
-      const [_sessions, { data: _packages }] = await Promise.all([
+      const [_sessions, { data: _packages }, { expired }] = await Promise.all([
         apiClient.sessions.list(dateFilter as any),
-        apiClient.packages.list()
+        apiClient.packages.list(),
+        apiClient.vouchers.countExpired()
       ]);
-      
+      setExpiredSessions(expired > 0);
       setSessions(_sessions);
       setPackages(_packages);
     } catch {
@@ -146,37 +148,21 @@ export default function SessionsPage() {
   const handleDeleteExpiredSessions = async () => {
     setDeletingExpired(true);
     try {
-      const expiredSessions = filteredSessions.filter(
-        s => s.status === "expired"
-      );
-      
-      if (expiredSessions.length === 0) {
-        toast({ 
-          title: "No expired sessions", 
-          description: "There are no expired sessions to delete.",
-          variant: "default"
-        });
-        setShowDeleteConfirm(false);
-        return;
-      }
 
       // Call API to delete expired sessions
-      const { success, message } = await apiClient.sessions.deleteExpired({
-        startDate: formatDateFn(dateRange?.from || new Date(), 'yyyy-MM-dd'),
-        endDate: formatDateFn(dateRange?.to || new Date(), 'yyyy-MM-dd')
-      });
-      
-      toast({ 
-        title: success ? "Success" : "Failed", 
-        description: message || `${expiredSessions.length} expired session(s) have been deleted.`,
+      const { success, message } = await apiClient.vouchers.deleteExpired();
+
+      toast({
+        title: success ? "Success" : "Failed",
+        description: message,
         variant: success ? "default" : "destructive"
       });
-      
+
       // Reload sessions
       await load(false);
     } catch (error: any) {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message || "Failed to delete expired sessions.",
         variant: "destructive"
       });
@@ -247,8 +233,7 @@ export default function SessionsPage() {
   };
 
   const filteredSessions = getFilteredSessions();
-  const expiredCount = filteredSessions.filter(s => s.status === "expired").length;
-  
+
   // Calculate session statistics
   const active = filteredSessions.filter(s => s.status === "active");
   const offline = filteredSessions.filter(s => s.status === "offline");
@@ -259,10 +244,10 @@ export default function SessionsPage() {
   // Generate confirmation message with date range
   const getConfirmationMessage = () => {
     const dateRangeText = formatDateRangeForMessage();
-    if (expiredCount === 0) {
+    if (hasExpiredSessions) {
       return `No expired sessions found ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}.`;
     }
-    return `Are you sure you want to delete ${expiredCount} expired session(s) ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}? This action cannot be undone.`;
+    return `Are you sure you want to delete all expired session ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}? This action cannot be undone.`;
   };
 
   // History table columns (without sessions column)
@@ -284,40 +269,40 @@ export default function SessionsPage() {
   // Main table columns (hide some columns on mobile)
   const columns = [
     { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
-    { 
-      key: "macAddress", 
-      label: "MAC Address", 
+    {
+      key: "macAddress",
+      label: "MAC Address",
       className: "hidden sm:table-cell",
-      render: (v: unknown, row: unknown) =>  `${(row as HotspotSession).network.mac }`
+      render: (v: unknown, row: unknown) => `${(row as HotspotSession).network.mac}`
     },
-    { 
-      key: "router", 
-      label: "Router", 
+    {
+      key: "router",
+      label: "Router",
       className: "hidden md:table-cell",
-      render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name}` 
+      render: (v: unknown, row: unknown) => `${(row as HotspotSession).nas.name}`
     },
     { key: "package", label: "Package", render: (v: unknown, row: unknown) => (row as HotspotSession).package.name },
     {
-      key: "dataUsed", 
-      label: "Data Used", 
+      key: "dataUsed",
+      label: "Data Used",
       render: (v: unknown, row: unknown) => {
         const sess = row as HotspotSession;
         return formatBytes(Number(sess.usage.input) + Number(sess.usage.output))
       }
     },
-    { 
-      key: "startedAt", 
-      label: "Started", 
+    {
+      key: "startedAt",
+      label: "Started",
       className: "hidden lg:table-cell",
-      render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.start) 
+      render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.start)
     },
-    { 
-      key: "expireOn", 
-      label: "Expires", 
+    {
+      key: "expireOn",
+      label: "Expires",
       className: "hidden lg:table-cell",
-      render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.expireOn) 
+      render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.expireOn)
     },
-    { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v) === "active" ? "online": String(v)} /> },
+    { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v) === "active" ? "online" : String(v)} /> },
   ];
 
   return (
@@ -332,7 +317,7 @@ export default function SessionsPage() {
         {/* Action Buttons Group - Responsive */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           {/* Delete Expired Sessions Button */}
-          {expiredCount > 0 && (
+          {hasExpiredSessions && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center justify-center gap-2 px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
@@ -388,7 +373,7 @@ export default function SessionsPage() {
         columns={columns as never}
         loading={loading}
         searchable
-        searchKeys={["macAddress", "ipAddress","username","package"] as never}
+        searchKeys={["macAddress", "ipAddress", "username", "package"] as never}
         searchPlaceholder="by MAC, Username .."
         emptyMessage="No sessions recorded for the selected period."
         pageSize={10}
@@ -420,12 +405,12 @@ export default function SessionsPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {/* Hide refresh button on mobile, show only on sm and up */}
-            <Button 
-              variant="outline" 
-              onClick={() => load(false)} 
-              disabled={loading} 
+            <Button
+              variant="outline"
+              onClick={() => load(false)}
+              disabled={loading}
               className="h-9 md:h-10 hidden sm:flex"
             >
               <RefreshCw className={`h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-2 ${loading ? "animate-spin" : ""}`} />
@@ -521,8 +506,8 @@ export default function SessionsPage() {
 
           {!historyDialog.loading && (
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setHistoryDialog({ isOpen: false, loading: false, sessions: [], currentSession: null })}
                 className="h-9 md:h-10 text-xs md:text-sm"
               >

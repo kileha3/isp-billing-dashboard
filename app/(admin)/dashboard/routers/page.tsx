@@ -55,6 +55,7 @@ const basicSchema = z.object({
   name: z.string().min(1, "Router name is required"),
   location: z.string().min(1, "Location is required"),
   tenantId: z.string().optional(),
+  osVersion: z.string().min(4,"Version is required")
 });
 
 function StepIndicator({ current, steps }: { current: WizardStep; steps: WizardStep[] }) {
@@ -126,13 +127,13 @@ export default function RoutersPage() {
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
   const [routerToViewWhitelist, setRouterToViewWhitelist] = useState<RouterDevice | null>(null);
   const [deletingApMac, setDeletingApMac] = useState<string | null>(null);
-  const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "" });
+  const [basicForm, setBasicForm] = useState({ name: "", location: "", tenantId: "", osVersion: "" });
   const [basicErrors, setBasicErrors] = useState<Partial<Record<keyof typeof basicForm, string>>>({});
   const [submittingBasic, setSubmittingBasic] = useState(false);
   const [services, setServices] = useState<Array<string>>([]);
   const [selectedType, setSelectedType] = useState<typeof services[number]>("Hotspot");
   const [copiedProps, setCopiedProps] = useState<string | null>(null);
-  
+
   const [whitelistForm, setWhitelistForm] = useState<WhitelistForm>({
     name: "",
     mac: "",
@@ -225,7 +226,7 @@ export default function RoutersPage() {
       setServices(allowedServices);
     } catch (error: any) {
       setRouters([]);
-      toast({ title:  error.message, variant: "destructive" });
+      toast({ title: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -238,7 +239,7 @@ export default function RoutersPage() {
       setTenants(data);
     } catch (error: any) {
       setTenants([]);
-      toast({ title:  error.message, variant: "destructive" });
+      toast({ title: error.message, variant: "destructive" });
     }
   }, [isSuperAdmin]);
 
@@ -259,7 +260,7 @@ export default function RoutersPage() {
 
   async function openWizardForCreate() {
     setSetupTarget(null);
-    setBasicForm({ name: "", location: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
+    setBasicForm({ name: "", location: "",osVersion:"", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
     setBasicErrors({});
     setServiceInterfaces(undefined);
     setSelectedType("Hotspot");
@@ -281,7 +282,8 @@ export default function RoutersPage() {
     setBasicForm({
       name: router.name!,
       location: router.location!,
-      tenantId: router.tenantId!
+      tenantId: router.tenantId!,
+      osVersion: router.osVersion || "6.49"
     });
     setBasicErrors({});
     setWizard({
@@ -302,7 +304,8 @@ export default function RoutersPage() {
     setBasicForm({
       name: router.name!,
       location: router.location!,
-      tenantId: router.tenantId!
+      tenantId: router.tenantId!,
+      osVersion: router.osVersion || "6.49"
     });
     setBasicErrors({});
 
@@ -357,7 +360,7 @@ export default function RoutersPage() {
     if (!validateBasic()) return;
     setSubmittingBasic(true);
     try {
-      const payload = { name: basicForm.name, location: basicForm.location, tenantId: basicForm.tenantId || user?.tenantId };
+      const payload = { name: basicForm.name, location: basicForm.location, tenantId: basicForm.tenantId || user?.tenantId, osVersion: basicForm.osVersion };
 
       if (wizard.mode === "edit") {
         // Edit mode - just update and close
@@ -368,7 +371,7 @@ export default function RoutersPage() {
         // Create mode - create router and proceed to script
         const { router, message, success } = await apiClient.routers.create(payload);
         toast({ title: "Add router", description: message });
-        if(!success) return;
+        if (!success) return;
         load(false);
         const { data: { script } } = await apiClient.routers.getScript(router._id);
         setSetupTarget(router);
@@ -382,7 +385,7 @@ export default function RoutersPage() {
         }));
       }
     } catch (error: any) {
-      toast({ title:  error.message, variant: "destructive" });
+      toast({ title: error.message, variant: "destructive" });
     } finally {
       setSubmittingBasic(false);
     }
@@ -467,7 +470,8 @@ export default function RoutersPage() {
   };
 
   const columns = [
-    { key: "name", label: "Name/Location" , render: (v: unknown, row: unknown) => {
+    {
+      key: "name", label: "Name/Location", render: (v: unknown, row: unknown) => {
         const router = (row as RouterDevice);
         return (
           <div className="flex flex-col gap-0.5">
@@ -475,7 +479,8 @@ export default function RoutersPage() {
             <code className="text-xs font-mono text-muted-foreground">{router.location}</code>
           </div>
         );
-      }},
+      }
+    },
     {
       key: "platform", label: "Identity", render: (v: unknown, row: unknown) => {
         const r = row as RouterDevice;
@@ -505,7 +510,7 @@ export default function RoutersPage() {
       render: (v: unknown, row: unknown) => {
         const portal = (row as RouterDevice).portalInterface;
         const typeLabel = () => {
-          return portal?.type === "combined" ? "Hotspot,PPPOE": portal?.type === "pppoe" ? "PPPOE": portal?.type;
+          return portal?.type === "combined" ? "Hotspot,PPPOE" : portal?.type === "pppoe" ? "PPPOE" : portal?.type;
         }
         return (
           <div className="flex flex-col gap-0.5">
@@ -528,33 +533,33 @@ export default function RoutersPage() {
     },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v)} /> },
     { key: "isActive", label: "State", render: (v: unknown) => <StatusBadge status={String(v ? "active" : "inactive")} /> },
-    { 
-          key: "winbox", 
-          label: "WinBox", 
-          render: (v: unknown, row: unknown) => {
-            const router = row as RouterDevice;
-            const isCopied = copiedProps === `${router.port}`
-            const link = `isp.stack.co.tz:${router.port}`
-            return (
-              <div className="flex items-center gap-2 group">
-                <span className="font-mono text-sm ">{link}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => copyToClipboard(link, router._id)}
-                  title="Click to copy Properties"
-                >
-                  {isCopied ? (
-                    <Check className="h-3.5 w-3.5 text-green-500" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-              </div>
-            );
-          }
-        },
+    {
+      key: "winbox",
+      label: "WinBox",
+      render: (v: unknown, row: unknown) => {
+        const router = row as RouterDevice;
+        const isCopied = copiedProps === `${router.port}`
+        const link = `isp.stack.co.tz:${router.port}`
+        return (
+          <div className="flex items-center gap-2 group">
+            <span className="font-mono text-sm ">{link}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => copyToClipboard(link, router._id)}
+              title="Click to copy Properties"
+            >
+              {isCopied ? (
+                <Check className="h-3.5 w-3.5 text-green-500" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          </div>
+        );
+      }
+    },
   ];
 
   const wizardStep = wizard.step;
@@ -645,7 +650,7 @@ export default function RoutersPage() {
                 <DropdownMenuItem onClick={() => checkRouterStatus(r._id)}>
                   <RefreshCcwDot className="mr-2 h-4 w-4" />
                   Sync Device
-                </DropdownMenuItem> 
+                </DropdownMenuItem>
                 {r.isActive && r.status === "online" && (<DropdownMenuItem onClick={() => resetDevice(r._id)}>
                   <BrushCleaning className="mr-2 h-4 w-4" />
                   Reset Device
@@ -684,7 +689,7 @@ export default function RoutersPage() {
               <p className="text-sm text-muted-foreground">Enter the router name and location. configuration script will be generated automatically after saving.</p>
 
               {/* Horizontal row becomes column on mobile */}
-              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
+              <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label>Router Name <span className="text-destructive">*</span></Label>
                   <Input
@@ -704,6 +709,26 @@ export default function RoutersPage() {
                     onChange={(e) => { setBasicForm(f => ({ ...f, location: e.target.value })); setBasicErrors(er => ({ ...er, location: undefined })); }}
                   />
                   {basicErrors.location && <p className="text-xs text-destructive">{basicErrors.location}</p>}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label>RouterOS Version <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={basicForm.osVersion}
+                    onValueChange={(v) => {
+                      setBasicForm(f => ({ ...f, osVersion: v }));
+                      setBasicErrors(er => ({ ...er, osVersion: undefined }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select RouterOS version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="6.49">6.49.10 or Older</SelectItem>
+                      <SelectItem value="7.20">7.20.7 or Newer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {basicErrors.osVersion && <p className="text-xs text-destructive">{basicErrors.osVersion}</p>}
                 </div>
               </div>
 
@@ -733,7 +758,7 @@ export default function RoutersPage() {
             <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">Edit router details.</p>
 
-              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
+              <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label>Router Name <span className="text-destructive">*</span></Label>
                   <Input
@@ -753,6 +778,26 @@ export default function RoutersPage() {
                     onChange={(e) => { setBasicForm(f => ({ ...f, location: e.target.value })); setBasicErrors(er => ({ ...er, location: undefined })); }}
                   />
                   {basicErrors.location && <p className="text-xs text-destructive">{basicErrors.location}</p>}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label>RouterOS Version <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={basicForm.osVersion}
+                    onValueChange={(v) => {
+                      setBasicForm(f => ({ ...f, osVersion: v }));
+                      setBasicErrors(er => ({ ...er, osVersion: undefined }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select RouterOS version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="6.49">6.49.10 or Older</SelectItem>
+                      <SelectItem value="7.20">7.20.7 or Newer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {basicErrors.osVersion && <p className="text-xs text-destructive">{basicErrors.osVersion}</p>}
                 </div>
               </div>
 
@@ -1040,7 +1085,7 @@ export default function RoutersPage() {
             </Button>
 
             <Button disabled={!isFormValid} onClick={handleWhitelist} className="w-full sm:w-auto">
-             {loading ? "Whitelisting...":" Whitelist Now"}
+              {loading ? "Whitelisting..." : " Whitelist Now"}
             </Button>
           </div>
         </DialogContent>
@@ -1066,7 +1111,7 @@ export default function RoutersPage() {
                         <th className="text-left p-3 text-sm font-medium text-muted-foreground">AP Name</th>
                         <th className="text-left p-3 text-sm font-medium text-muted-foreground">MAC Address</th>
                         <th className="text-right p-3 text-sm font-medium text-muted-foreground w-20">Actions</th>
-                       </tr>
+                      </tr>
                     </thead>
                     <tbody>
                       {routerToViewWhitelist.aps.map((ap, index) => (
@@ -1090,10 +1135,10 @@ export default function RoutersPage() {
                               )}
                             </Button>
                           </td>
-                         </tr>
+                        </tr>
                       ))}
                     </tbody>
-                   </table>
+                  </table>
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
@@ -1127,7 +1172,7 @@ export default function RoutersPage() {
             toast({ title: "Device deletion", description: message });
             load(false);
           } catch (error: any) {
-            toast({ title:  error.message, variant: "destructive" });
+            toast({ title: error.message, variant: "destructive" });
           }
         }}
       />)}

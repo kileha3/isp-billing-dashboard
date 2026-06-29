@@ -323,9 +323,10 @@ export const apiClient = {
 
   vouchers: {
     list: (params?: Record<string, string>) => req<{ data: Voucher[] }>(`/vouchers${params ? "?" + new URLSearchParams(params) : ""}`),
+    countExpired: () => req<{expired: number}>(`/vouchers/expired`),
 
     delete: (id: string) => req<{ message: string }>(`/vouchers/${id}`, { method: "DELETE" }),
-
+    deleteExpired: () => req<{ message: string, success: boolean }>(`/vouchers/expired`, { method: "DELETE" }),
     revoke: (id: string) => req<{ message: string }>(`/vouchers/${id}/revoke`, { method: "PATCH" }),
 
     generate: (data: { packageId: string; quantity: number; prefix?: string }) =>

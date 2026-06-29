@@ -114,6 +114,7 @@ export interface RouterDevice {
   tenantId: string;
   name: string;
   location?: string;
+  osVersion?: string;
   ipAddress?: string;
   status: RouterStatus;
   createdAt: string;

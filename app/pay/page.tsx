@@ -1,10 +1,12 @@
 import { Suspense } from "react";
 import { CaptivePortalClient } from "@/components/portal/CaptivePortalClient";
+import { LogRocketInit } from "../LogRocketInit";
 
 export default function PayPage() {
   return (
     <div className="cp-theme min-h-screen">
       <Suspense fallback={<PortalSkeleton />}>
+      <LogRocketInit />
         <CaptivePortalClient />
       </Suspense>
     </div>
