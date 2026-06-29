@@ -244,7 +244,7 @@ export default function SessionsPage() {
   // Generate confirmation message with date range
   const getConfirmationMessage = () => {
     const dateRangeText = formatDateRangeForMessage();
-    if (hasExpiredSessions) {
+    if (!hasExpiredSessions) {
       return `No expired sessions found ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}.`;
     }
     return `Are you sure you want to delete all expired session ${dateRangeText !== "all time" ? `for ${dateRangeText}` : ""}? This action cannot be undone.`;
