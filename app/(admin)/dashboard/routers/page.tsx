@@ -637,7 +637,7 @@ export default function RoutersPage() {
                   <Workflow className="mr-2 h-4 w-4" />
                   Setup Wizard
                 </DropdownMenuItem>
-                {r.isActive && r.status === "online" && (<DropdownMenuItem onClick={() => setRouterToAddWhiteList(r)}>
+                {r.status === "online" && (<DropdownMenuItem onClick={() => setRouterToAddWhiteList(r)}>
                   <Grid2X2Plus className="mr-2 h-4 w-4" />
                   Whitelist AP
                 </DropdownMenuItem>)}
