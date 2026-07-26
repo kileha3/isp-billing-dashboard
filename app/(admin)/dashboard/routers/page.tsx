@@ -222,7 +222,6 @@ export default function RoutersPage() {
         apiClient.routers.list(),
         apiClient.routers.services()
       ]);
-      console.log(data);
       setRouters(data);
       setServices(allowedServices);
     } catch (error: any) {
@@ -843,8 +842,9 @@ export default function RoutersPage() {
                 setWizard((prev) => ({ ...prev, pollingStatus: "waiting" }));
                 if (wizard.router) {
                   SocketClient.waitFor<RouterDevice>(SocketClient.event_router_setup_completed, wizard.router._id, (data) => {
+                    console.log(data);
                     updateStatus(data);
-                    setWizard((prev) => ({ ...prev, data, step: "interfaces", canClose: false }));
+                    setWizard((prev) => ({ ...prev, router: data, step: "interfaces", canClose: false }));
                     load(false);
                   });
                 }
