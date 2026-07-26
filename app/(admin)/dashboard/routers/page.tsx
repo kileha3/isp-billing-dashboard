@@ -55,7 +55,7 @@ const basicSchema = z.object({
   name: z.string().min(1, "Router name is required"),
   location: z.string().min(1, "Location is required"),
   tenantId: z.string().optional(),
-  osVersion: z.string().min(4,"Version is required")
+  osVersion: z.string().min(4, "Version is required")
 });
 
 function StepIndicator({ current, steps }: { current: WizardStep; steps: WizardStep[] }) {
@@ -260,7 +260,7 @@ export default function RoutersPage() {
 
   async function openWizardForCreate() {
     setSetupTarget(null);
-    setBasicForm({ name: "", location: "",osVersion:"", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
+    setBasicForm({ name: "", location: "", osVersion: "", tenantId: isSuperAdmin ? "" : (user?.tenantId ?? "") });
     setBasicErrors({});
     setServiceInterfaces(undefined);
     setSelectedType("Hotspot");
@@ -487,7 +487,7 @@ export default function RoutersPage() {
         return (
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">{r.ipAddress}</span>
-            <code className="text-xs font-mono text-muted-foreground">{r.info.platform}</code>
+            <code className="text-xs font-mono text-muted-foreground">{r.info ? r.info.platform : ""}</code>
           </div>
         );
       }
@@ -661,7 +661,7 @@ export default function RoutersPage() {
                 </DropdownMenuItem>)}
                 {isSuperAdmin && (<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete 
+                  Delete
                 </DropdownMenuItem>)}
               </DropdownMenuContent>
             </DropdownMenu>
