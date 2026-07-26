@@ -842,9 +842,10 @@ export default function RoutersPage() {
                 setWizard((prev) => ({ ...prev, pollingStatus: "waiting" }));
                 if (wizard.router) {
                   SocketClient.waitFor<RouterDevice>(SocketClient.event_router_setup_completed, wizard.router._id, (data) => {
-                    console.log(data);
-                    updateStatus(data);
-                    setWizard((prev) => ({ ...prev, router: data, step: "interfaces", canClose: false }));
+                    if(data){
+                      updateStatus(data);
+                      setWizard((prev) => ({ ...prev, router: data, step: "interfaces", canClose: false }));
+                    }
                     load(false);
                   });
                 }
