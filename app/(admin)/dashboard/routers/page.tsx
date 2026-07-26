@@ -222,6 +222,7 @@ export default function RoutersPage() {
         apiClient.routers.list(),
         apiClient.routers.services()
       ]);
+      console.log(data);
       setRouters(data);
       setServices(allowedServices);
     } catch (error: any) {
