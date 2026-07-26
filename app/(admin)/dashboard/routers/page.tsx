@@ -277,7 +277,10 @@ export default function RoutersPage() {
     setShowWizard(true);
   }
 
-  async function openWizardForEdit(router: RouterDevice) {
+  async function openWizardForEdit(router?: RouterDevice) {
+    if(!router) {
+      return;
+    }
     setSetupTarget(router);
     setBasicForm({
       name: router.name!,
@@ -300,6 +303,9 @@ export default function RoutersPage() {
   }
 
   async function openWizardForSetup(router: RouterDevice) {
+    if(!router){
+      return;
+    }
     setSetupTarget(router);
     setBasicForm({
       name: router.name!,
@@ -498,8 +504,8 @@ export default function RoutersPage() {
         const r = row as RouterDevice;
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium">{r.info?.model || "Undetermined"}</span>
-            <code className="text-xs font-mono text-muted-foreground">{r.info?.version || "Undetermined"}</code>
+            <span className="text-sm font-medium">{r && r.info?.model || "Undetermined"}</span>
+            <code className="text-xs font-mono text-muted-foreground">{r && r.info?.version || "Undetermined"}</code>
           </div>
         );
       }
@@ -526,7 +532,7 @@ export default function RoutersPage() {
         const r = row as RouterDevice;
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium">{r.status === "online" ? (r.info?.uptime || "Undetermined") : ""}</span>
+            <span className="text-sm font-medium">{r.status === "online" ? (r && r.info?.uptime || "Undetermined") : ""}</span>
           </div>
         );
       }
