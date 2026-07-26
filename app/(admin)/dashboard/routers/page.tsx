@@ -661,7 +661,7 @@ export default function RoutersPage() {
                 </DropdownMenuItem>)}
                 {isSuperAdmin && (<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRouterToDelete(r as any)}>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  Delete 
                 </DropdownMenuItem>)}
               </DropdownMenuContent>
             </DropdownMenu>
