@@ -486,8 +486,8 @@ export default function RoutersPage() {
         const r = row as RouterDevice;
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium">{r.ipAddress}</span>
-            <code className="text-xs font-mono text-muted-foreground">{r.info ? r.info.platform : ""}</code>
+            <span className="text-sm font-medium">{r && r.ipAddress ? r.ipAddress: ""}</span>
+            <code className="text-xs font-mono text-muted-foreground">{r && r.info ? r.info.platform : ""}</code>
           </div>
         );
       }
