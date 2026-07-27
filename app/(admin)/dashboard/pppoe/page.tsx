@@ -228,7 +228,7 @@ export default function PPPoEUsersPage() {
         return (
           <div className="flex flex-col">
             <span className="text-sm font-medium">{packageName}</span>
-            <span className="text-xs text-muted-foreground">Tsh {price.toLocaleString()}</span>
+            <span className="text-xs text-muted-foreground">{price === 0 ? "Free Service":`Tsh ${price.toLocaleString()}`}</span>
           </div>
         );
       }
