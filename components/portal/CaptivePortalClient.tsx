@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Wifi, Clock, ChevronUp } from "lucide-react";
 import { formatData, formatDuration } from "@/lib/utils";
-import LogRocket from 'logrocket';
 
 export const DEFAULT_CONFIG: TenantPortalSettings = {
   branding: {
@@ -971,12 +970,9 @@ export function CaptivePortalClient() {
   const [views, setViews] = useState<{ header: any; grid: any; suportInfo: any }>();
 
   const loadingCompleted = () => {
-    window.parent.postMessage(
-      {
-        type: "HIDE_LOADING",
-      },
-      "*",
-    );
+    setTimeout(() => {
+      window.parent.postMessage({ type: "HIDE_LOADING" },"*");
+    }, 2000)
   };
 
   const reflectOnUI = (success: boolean, voucher: string | null | undefined) => {
@@ -985,14 +981,7 @@ export function CaptivePortalClient() {
   };
 
   const grantAccess = (voucher: string) => {
-    window.parent.postMessage(
-      {
-        type: "AUTH_SUCCESS",
-        username: voucher,
-        password: voucher,
-      },
-      "*",
-    );
+    window.parent.postMessage( { type: "AUTH_SUCCESS", username: voucher, password: voucher },"*" );
   };
 
   const handleRedeem = useCallback(
@@ -1012,7 +1001,6 @@ export function CaptivePortalClient() {
         reflectOnUI(success, _voucher);
       } catch (err: any) {
         setPayState("failure");
-        LogRocket.captureException(err);
       }
     },
     [nasName, deviceMac],
@@ -1064,7 +1052,6 @@ export function CaptivePortalClient() {
         }
       } catch (err: any) {
         setPayState("failure");
-        LogRocket.captureException(err);
       }
     },
     [nasName, deviceMac],
@@ -1093,7 +1080,6 @@ export function CaptivePortalClient() {
       } catch (err: any) {
         setConfig(DEFAULT_CONFIG);
         setPackages([]);
-        LogRocket.captureException(err);
       } finally {
         setLoading(false);
         loadingCompleted();
