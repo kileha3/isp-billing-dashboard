@@ -6,7 +6,6 @@ export default function PayPage() {
   return (
     <div className="cp-theme min-h-screen">
       <Suspense fallback={<PortalSkeleton />}>
-      <LogRocketInit />
         <CaptivePortalClient />
       </Suspense>
     </div>

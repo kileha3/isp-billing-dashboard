@@ -1,7 +1,7 @@
 // socket.client.ts
 import { io, Socket } from "socket.io-client";
 
-class SocketClient {
+class ServerEventClient {
   private static eventSource: EventSource | null = null;
 
   static event_session_sync = "session_sync_completed";
@@ -99,9 +99,6 @@ class SocketClient {
     this.dataHandler(callback);
     return () => {};
   }
-
-  static disconnect(): void {
-  }
 }
 
-export default SocketClient;
+export default ServerEventClient;
