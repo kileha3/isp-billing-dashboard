@@ -34,13 +34,15 @@ class SocketClient {
       }
 
       this.socket = io(server, {
-        transports: ["websocket"],
         autoConnect: true,
         ...options,
       });
 
       this.socket.on("connect", () => resolve(this.socket));
-      this.socket.on("connect_error", () => resolve(null));
+      this.socket.on("connect_error", (err) => {
+         console.log('Socket connect error:', err)
+        resolve(null);
+      });
     });
   }
 
