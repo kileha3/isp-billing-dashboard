@@ -19,7 +19,8 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { format } from "date-fns";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDuration } from "@/lib/utils";
+import { labels } from "@/components/portal/CaptivePortalClient";
 
 // Types
 interface OfferWithQualified extends Offer {
@@ -610,7 +611,7 @@ export default function OffersPage() {
                     <SelectContent>
                       {packages.filter(p => !p.isPublic).map(pkg => (
                         <SelectItem key={pkg._id} value={pkg._id}>
-                          {pkg.name}
+                          {pkg.name}- {formatDuration(Number(pkg.duration), labels["en"]?.duration[pkg.durationUnit] ?? "minutes", "en")}
                         </SelectItem>
                       ))}
                     </SelectContent>
