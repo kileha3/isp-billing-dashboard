@@ -16,7 +16,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { Activity, Wifi, Clock } from "lucide-react";
 import { HotspotSession, Package } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 import { DateRange, DayPicker } from "react-day-picker";
 import { addDays, format as formatDateFn } from "date-fns";
 import "react-day-picker/style.css";
@@ -109,8 +109,8 @@ export default function SessionsPage() {
     if (!user) return;
     let unsubscribe: (() => void) | null = null;
     (async () => {
-      const event = SocketClient.event_session_sync;
-      unsubscribe = await SocketClient.subscribe(event, event, (_) => load(false));
+      const event = ServerEvents.event_session_sync;
+      unsubscribe = await ServerEvents.subscribe(event, event, (_) => load(false));
     })();
 
     return () => {

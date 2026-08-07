@@ -6,7 +6,7 @@ import { apiClient, imageUrl } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 import { CalendarDays, Crown, Gauge, Gift, Mail, Network, Phone, ShieldCheck, ShoppingCart, Signal, Star, Ticket, Timer, WifiOff, Zap } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -1034,8 +1034,8 @@ export function CaptivePortalClient() {
             phoneNumber: phone,
           });
           if (success && orderId) {
-            SocketClient.waitFor<PayResult>(
-              SocketClient.event_payment_completed,
+            ServerEvents.waitFor<PayResult>(
+              ServerEvents.event_payment_completed,
               orderId,
               ({ success, voucher }) => reflectOnUI(success, voucher),
               24 * 1000,

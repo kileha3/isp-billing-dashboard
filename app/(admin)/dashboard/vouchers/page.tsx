@@ -17,7 +17,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { pdf, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 import { useAuth } from "@/lib/auth-context";
 import { formatAgoTime } from "../page";
 import { formatDate } from "@/lib/utils";
@@ -168,8 +168,8 @@ export default function VouchersPage() {
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     (async () => {
-      const event = SocketClient.event_voucher_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
+      const event = ServerEvents.event_voucher_sync;
+      unsubscribe = await ServerEvents.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {

@@ -20,7 +20,7 @@ import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api";
 import { Notification } from "@/lib/types";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 
 
 const PAGE_TITLES: Record<string, string> = {
@@ -97,8 +97,8 @@ export function AdminHeader() {
    useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     (async () => {
-      const event = SocketClient.event_notification_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load());
+      const event = ServerEvents.event_notification_sync;
+      unsubscribe = await ServerEvents.subscribe(event, user?.tenantId ?? event, (_) => load());
     })();
 
     return () => {

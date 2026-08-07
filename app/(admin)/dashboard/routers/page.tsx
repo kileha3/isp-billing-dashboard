@@ -20,7 +20,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { appName, capitalizeFirstLetter } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Progress } from "@radix-ui/react-progress";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 
 
 type WizardStep = "basic" | "vpn_script" | "interfaces" | "done";
@@ -249,8 +249,8 @@ export default function RoutersPage() {
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     (async () => {
-      const event = SocketClient.event_router_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
+      const event = ServerEvents.event_router_sync;
+      unsubscribe = await ServerEvents.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {
@@ -841,7 +841,7 @@ export default function RoutersPage() {
                 setScriptCopied(true);
                 setWizard((prev) => ({ ...prev, pollingStatus: "waiting" }));
                 if (wizard.router) {
-                  SocketClient.waitFor<RouterDevice>(SocketClient.event_router_setup_completed, wizard.router._id, (data) => {
+                  ServerEvents.waitFor<RouterDevice>(ServerEvents.event_router_setup_completed, wizard.router._id, (data) => {
                     if(data){
                       updateStatus(data);
                       setWizard((prev) => ({ ...prev, router: data, step: "interfaces", canClose: false }));

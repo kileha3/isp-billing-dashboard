@@ -9,7 +9,7 @@ import { Filter, Calendar, Trash2, RefreshCcwDot, MoreHorizontal } from "lucide-
 import type { Transaction } from "@/lib/types";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuth } from "@/lib/auth-context";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 import { DateRange } from "react-day-picker";
 import { addDays, format as formatDateFn } from "date-fns";
 import { DayPicker } from "react-day-picker";
@@ -70,8 +70,8 @@ export default function TransactionsPage() {
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     (async () => {
-      const event = SocketClient.event_transaction_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
+      const event = ServerEvents.event_transaction_sync;
+      unsubscribe = await ServerEvents.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {

@@ -16,7 +16,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 import { PayResult, phoneSchemaDef } from "@/components/portal/CaptivePortalClient";
 import { formatDate } from "@/lib/utils";
 
@@ -59,8 +59,8 @@ export default function InvoicesPage() {
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     (async () => {
-      const event = SocketClient.event_invoice_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
+      const event = ServerEvents.event_invoice_sync;
+      unsubscribe = await ServerEvents.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {
@@ -178,7 +178,7 @@ export default function InvoicesPage() {
               const { success, orderId } = await apiClient.invoices.pay(showClearInvoice!._id, phone);
 
               if (success && orderId) {
-                SocketClient.waitFor<PayResult>(SocketClient.event_invoice_paid, orderId,
+                ServerEvents.waitFor<PayResult>(ServerEvents.event_invoice_paid, orderId,
                   ({ success }) => {
                     clearTimeout(timeoutId);
                     setShowClearInvoice(null);

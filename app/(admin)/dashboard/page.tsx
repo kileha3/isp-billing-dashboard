@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "./transactions/page";
 import { Transaction } from "@/lib/types";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 import { format } from 'timeago.js';
 import { DateRange, DayPicker } from "react-day-picker";
 import { addDays, format as formatDate } from "date-fns";
@@ -222,8 +222,8 @@ export default function DashboardPage() {
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     (async () => {
-      const event = SocketClient.event_dashboard_sync;
-      unsubscribe = await SocketClient.subscribe(event, user?.tenantId ?? event, (_) => load(false));
+      const event = ServerEvents.event_dashboard_sync;
+      unsubscribe = await ServerEvents.subscribe(event, user?.tenantId ?? event, (_) => load(false));
     })();
 
     return () => {

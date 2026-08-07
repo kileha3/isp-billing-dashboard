@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Wifi, Clock, Database, Zap, ChevronUp } from "lucide-react";
-import SocketClient from "@/lib/socket.util";
+import ServerEvents from "@/lib/server.events";
 import { apiClient, imageUrl } from "@/lib/api";
 import type { TenantPortalSettings, Package } from "@/lib/types";
 import { appName } from "@/lib/utils";
@@ -510,8 +510,8 @@ function PaymentContent() {
     try {
       const { orderId, success } = await apiClient.portal.standAlonePayment(token!, pkg._id, phone);
       if (success && orderId) {
-        SocketClient.waitFor<PayResult>(
-          SocketClient.event_payment_completed,
+        ServerEvents.waitFor<PayResult>(
+          ServerEvents.event_payment_completed,
           orderId,
           ({ success }) => reflectOnUI(success),
           60 * 1000,
