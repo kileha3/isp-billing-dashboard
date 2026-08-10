@@ -51,6 +51,7 @@ const offerSchema = z.object({
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   status: z.string(),
+  onlyWeekend: z.boolean()
 }).superRefine((data, ctx) => {
   // Ensure at least one criteria is enabled AND has a valid value
   const enabledCriteria = [];
@@ -123,6 +124,7 @@ const DEFAULT_FORM: OfferFormData = {
   startDate: new Date().toISOString().split("T")[0],
   endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   status: "active",
+  onlyWeekend: false
 };
 
 const OPERATORS = [
@@ -227,6 +229,7 @@ export default function OffersPage() {
       startDate: new Date(offer.startDate).toISOString().split("T")[0],
       endDate: new Date(offer.endDate).toISOString().split("T")[0],
       status: offer.status,
+      onlyWeekend: offer.onlyWeekend || false
     });
     setFormErrors({});
     setShowDialog(true);
@@ -241,10 +244,10 @@ export default function OffersPage() {
   // Toggle offer status
   async function toggleStatus(offer: Offer) {
     try {
-      await apiClient.offers?.activateDeactivate(offer._id, !offer.status);
+      await apiClient.offers?.activateDeactivate(offer._id, offer.status === "active" ? false: true);
       toast({ 
-        title: `Offer ${!offer.status ? "activated" : "deactivated"}`, 
-        description: `${offer.name} has been ${!offer.status ? "activated" : "deactivated"} successfully` 
+        title: `Offer ${offer.status === "active" ? "deactivated" : "activated"}`, 
+        description: `${offer.name} has been ${offer.status === "active" ? "deactivated" : "activated"} successfully` 
       });
       load(false);
     } catch (error: any) {
@@ -287,6 +290,7 @@ export default function OffersPage() {
             value: form.criteria.lastPurchaseDays.value || 0,
           },
         },
+        onlyWeekend: form.onlyWeekend,
         startDate: new Date(form.startDate).toISOString(),
         endDate: new Date(form.endDate).toISOString(),
         status: form.status,
@@ -452,8 +456,7 @@ export default function OffersPage() {
       label: "Status",
       render: (v: unknown, row: unknown) => {
         const offer = row as Offer;
-        let status = offer.status ? "active" : "inactive";
-        return <StatusBadge status={status} />;
+        return <StatusBadge status={offer.status} />;
       }
     },
     {
@@ -548,7 +551,7 @@ export default function OffersPage() {
                   Edit Offer
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => toggleStatus(offer)} disabled={expired}>
-                  {offer.status ? (
+                  {offer.status === "active" ? (
                     <>
                       <PowerOff className="mr-2 h-4 w-4" />
                       Deactivate
@@ -815,6 +818,7 @@ export default function OffersPage() {
             </div>
 
             {/* Status */}
+             <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
               <Switch
                 checked={form.status === "active"}
@@ -822,6 +826,15 @@ export default function OffersPage() {
               />
               <Label>Activate offer immediately</Label>
             </div>
+
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={form.onlyWeekend}
+                onCheckedChange={(v) => setForm(f => ({ ...f, onlyWeekend: v }))}
+              />
+              <Label>Only Weekends</Label>
+            </div>
+          </div>
           </div>
 
           <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">

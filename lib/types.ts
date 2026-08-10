@@ -47,7 +47,7 @@ export interface TenantPortalSettings {
 export interface PPPoEUser {
   _id: string;
   username: string;
-  email: string;
+  phoneNumber: string;
   password: string;
   firstName: string;
   lastName: string;
@@ -291,6 +291,7 @@ export interface Offer {
   startDate: string;
   endDate: string;
   status: string;
+  onlyWeekend: boolean;
   createdAt: string;
   updatedAt: string;
   tenantId: string;

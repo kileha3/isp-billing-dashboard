@@ -472,8 +472,7 @@ export default function PackagesPage() {
             </div>
 
             {/* Max Users & Max Sessions Row */}
-            {!form.isPpPoe && (
-              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label className="flex items-center gap-2">
                     Connections (0 = unlimited)
@@ -506,7 +505,6 @@ export default function PackagesPage() {
                   <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
                 </div>
               </div>
-            )}
 
             {/* Toggle Switches Row - Wrap on mobile */}
             <div className="col-span-1 sm:col-span-2 flex flex-wrap items-center gap-4 sm:gap-6">

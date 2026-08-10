@@ -22,7 +22,7 @@ import { formatDate } from "@/lib/utils";
 // PPPoE User Schema
 const pppoeUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 characters").max(15, "Phone number must be at most 15 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   location: z.string().optional(),
@@ -32,7 +32,7 @@ const pppoeUserSchema = z.object({
 
 type PPPoEUserForm = {
   username: string;
-  email: string;
+  phoneNumber: string;
   firstName: string;
   lastName: string;
   location: string;
@@ -41,7 +41,7 @@ type PPPoEUserForm = {
 
 const DEFAULT_FORM: PPPoEUserForm = {
   username: "",
-  email: "",
+  phoneNumber: "",
   firstName: "",
   lastName: "",
   location: "",
@@ -100,7 +100,7 @@ export default function PPPoEUsersPage() {
     setEditTarget(user);
     setForm({
       username: user.username,
-      email: user.email || "",
+      phoneNumber: user.phoneNumber || "",
       firstName: user.firstName,
       lastName: user.lastName,
       location: user.location || "",
@@ -214,7 +214,7 @@ export default function PPPoEUsersPage() {
         );
       }
     },
-    { key: "email", label: "Email", render: (v: unknown) => String(v) },
+    { key: "phoneNumber", label: "Phone Number", render: (v: unknown) => String(v) },
     { key: "firstName", label: "First Name" },
     { key: "lastName", label: "Last Name" },
     { key: "location", label: "Location", render: (v: unknown) => v ? String(v) : "—" },
@@ -270,7 +270,7 @@ export default function PPPoEUsersPage() {
         columns={columns as never}
         loading={loading}
         searchable
-        searchKeys={["username", "email", "firstName", "lastName"] as never}
+        searchKeys={["username", "phoneNumber", "firstName", "lastName"] as never}
         searchPlaceholder="Search users..."
         emptyMessage="No PPPoE users found."
         pageSize={10}
@@ -336,14 +336,14 @@ export default function PPPoEUsersPage() {
               />
             </div>
 
-            {/* Email - full width on mobile */}
+            {/* phoneNumber - full width on mobile */}
             <div className="flex flex-col gap-1.5 sm:col-span-1">
-              <Label>Email *</Label>
+              <Label>Phone *</Label>
               <Input
-                type="email"
-                placeholder="john@example.com"
-                value={form.email}
-                onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+                type="tel"
+                placeholder="e.g. +255 712 XXX XXX"
+                value={form.phoneNumber}
+                onChange={(e) => setForm(f => ({ ...f, phoneNumber: e.target.value }))}
               />
             </div>
 
