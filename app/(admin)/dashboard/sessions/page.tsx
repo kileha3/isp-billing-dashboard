@@ -439,10 +439,10 @@ export default function SessionsPage() {
                   Clear MAC
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onClick={() => showHistory(s)}>
+               {/*  <DropdownMenuItem onClick={() => showHistory(s)}>
                   <History className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
                   History
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 {s.status !== "expired" && (
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
