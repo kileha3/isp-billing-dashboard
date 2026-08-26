@@ -32,11 +32,25 @@ const packageSchema = z.object({
   dataLimit: z.coerce.number().min(0, "Data limit must be 0 or more"),
   speedLimit: z.coerce.number().min(0, "Speed limit must be 0 or more"),
   routerIds: z.array(z.string()).min(1, "At least one router must be selected"),
+  // FUP validation
+  isFUPEnabled: z.boolean(),
+  fupLimit: z.coerce.number().min(0, "FUP limit must be 0 or more").optional(),
+  fupLimitUnit: z.string().optional(),
+  fupSpeed: z.string().optional(),
+}).refine((data) => {
+  // If FUP is enabled, fupLimit is required
+  if (data.isFUPEnabled) {
+    return data.fupLimit !== undefined && data.fupLimit > 0;
+  }
+  return true;
+}, {
+  message: "FUP limit is required when FUP is enabled",
+  path: ["fupLimit"],
 });
 
 type DurationUnit = "minutes" | "hours" | "days" | "months";
 
-type DataLimitUnit = "GB" | "MB"
+type DataLimitUnit = "GB" | "MB";
 
 type PackageForm = {
   name: string;
@@ -54,11 +68,17 @@ type PackageForm = {
   isPpPoe: boolean;
   tenantId: string;
   routerIds: string[];
+  // FUP fields
+  isFUPEnabled: boolean;
+  fupLimit: string;
+  fupLimitUnit: DataLimitUnit;
+  fupSpeed: string;
 };
 
 const DEFAULT_FORM: PackageForm = {
   name: "", maxUsers: "1", maxReconnects: "0", description: "", price: 0, duration: "", durationUnit: "hours", isFree: false, isPpPoe: false,
   dataLimit: "0", speedLimit: "0", dataLimitUnit: "GB", isPublic: false, tenantId: "", routerIds: [],
+  isFUPEnabled: false, fupLimit: "0", fupLimitUnit: "GB", fupSpeed: "",
 };
 
 export default function PackagesPage() {
@@ -94,7 +114,7 @@ export default function PackagesPage() {
     } catch (error: any) {
       setPackages([]);
       setRouters([]);
-      toast({ title:  error.message, variant: "destructive" });
+      toast({ title: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -107,7 +127,7 @@ export default function PackagesPage() {
       setTenants(data);
     } catch (error: any) {
       setTenants([]);
-      toast({ title:  error.message, variant: "destructive" });
+      toast({ title: error.message, variant: "destructive" });
     }
   }, [isSuperAdmin]);
 
@@ -148,7 +168,12 @@ export default function PackagesPage() {
       tenantId: pkg.tenantId,
       routerIds: pkg.routerIds ?? [],
       isPpPoe: pkg.isPpPoe,
-      isFree: pkg.isFree
+      isFree: pkg.isFree,
+      // FUP fields
+      isFUPEnabled: pkg.isFUPEnabled ?? false,
+      fupLimit: String(pkg.fupLimit ?? "0"),
+      fupLimitUnit: (pkg.fupLimitUnit as DataLimitUnit) ?? "GB",
+      fupSpeed: pkg.fupSpeed ?? "",
     });
     setShowDialog(true);
   }
@@ -172,32 +197,58 @@ export default function PackagesPage() {
       speedLimit: Number(form.speedLimit),
       maxUsers: Number(form.maxUsers),
       maxReconnects: Number(form.maxReconnects),
+      // FUP fields
+      isFUPEnabled: form.isFUPEnabled === true,
+      fupLimit: form.isFUPEnabled ? Number(form.fupLimit) : 0,
+      fupLimitUnit: form.isFUPEnabled ? form.fupLimitUnit : "",
+      fupSpeed: form.isFUPEnabled ? form.fupSpeed : "",
     };
-    
+
     // Validate router selection for new packages
     if (!editTarget && payload.routerIds.length === 0) {
-      toast({ 
-        title: "Validation Error", 
-        description: "Please select at least one router for the package.", 
-        variant: "destructive" 
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one router for the package.",
+        variant: "destructive"
       });
       setSubmitting(false);
       return;
     }
-    
+
+    // Validate FUP
+    if (form.isFUPEnabled && (!form.fupLimit || Number(form.fupLimit) <= 0)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid FUP data limit.",
+        variant: "destructive"
+      });
+      setSubmitting(false);
+      return;
+    }
+
+    if (form.isFUPEnabled && !form.fupSpeed) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a FUP package.",
+        variant: "destructive"
+      });
+      setSubmitting(false);
+      return;
+    }
+
     try {
       if (editTarget) {
         await apiClient.packages.update(editTarget._id, payload);
-        toast({ title: "Package updates", description:"Package was updated successfully" });
+        toast({ title: "Package updates", description: "Package was updated successfully" });
         load();
       } else {
         await apiClient.packages.create(payload);
-        toast({ title: "Package creation", description:"Package created successfully" });
+        toast({ title: "Package creation", description: "Package created successfully" });
       }
       setShowDialog(false);
       load();
     } catch (error: any) {
-     toast({ title:  error.message, variant: "destructive" });
+      toast({ title: error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -212,18 +263,24 @@ export default function PackagesPage() {
     return routerIds.map(id => routers.find(r => r._id === id)?.name ?? null).filter(Boolean);
   }
 
+
+
   const packageFormValid = packageSchema.safeParse(form).success;
 
   const columns = [
     { key: "name", label: "Name" },
-    { key: "maxUsers", label: "Connections", render: (v: unknown, row: unknown) => {
-      const pkg = row as unknown as Package;
-      return pkg.maxUsers === 0 ? "Unlimited": Number(v)
-    }},
-    { key: "maxReconnects", label: "Reconnets", render: (v: unknown, row: unknown) => {
-      const pkg = row as unknown as Package;
-      return pkg.maxReconnects == 0 ? "Unlimited": Number(v)
-    }},
+    {
+      key: "maxUsers", label: "Connections", render: (v: unknown, row: unknown) => {
+        const pkg = row as unknown as Package;
+        return pkg.maxUsers === 0 ? "Unlimited" : Number(v)
+      }
+    },
+    {
+      key: "isFUPEnabled", label: "FUP Status", render: (v: unknown, row: unknown) => {
+        const pkg = row as unknown as Package;
+        return pkg.isFUPEnabled ? "Enabled" : "Disabled"
+      }
+    },
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
     { key: "price", label: "Price", render: (v: unknown, row: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `${(row as Package).currency ?? "TZS"} ${Number(v).toLocaleString()}`}</span> },
     {
@@ -233,10 +290,12 @@ export default function PackagesPage() {
         return formatDuration(Number(v), labels[language]?.duration[pkg.durationUnit] ?? "minutes", language);
       }
     },
-    { key: "dataLimit", label: "Data", render: (v: unknown, row: unknown) => {
-       const pkg = row as unknown as Package;
-      return formatData(Number(v), pkg.dataLimitUnit, labels[language]?.unlimited); 
-    }},
+    {
+      key: "dataLimit", label: "Data", render: (v: unknown, row: unknown) => {
+        const pkg = row as unknown as Package;
+        return formatData(Number(v), pkg.dataLimitUnit, labels[language]?.unlimited);
+      }
+    },
     { key: "speedLimit", label: "Speed", render: (v: unknown) => formatSpeed(Number(v), labels[language]?.unlimited) },
     {
       key: "routerIds", label: "Routers",
@@ -265,11 +324,11 @@ export default function PackagesPage() {
 
   const getFilteredSessions = () => {
     let filtered = (statusFilter === "all" ? packages : packages.filter(p => p.isPublic === (statusFilter === "true")));
-    if(categoryFilter !== "all"){
+    if (categoryFilter !== "all") {
       filtered = filtered.filter(p => p.isPpPoe === (categoryFilter === "true"));
     }
 
-    if(typeFilter !== "all"){
+    if (typeFilter !== "all") {
       filtered = filtered.filter(p => p.isFree === (typeFilter === "true"));
     }
     return filtered as unknown as Record<string, unknown>[];
@@ -472,39 +531,39 @@ export default function PackagesPage() {
             </div>
 
             {/* Max Users & Max Sessions Row */}
-             <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="flex items-center gap-2">
-                    Connections (0 = unlimited)
-                  </Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={form.maxUsers}
-                    onChange={(e) => {
-                      setForm(f => ({ ...f, maxUsers: e.target.value }));
-                    }}
-                  />
-                  <span className="text-xs text-muted-foreground">Simultaneous connections per device</span>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label className="flex items-center gap-2">
-                    Reconnects (0 = unlimited)
-                  </Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={form.maxReconnects}
-                    onChange={(e) => {
-                      setForm(f => ({ ...f, maxReconnects: e.target.value }));
-                    }}
-                  />
-                  <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
-                </div>
+            <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label className="flex items-center gap-2">
+                  Connections (0 = unlimited)
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={form.maxUsers}
+                  onChange={(e) => {
+                    setForm(f => ({ ...f, maxUsers: e.target.value }));
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">Simultaneous connections per device</span>
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label className="flex items-center gap-2">
+                  Reconnects (0 = unlimited)
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={form.maxReconnects}
+                  onChange={(e) => {
+                    setForm(f => ({ ...f, maxReconnects: e.target.value }));
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">Maximum reconnects per session</span>
+              </div>
+            </div>
 
             {/* Toggle Switches Row - Wrap on mobile */}
             <div className="col-span-1 sm:col-span-2 flex flex-wrap items-center gap-4 sm:gap-6">
@@ -529,8 +588,8 @@ export default function PackagesPage() {
               <div className="flex items-center gap-3">
                 <Switch
                   checked={form.isPpPoe}
-                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v}))}
-                  id="isPpPoe" 
+                  onCheckedChange={(v) => setForm(f => ({ ...f, isPpPoe: v }))}
+                  id="isPpPoe"
                 />
                 <Label htmlFor="isPpPoe">Is PPPoE</Label>
               </div>
@@ -579,11 +638,66 @@ export default function PackagesPage() {
                   Please select at least one router.
                 </p>
               )}
-              
+
               {availableRouters.length > 0 && editTarget && (
                 <p className="text-xs text-muted-foreground">
                   Leave unchecked to show this package on all routers.
                 </p>
+              )}
+            </div>
+
+            {/* FUP Section */}
+            <div className="col-span-1 sm:col-span-2 flex flex-col gap-3 mt-2 pt-4 border-t border-border">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={form.isFUPEnabled}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, isFUPEnabled: v }))}
+                  id="isFUPEnabled"
+                />
+                <Label htmlFor="isFUPEnabled" className="font-medium">Enable Fair Usage Policy (FUP)</Label>
+              </div>
+
+              {form.isFUPEnabled && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-6 border-l-2 border-primary/20">
+                  {/* FUP Data Limit */}
+
+                  <div className="flex flex-col gap-1.5 pt-2">
+              <Label>Speed Limit (Mbps)</Label>
+              <Input
+                type="text"
+                placeholder="10"
+                value={form.fupSpeed}
+                onChange={(e) => setForm(f => ({ ...f, fupSpeed: e.target.value }))}
+              />
+            </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-sm">Data Limit <span className="text-xs text-muted-foreground">(required)</span></Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  type="number"
+                  placeholder="1"
+                  value={form.fupLimit}
+                  onChange={(e) => setForm(f => ({ ...f, fupLimit: e.target.value }))}
+                  className="flex-1 min-w-0"
+                />
+                <Select
+                  value={form.fupLimitUnit || "GB"}
+                  onValueChange={(v) => setForm(f => ({ ...f, fupLimitUnit: v as "MB" | "GB" }))}
+                >
+                  <SelectTrigger className="w-full sm:w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MB">MB</SelectItem>
+                    <SelectItem value="GB">GB</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+                    
+                  </div>
+
+                  
+                </div>
               )}
             </div>
           </div>
@@ -592,8 +706,8 @@ export default function PackagesPage() {
             <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               disabled={submitting || !packageFormValid || (!editTarget && form.routerIds.length === 0)}
               className="w-full sm:w-auto"
             >
@@ -614,10 +728,10 @@ export default function PackagesPage() {
           setPackageToDelete(null);
           try {
             const { message } = await apiClient.packages.delete(packageId);
-            toast({ description: message , title:"Package deletion"});
+            toast({ description: message, title: "Package deletion" });
             load();
           } catch (error: any) {
-            toast({ title:  error.message, variant: "destructive" });
+            toast({ title: error.message, variant: "destructive" });
           }
         }}
       />)}

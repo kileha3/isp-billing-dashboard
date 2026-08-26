@@ -148,6 +148,10 @@ export interface Package {
   isFree: boolean;
   isPpPoe: boolean;
   currency: string;
+  isFUPEnabled: boolean;
+  fupLimit: number;
+  fupLimitUnit: string;
+  fupSpeed: string;
   routerIds: string[];
   createdAt: string;
   updatedAt: string;
