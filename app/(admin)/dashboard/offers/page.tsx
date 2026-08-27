@@ -445,10 +445,10 @@ export default function OffersPage() {
     },
     {
       key: "totalJoined",
-      label: "Usage",
+      label: "Joined",
       render: (v: unknown, row: unknown) => {
         const offer = row as Offer;
-        return `${offer.totalJoined}/${offer.qualified}`
+        return `${offer.totalJoined} of ${offer.qualified}`
       }
     },
     {
