@@ -269,12 +269,12 @@ export default function SessionsPage() {
   // Main table columns (hide some columns on mobile)
   const columns = [
     { key: "username", label: "User", render: (v: unknown, row: unknown) => (row as HotspotSession).username },
-    {
+    /* {
       key: "macAddress",
       label: "MAC Address",
       className: "hidden sm:table-cell",
       render: (v: unknown, row: unknown) => `${(row as HotspotSession).network.mac}`
-    },
+    }, */
     {
       key: "router",
       label: "Router",
@@ -304,7 +304,7 @@ export default function SessionsPage() {
     },
     { key: "isFUPEnabled", label: "FUP", render: (v: unknown, row: unknown) => {
      const sess = row as HotspotSession;
-    return (<StatusBadge status={sess.isFUPEnabled ? "enable" : "disabled"} />) }},
+    return (<StatusBadge status={sess.isFUPEnabled ? "active" : "disabled"} />) }},
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v) === "active" ? "online" : String(v)} /> },
   ];
 
