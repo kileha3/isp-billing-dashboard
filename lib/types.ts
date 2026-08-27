@@ -230,6 +230,7 @@ export interface HotspotSession {
     duration: number;
   };
   isPPPoE: boolean;
+  isFUPEnabled: boolean;
   sessions: number;
   status: "active" | "expired" | "offline";
   tenant: { id: string; name: string };
