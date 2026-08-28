@@ -275,12 +275,6 @@ export default function PackagesPage() {
         return pkg.maxUsers === 0 ? "Unlimited" : Number(v)
       }
     },
-    {
-      key: "isFUPEnabled", label: "FUP Status", render: (v: unknown, row: unknown) => {
-        const pkg = row as unknown as Package;
-        return pkg.isFUPEnabled ? "Enabled" : "Disabled"
-      }
-    },
     ...(isSuperAdmin ? [{ key: "tenantId", label: "Tenant", render: (v: unknown) => <span className="text-sm text-muted-foreground">{getTenantName(String(v))}</span> }] : []),
     { key: "price", label: "Price", render: (v: unknown, row: unknown) => <span className="font-semibold">{v === 0 ? "Free" : `${(row as Package).currency ?? "TZS"} ${Number(v).toLocaleString()}`}</span> },
     {
@@ -317,6 +311,12 @@ export default function PackagesPage() {
       }
     },
     { key: "isPpPoe", label: "Category", render: (v: unknown) => (v ? "PPPoE" : "Hotspot") },
+    {
+      key: "isFUPEnabled", label: "FUP Status", render: (v: unknown, row: unknown) => {
+        const pkg = row as unknown as Package;
+        return (<StatusBadge status={pkg.isFUPEnabled ? "enabled" : "disabled"} />)
+      }
+    },
     { key: "isPublic", label: "Visibility", render: (v: unknown) => <StatusBadge status={v ? "public" : "private"} /> },
   ];
 
@@ -662,41 +662,41 @@ export default function PackagesPage() {
                   {/* FUP Data Limit */}
 
                   <div className="flex flex-col gap-1.5 pt-2">
-              <Label>Speed Limit (Mbps)</Label>
-              <Input
-                type="text"
-                placeholder="10"
-                value={form.fupSpeed}
-                onChange={(e) => setForm(f => ({ ...f, fupSpeed: e.target.value }))}
-              />
-            </div>
+                    <Label>Speed Limit (Mbps)</Label>
+                    <Input
+                      type="text"
+                      placeholder="10"
+                      value={form.fupSpeed}
+                      onChange={(e) => setForm(f => ({ ...f, fupSpeed: e.target.value }))}
+                    />
+                  </div>
                   <div className="flex flex-col gap-1.5">
                     <Label className="text-sm">Data Limit <span className="text-xs text-muted-foreground">(required)</span></Label>
                     <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  type="number"
-                  placeholder="1"
-                  value={form.fupLimit}
-                  onChange={(e) => setForm(f => ({ ...f, fupLimit: e.target.value }))}
-                  className="flex-1 min-w-0"
-                />
-                <Select
-                  value={form.fupLimitUnit || "GB"}
-                  onValueChange={(v) => setForm(f => ({ ...f, fupLimitUnit: v as "MB" | "GB" }))}
-                >
-                  <SelectTrigger className="w-full sm:w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MB">MB</SelectItem>
-                    <SelectItem value="GB">GB</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-                    
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        value={form.fupLimit}
+                        onChange={(e) => setForm(f => ({ ...f, fupLimit: e.target.value }))}
+                        className="flex-1 min-w-0"
+                      />
+                      <Select
+                        value={form.fupLimitUnit || "GB"}
+                        onValueChange={(v) => setForm(f => ({ ...f, fupLimitUnit: v as "MB" | "GB" }))}
+                      >
+                        <SelectTrigger className="w-full sm:w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MB">MB</SelectItem>
+                          <SelectItem value="GB">GB</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                   </div>
 
-                  
+
                 </div>
               )}
             </div>

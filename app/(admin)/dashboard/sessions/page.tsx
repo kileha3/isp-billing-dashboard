@@ -302,9 +302,12 @@ export default function SessionsPage() {
       className: "hidden lg:table-cell",
       render: (v: unknown, row: unknown) => formatDate((row as HotspotSession).session.expireOn)
     },
-    { key: "isFUPEnabled", label: "FUP Status", render: (v: unknown, row: unknown) => {
-     const sess = row as HotspotSession;
-    return (<StatusBadge status={sess.isFUPEnabled ? "enabled" : "disabled"} />) }},
+    {
+      key: "fupEnabled", label: "FUP Status", render: (v: unknown, row: unknown) => {
+        const sess = row as HotspotSession;
+        return (<StatusBadge status={sess.fupEnabled ? "enabled" : "disabled"} />)
+      }
+    },
     { key: "status", label: "Status", render: (v: unknown) => <StatusBadge status={String(v) === "active" ? "online" : String(v)} /> },
   ];
 
@@ -442,7 +445,7 @@ export default function SessionsPage() {
                   Clear MAC
                 </DropdownMenuItem>
 
-               {/*  <DropdownMenuItem onClick={() => showHistory(s)}>
+                {/*  <DropdownMenuItem onClick={() => showHistory(s)}>
                   <History className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
                   History
                 </DropdownMenuItem> */}
