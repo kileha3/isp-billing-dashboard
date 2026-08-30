@@ -5,7 +5,7 @@ interface StatusConfig {
   classes: string;
   icon?: React.ReactNode;
   label?: string;
-}
+} 
 
 const STATUS_MAP: Record<string, StatusConfig> = {
   active:       { classes: "bg-[oklch(0.65_0.2_142)]/12 text-[oklch(0.38_0.16_142)] border-[oklch(0.65_0.2_142)]/25", icon: <CheckCircle2 className="h-3 w-3" /> },
