@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter, Calendar, History, Loader2, Trash2 } from "lucide-react";
+import { RefreshCw, WifiOff, MoreHorizontal, Eraser, PackageOpen, Filter, Calendar, History, Loader2, Trash2, BrushCleaning } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { StatCard } from "@/components/admin/StatCard";
@@ -371,7 +371,7 @@ export default function SessionsPage() {
               className="flex items-center justify-center gap-2 px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
               disabled={showCleanUsageConfirm}
             >
-              <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+              <BrushCleaning className="h-3.5 w-3.5 md:h-4 md:w-4" />
               <span>Clean Usage</span>
             </button>
           )}
@@ -661,7 +661,7 @@ export default function SessionsPage() {
       <ConfirmDialog
         open={showCleanUsageConfirm}
         title="Clean Bandwidth Usages"
-        message={getConfirmationMessage()}
+        message={"You are about to clean all session bandwidth usage, this action can't be undone "}
         confirmText={deletingExpired ? "Cleaning..." : "Clean"}
         cancelText="Cancel"
         onCancel={() => setShowCleanUsageConfirm(false)}
