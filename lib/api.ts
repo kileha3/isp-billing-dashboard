@@ -323,10 +323,10 @@ export const apiClient = {
 
   vouchers: {
     list: (params?: Record<string, string>) => req<{ data: Voucher[] }>(`/vouchers${params ? "?" + new URLSearchParams(params) : ""}`),
-    countExpired: () => req<{expired: number}>(`/vouchers/expired`),
+    countExpired: () => req<{ expired: number }>(`/vouchers/expired`),
 
     delete: (id: string) => req<{ message: string }>(`/vouchers/${id}`, { method: "DELETE" }),
-    deleteExpired: () => req<{ message: string, success: boolean }>(`/vouchers/expired`, { method: "DELETE" }),
+    deleteExpired: () => req<{ message: string; success: boolean }>(`/vouchers/expired`, { method: "DELETE" }),
     revoke: (id: string) => req<{ message: string }>(`/vouchers/${id}/revoke`, { method: "PATCH" }),
 
     generate: (data: { packageId: string; quantity: number; prefix?: string }) =>
@@ -363,11 +363,9 @@ export const apiClient = {
     deleteFailed: (data: { startDate: string; endDate: string }) =>
       req<{ success: boolean; message: string }>(`/payments/delete-failed`, { method: "DELETE", body: JSON.stringify(data) }),
 
-     reprocess: (id: string) =>
-      req<{ success: boolean; message: string }>(`/payments/${id}/reprocess`, { method: "PATCH" }),
+    reprocess: (id: string) => req<{ success: boolean; message: string }>(`/payments/${id}/reprocess`, { method: "PATCH" }),
 
-     logSession: (id: string) =>
-      req<{ success: boolean; message: string }>(`/payments/${id}/log-session`, { method: "PATCH" }),
+    logSession: (id: string) => req<{ success: boolean; message: string }>(`/payments/${id}/log-session`, { method: "PATCH" }),
 
     recent: () => {
       return req<Transaction[]>(`/payments/recent`);
@@ -380,6 +378,7 @@ export const apiClient = {
 
   sessions: {
     list: (params?: Record<string, string>) => req<Array<HotspotSession>>(`/sessions${params ? "?" + new URLSearchParams(params) : ""}`),
+    usages: () => req<{ cleanUsages: boolean }>(`/sessions/usages`),
 
     history: (id: string) => req<Array<HotspotSession>>(`/sessions/${id}/history`),
 
@@ -389,6 +388,8 @@ export const apiClient = {
       }),
     deleteExpired: (data: { startDate: string; endDate: string }) =>
       req<{ success: boolean; message: string }>(`/sessions/delete-expired`, { method: "DELETE", body: JSON.stringify(data) }),
+
+    cleanUsages: () => req<{ success: boolean; message: string }>(`/sessions/clean-usages`, { method: "DELETE" }),
 
     clearMac: (id: string) => req<{ success: boolean }>(`/sessions/${id}/clearmac`, { method: "POST" }),
 

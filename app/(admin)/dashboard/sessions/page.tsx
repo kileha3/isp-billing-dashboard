@@ -61,6 +61,8 @@ export default function SessionsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingExpired, setDeletingExpired] = useState(false);
   const [hasExpiredSessions, setExpiredSessions] = useState(false);
+  const [canCleanUsage, setCleanUsage] = useState(false);
+  const [showCleanUsageConfirm, setShowCleanUsageConfirm] = useState(false);
   const [historyDialog, setHistoryDialog] = useState<HistoryDialogState>({
     isOpen: false,
     loading: false,
@@ -83,14 +85,16 @@ export default function SessionsPage() {
         endDate: formatDateFn(dateRange.to, 'yyyy-MM-dd')
       } : {};
 
-      const [_sessions, { data: _packages }, { expired }] = await Promise.all([
+      const [_sessions, { data: _packages }, { expired }, { cleanUsages }] = await Promise.all([
         apiClient.sessions.list(dateFilter as any),
         apiClient.packages.list(),
-        apiClient.vouchers.countExpired()
+        apiClient.vouchers.countExpired(),
+        apiClient.sessions.usages(),
       ]);
       setExpiredSessions(expired > 0);
       setSessions(_sessions);
       setPackages(_packages);
+      setCleanUsage(cleanUsages)
     } catch {
       setSessions([]);
     } finally {
@@ -142,6 +146,33 @@ export default function SessionsPage() {
       setActing(false);
     }
     setActionState(null);
+  }
+
+  const handleCleanUsage = async () => {
+    setCleanUsage(true);
+    try {
+
+      // Call API to delete expired sessions
+      const { success, message } = await apiClient.sessions.cleanUsages();
+
+      toast({
+        title: success ? "Success" : "Failed",
+        description: message,
+        variant: success ? "default" : "destructive"
+      });
+
+      // Reload sessions
+      await load(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete expired sessions.",
+        variant: "destructive"
+      });
+    } finally {
+      setCleanUsage(false);
+      setShowCleanUsageConfirm(false);
+    }
   }
 
   // Delete expired sessions
@@ -331,6 +362,17 @@ export default function SessionsPage() {
             >
               <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
               <span>Delete Expired</span>
+            </button>
+          )}
+
+          {canCleanUsage && (
+            <button
+              onClick={() => setShowCleanUsageConfirm(true)}
+              className="flex items-center justify-center gap-2 px-3 py-1.5 md:py-2 text-xs md:text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
+              disabled={showCleanUsageConfirm}
+            >
+              <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+              <span>Clean Usage</span>
             </button>
           )}
 
@@ -613,6 +655,17 @@ export default function SessionsPage() {
         cancelText="Cancel"
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleDeleteExpiredSessions}
+        variant="destructive"
+      />
+
+      <ConfirmDialog
+        open={showCleanUsageConfirm}
+        title="Clean Bandwidth Usages"
+        message={getConfirmationMessage()}
+        confirmText={deletingExpired ? "Cleaning..." : "Clean"}
+        cancelText="Cancel"
+        onCancel={() => setShowCleanUsageConfirm(false)}
+        onConfirm={handleCleanUsage}
         variant="destructive"
       />
     </div>
