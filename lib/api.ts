@@ -220,6 +220,17 @@ export const apiClient = {
         body: JSON.stringify({ id }),
       }),
 
+    sendMessage: (data: {
+      id: string;
+      message: string;
+      includeVouchers: boolean;
+      time?: { value?: number; unit: "minutes" | "hours" | "days" };
+    }) =>
+      req<{ success: boolean, message: string }>("/routers/message", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
     resetDevice: (routerId: string) =>
       req<{ success: boolean }>("/routers/reset", {
         method: "POST",

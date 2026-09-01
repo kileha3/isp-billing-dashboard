@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, BrushCleaning, Grid2X2Plus } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, BrushCleaning, Grid2X2Plus, MessageSquare } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -122,6 +124,8 @@ export default function RoutersPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [scriptCopied, setScriptCopied] = useState(false);
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
+  const [routerToChangeState, setRouterToChangeState] = useState<RouterDevice | null>(null);
+  const [routerToMessage, setRouterToMessage] = useState<RouterDevice | null>(null);
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
@@ -142,6 +146,15 @@ export default function RoutersPage() {
   const [whitelistErrors, setWhitelistErrors] = useState<Partial<WhitelistForm>>(
     {}
   );
+
+  const [messageForm, setMessageForm] = useState({
+    message: "",
+    includeVouchers: false,
+    extendSession: false,
+    extendValue: "",
+    extendUnit: "minutes" as "minutes" | "hours" | "days",
+  });
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const isValidMac = (mac: string) =>
     /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(mac);
@@ -452,6 +465,35 @@ export default function RoutersPage() {
     toast({ title: `Router ${router.isActive ? "deactivated" : "activated"} successfully` });
   }
 
+  const handleSendMessage = async () => {
+    if (!routerToMessage) return;
+    setSendingMessage(true);
+    try {
+      const { success, message } = await apiClient.routers.sendMessage({
+        id: routerToMessage._id,
+        message: messageForm.message,
+        includeVouchers: messageForm.includeVouchers,
+        time: messageForm.extendSession && Number(messageForm.extendValue) > 0
+          ? { value: Number(messageForm.extendValue), unit: messageForm.extendUnit }
+          : undefined,
+      });
+      if (success) {
+        toast({ title: "Message sent", description: message });
+      } else {
+        toast({ title: "Failed to send message", description: "No active sessions found on this router", variant: "destructive" });
+      }
+      setRouterToMessage(null);
+    } catch (error: any) {
+      toast({ title: error.message, variant: "destructive" });
+    } finally {
+      setSendingMessage(false);
+    }
+  }
+
+  const resetMessageForm = () => {
+    setMessageForm({ message: "", includeVouchers: false, extendSession: false, extendValue: "", extendUnit: "minutes" });
+  }
+
   function getTenantName(tenantId: string) {
     return tenants.find(t => t._id === tenantId)?.name ?? tenantId;
   }
@@ -661,7 +703,11 @@ export default function RoutersPage() {
                   <BrushCleaning className="mr-2 h-4 w-4" />
                   Reset Device
                 </DropdownMenuItem>)}
-                {r.status !== "offline" && (<DropdownMenuItem onClick={() => handleChangeState(r)}>
+                <DropdownMenuItem onClick={() => { resetMessageForm(); setRouterToMessage(r); }}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Send Message
+                </DropdownMenuItem>
+                {r.status !== "offline" && (<DropdownMenuItem onClick={() => setRouterToChangeState(r)}>
                   {r.isActive ? (<RouteOff className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
                   {r.isActive ? "Deactivate" : "Activate"}
                 </DropdownMenuItem>)}
@@ -1160,6 +1206,108 @@ export default function RoutersPage() {
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setRouterToViewWhitelist(null)} className="w-full sm:w-auto">
                 Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {routerToChangeState && (<ConfirmDialog
+        open={routerToChangeState !== null}
+        title={routerToChangeState.isActive ? "Deactivate Router" : "Activate Router"}
+        message={`Are you sure you want to ${routerToChangeState.isActive ? "deactivate" : "activate"} ${routerToChangeState.name}?`}
+        variant={routerToChangeState.isActive ? "destructive" : "default"}
+        confirmText={routerToChangeState.isActive ? "Deactivate" : "Activate"}
+        onCancel={() => setRouterToChangeState(null)}
+        onConfirm={async () => {
+          const router = routerToChangeState;
+          setRouterToChangeState(null);
+          await handleChangeState(router);
+        }}
+      />)}
+
+      {/* Send Message Dialog */}
+      {routerToMessage && (
+        <Dialog open={routerToMessage !== null} onOpenChange={(open) => { if (!open) setRouterToMessage(null); }}>
+          <DialogContent className="w-[95vw] max-w-md sm:max-w-lg p-4 sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-lg sm:text-xl">Send Message</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Send a message to active users connected to {routerToMessage.name}.
+              </p>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Message <span className="text-destructive">*</span></Label>
+                <Textarea
+                  rows={3}
+                  placeholder="Enter your message..."
+                  value={messageForm.message}
+                  onChange={(e) => setMessageForm(f => ({ ...f, message: e.target.value }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div>
+                  <Label className="text-sm font-medium">Include vouchers</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Append the user's voucher code to the message</p>
+                </div>
+                <Switch
+                  checked={messageForm.includeVouchers}
+                  onCheckedChange={(v) => setMessageForm(f => ({ ...f, includeVouchers: v }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div>
+                  <Label className="text-sm font-medium">Extend session</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Extend active sessions on this router</p>
+                </div>
+                <Switch
+                  checked={messageForm.extendSession}
+                  onCheckedChange={(v) => setMessageForm(f => ({ ...f, extendSession: v }))}
+                />
+              </div>
+
+              {messageForm.extendSession && (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <Label>Time value</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="e.g. 30"
+                      value={messageForm.extendValue}
+                      onChange={(e) => setMessageForm(f => ({ ...f, extendValue: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <Label>Time unit</Label>
+                    <Select
+                      value={messageForm.extendUnit}
+                      onValueChange={(v) => setMessageForm(f => ({ ...f, extendUnit: v as "minutes" | "hours" | "days" }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="minutes">Minutes</SelectItem>
+                        <SelectItem value="hours">Hours</SelectItem>
+                        <SelectItem value="days">Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setRouterToMessage(null)} className="w-full sm:w-auto">
+                Cancel
+              </Button>
+              <Button onClick={handleSendMessage} disabled={sendingMessage || !messageForm.message.trim()} className="w-full sm:w-auto">
+                {sendingMessage ? "Sending…" : "Send"}
               </Button>
             </div>
           </DialogContent>
