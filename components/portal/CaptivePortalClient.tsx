@@ -582,7 +582,7 @@ export function PackageGridDefault({ packages, primaryColor, onPay, currency, la
   );
 }
 
-function PackageGridTemplateOne({ packages, onPay, currency, language, note }: PackageGridProps) {
+function PackageGridTemplateOne({ packages, onPay, currency, language }: PackageGridProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [phone, setPhone] = useState("");
