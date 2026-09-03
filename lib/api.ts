@@ -231,6 +231,18 @@ export const apiClient = {
         body: JSON.stringify(data),
       }),
 
+    setNote: (data: { id: string; title: string; content: string }) =>
+      req<{ success: boolean; router: RouterDevice }>("/routers/note", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    removeNote: (data: { id: string }) =>
+      req<{ success: boolean; router: RouterDevice }>("/routers/remove-note", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
     resetDevice: (routerId: string) =>
       req<{ success: boolean }>("/routers/reset", {
         method: "POST",

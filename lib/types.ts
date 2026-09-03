@@ -41,6 +41,7 @@ export interface TenantPortalSettings {
   currency: string;
   language: string;
   active: boolean;
+  note?: { title: string; content: string };
   template: string;
 }
 
@@ -120,6 +121,10 @@ export interface RouterDevice {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  note?: {
+    title: string;
+    content: string;
+  };
   portalInterface?: DevicePortalInterface;
   uptime: string;
   script?: string;

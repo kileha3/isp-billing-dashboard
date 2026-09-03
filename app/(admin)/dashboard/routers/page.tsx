@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, BrushCleaning, Grid2X2Plus, MessageSquare } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Copy, Check, RefreshCw, Wifi, Info, ChevronRight, Filter, RefreshCcwDot, CheckCheck, X, Pencil, Network, Router, Workflow, RouteOff, BrushCleaning, Grid2X2Plus, MessageSquare, StickyNote } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { DevicePortalInterface, RouterDevice, RouterInfo, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -126,6 +126,8 @@ export default function RoutersPage() {
   const [routerToDelete, setRouterToDelete] = useState<RouterDevice | null>(null);
   const [routerToChangeState, setRouterToChangeState] = useState<RouterDevice | null>(null);
   const [routerToMessage, setRouterToMessage] = useState<RouterDevice | null>(null);
+  const [routerToNote, setRouterToNote] = useState<RouterDevice | null>(null);
+  const [routerToRemoveNote, setRouterToRemoveNote] = useState<RouterDevice | null>(null);
   const [serviceInterfaces, setServiceInterfaces] = useState<DevicePortalInterface | undefined>(undefined);
   const [setupTarget, setSetupTarget] = useState<RouterDevice | null>(null);
   const [routerToAddWhiteList, setRouterToAddWhiteList] = useState<RouterDevice | null>(null);
@@ -155,6 +157,12 @@ export default function RoutersPage() {
     extendUnit: "minutes" as "minutes" | "hours" | "days",
   });
   const [sendingMessage, setSendingMessage] = useState(false);
+
+  const [noteForm, setNoteForm] = useState({
+    title: "",
+    content: "",
+  });
+  const [savingNote, setSavingNote] = useState(false);
 
   const isValidMac = (mac: string) =>
     /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(mac);
@@ -494,6 +502,55 @@ export default function RoutersPage() {
     setMessageForm({ message: "", includeVouchers: false, extendSession: false, extendValue: "", extendUnit: "minutes" });
   }
 
+  const resetNoteForm = () => {
+    setNoteForm({ title: "", content: "" });
+  }
+
+  const openNoteDialog = (r: RouterDevice) => {
+    setNoteForm({ title: r.note?.title ?? "", content: r.note?.content ?? "" });
+    setRouterToNote(r);
+  }
+
+  const handleSaveNote = async () => {
+    if (!routerToNote) return;
+    const isEditing = Boolean(routerToNote.note);
+    setSavingNote(true);
+    try {
+      const { success, router } = await apiClient.routers.setNote({
+        id: routerToNote._id,
+        title: noteForm.title.trim(),
+        content: noteForm.content.trim(),
+      });
+      if (success) {
+        toast({ title: isEditing ? "Public note updated" : "Public note saved", description: `Note ${isEditing ? "updated" : "saved"} for ${routerToNote.name}.` });
+        setRouters(prev => prev.map(r => r._id === router._id ? { ...r, note: router.note } : r));
+      } else {
+        toast({ title: "Failed to save note", variant: "destructive" });
+      }
+      setRouterToNote(null);
+      resetNoteForm();
+    } catch (error: any) {
+      toast({ title: error.message, variant: "destructive" });
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
+  const handleRemoveNote = async (router: RouterDevice) => {
+    if (!router) return;
+    try {
+      const { success } = await apiClient.routers.removeNote({ id: router._id });
+      if (success) {
+        toast({ title: "Public note removed", description: `Note removed from ${router.name}.` });
+        setRouters(prev => prev.map(r => r._id === router._id ? { ...r, note: undefined } : r));
+      } else {
+        toast({ title: "Failed to remove note", variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: error.message, variant: "destructive" });
+    }
+  }
+
   function getTenantName(tenantId: string) {
     return tenants.find(t => t._id === tenantId)?.name ?? tenantId;
   }
@@ -707,6 +764,17 @@ export default function RoutersPage() {
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Send Message
                 </DropdownMenuItem>
+                {r.note ? (
+                  <DropdownMenuItem onClick={() => openNoteDialog(r)}>
+                    <StickyNote className="mr-2 h-4 w-4" />
+                    View Public Note
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => openNoteDialog(r)}>
+                    <StickyNote className="mr-2 h-4 w-4" />
+                    Set Public Note
+                  </DropdownMenuItem>
+                )}
                 {r.status !== "offline" && (<DropdownMenuItem onClick={() => setRouterToChangeState(r)}>
                   {r.isActive ? (<RouteOff className="mr-2 h-4 w-4" />) : (<CheckCheck className="mr-2 h-4 w-4" />)}
                   {r.isActive ? "Deactivate" : "Activate"}
@@ -1313,6 +1381,82 @@ export default function RoutersPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Public Note Dialog */}
+      {routerToNote && (
+        <Dialog open={routerToNote !== null} onOpenChange={(open) => { if (!open) { setRouterToNote(null); resetNoteForm(); } }}>
+          <DialogContent className="w-[95vw] max-w-md sm:max-w-lg p-4 sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-lg sm:text-xl">{routerToNote.note ? "View Public Note" : "Set Public Note"}</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {routerToNote.note
+                  ? `This public note is currently displayed for ${routerToNote.name}. Update it or remove it.`
+                  : `Add a public note to display for ${routerToNote.name}.`}
+              </p>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Title <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="e.g. Scheduled maintenance"
+                  maxLength={100}
+                  value={noteForm.title}
+                  onChange={(e) => setNoteForm(f => ({ ...f, title: e.target.value }))}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Content <span className="text-destructive">*</span></Label>
+                <Textarea
+                  rows={4}
+                  maxLength={500}
+                  placeholder="Enter your note content..."
+                  value={noteForm.content}
+                  onChange={(e) => setNoteForm(f => ({ ...f, content: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => { setRouterToNote(null); resetNoteForm(); }} className="w-full sm:w-auto">
+                Cancel
+              </Button>
+              {routerToNote.note && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setRouterToRemoveNote(routerToNote);
+                    setRouterToNote(null);
+                    resetNoteForm();
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remove Note
+                </Button>
+              )}
+              <Button onClick={handleSaveNote} disabled={savingNote || !noteForm.title.trim() || !noteForm.content.trim()} className="w-full sm:w-auto">
+                {savingNote ? (routerToNote.note ? "Updating…" : "Saving…") : routerToNote.note ? "Update" : "Save Note"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {routerToRemoveNote && (<ConfirmDialog
+        open={routerToRemoveNote !== null}
+        title="Remove Public Note"
+        message={`Are you sure you want to remove the public note from ${routerToRemoveNote.name}? This action cannot be undone.`}
+        variant="destructive"
+        confirmText="Remove Note"
+        onCancel={() => setRouterToRemoveNote(null)}
+        onConfirm={async () => {
+          const router = routerToRemoveNote;
+          setRouterToRemoveNote(null);
+          await handleRemoveNote(router);
+        }}
+      />)}
 
       {routerToDelete && (<ConfirmDialog
         open={routerToDelete !== null}

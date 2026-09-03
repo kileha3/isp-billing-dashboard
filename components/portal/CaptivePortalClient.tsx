@@ -12,6 +12,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Wifi, Clock, ChevronUp } from "lucide-react";
 import { formatData, formatDuration } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ export const DEFAULT_CONFIG: TenantPortalSettings = {
   currency: "TZS",
   language: "en",
   active: false,
+  note: undefined,
   template: "default",
 };
 
@@ -243,7 +245,7 @@ function VoucherInputTemplateOne({ primaryColor, loading, language, onRedeem }: 
           disabled={loading || !code.trim() || code.length < 8 || code.length > 10}
           onClick={() => onRedeem(code.trim())}
           className="cp-voucher-btn h-11 rounded-2xl text-sm font-semibold text-white"
-          
+
         >
           {loading ? labels[language]?.checking : labels[language]?.redeemVoucher}
         </Button>
@@ -337,7 +339,7 @@ interface PackageGridProps {
   primaryColor: string;
   currency: string;
   language: string;
-  onPay: (params: { pkg: Package; phone: string }) => void;
+  onPay: (params: { pkg: Package; phone: string}) => void;
 }
 
 export const phoneSchemaDef = (params?: { min?: number; max?: number; language: string }) => {
@@ -580,7 +582,7 @@ export function PackageGridDefault({ packages, primaryColor, onPay, currency, la
   );
 }
 
-function PackageGridTemplateOne({ packages, onPay, currency, language }: PackageGridProps) {
+function PackageGridTemplateOne({ packages, onPay, currency, language, note }: PackageGridProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [phone, setPhone] = useState("");
@@ -749,7 +751,7 @@ function PackageGridTemplateOne({ packages, onPay, currency, language }: Package
 
                             onPay({
                               pkg,
-                              phone,
+                              phone
                             });
                           }
                         }}
@@ -769,7 +771,7 @@ function PackageGridTemplateOne({ packages, onPay, currency, language }: Package
                       onClick={() =>
                         onPay({
                           pkg,
-                          phone,
+                          phone
                         })
                       }
                       className="h-11 w-full rounded-2xl text-sm font-semibold text-white"
@@ -967,21 +969,29 @@ export function CaptivePortalClient() {
   const [isVoucher, setIsVoucher] = useState(false);
   const [isFree, setIsFree] = useState(false);
   const [payState, setPayState] = useState<PayState>("idle");
+  const [noteDialog, setNoteDialog] = useState<{ title: string; content: string } | null>(null);
   const [views, setViews] = useState<{ header: any; grid: any; suportInfo: any }>();
 
   const loadingCompleted = () => {
     setTimeout(() => {
-      window.parent.postMessage({ type: "HIDE_LOADING" },"*");
+      window.parent.postMessage({ type: "HIDE_LOADING" }, "*");
     }, 2000)
   };
 
-  const reflectOnUI = (success: boolean, voucher: string | null | undefined) => {
+  const reflectOnUI = (success: boolean, voucher: string | null | undefined, note: any) => {
     if (success && voucher) setTimeout(() => grantAccess(voucher), 1500);
     setPayState(success && voucher ? "success" : "failure");
+    console.log(note)
+    if(note && !(success && voucher)){
+      setNoteDialog({
+      title: note?.title != null ? String(note.title) : "",
+      content: note?.content != null ? String(note.content) : "",
+    });
+    }
   };
 
   const grantAccess = (voucher: string) => {
-    window.parent.postMessage( { type: "AUTH_SUCCESS", username: voucher, password: voucher },"*" );
+    window.parent.postMessage({ type: "AUTH_SUCCESS", username: voucher, password: voucher }, "*");
   };
 
   const handleRedeem = useCallback(
@@ -998,7 +1008,7 @@ export function CaptivePortalClient() {
           deviceMac,
           authToken,
         });
-        reflectOnUI(success, _voucher);
+        reflectOnUI(success, _voucher, null);
       } catch (err: any) {
         setPayState("failure");
       }
@@ -1007,7 +1017,7 @@ export function CaptivePortalClient() {
   );
 
   const handlePay = useCallback(
-    async ({ pkg, phone }: { pkg: Package; phone: string }) => {
+    async ({ pkg, phone, note }: { pkg: Package; phone: string; note: any }) => {
       setIsVoucher(false);
       setPayState("processing");
       setIsFree(pkg.isFree);
@@ -1021,7 +1031,7 @@ export function CaptivePortalClient() {
             deviceName,
             authToken,
           });
-          reflectOnUI(success, voucher);
+          reflectOnUI(success, voucher, note);
           return;
         } else {
           const { orderId, success } = await apiClient.portal.initiatePayment({
@@ -1037,7 +1047,7 @@ export function CaptivePortalClient() {
             ServerEvents.waitFor<PayResult>(
               ServerEvents.event_payment_completed,
               orderId,
-              ({ success, voucher }) => reflectOnUI(success, voucher),
+              ({ success, voucher }) => reflectOnUI(success, voucher, note),
               24 * 1000,
               () =>
                 apiClient.portal.checkStatus({
@@ -1047,12 +1057,13 @@ export function CaptivePortalClient() {
                 }),
             );
           } else {
-            reflectOnUI(false, null);
+            reflectOnUI(false, null, note);
           }
         }
       } catch (err: any) {
         setPayState("failure");
       }
+
     },
     [nasName, deviceMac],
   );
@@ -1135,34 +1146,34 @@ export function CaptivePortalClient() {
     }
   };
 
-  const 
-  PackageView = () => {
-    if(!config.active) return OutOfServiceSection();
-    switch (config.template) {
-      case "default":
-        return (
-          <PackageGridDefault
-            packages={packages}
-            currency={config.currency}
-            primaryColor={primaryColor}
-            language={config.language}
-            onPay={handlePay}
-          />
-        );
-      case "template_one":
-        return (
-          <PackageGridTemplateOne
-            packages={packages}
-            currency={config.currency}
-            primaryColor={primaryColor}
-            language={config.language}
-            onPay={handlePay}
-          />
-        );
-      default:
-        return <div />;
-    }
-  };
+  const
+    PackageView = () => {
+      if (!config.active) return OutOfServiceSection();
+      switch (config.template) {
+        case "default":
+          return (
+            <PackageGridDefault
+              packages={packages}
+              currency={config.currency}
+              primaryColor={primaryColor}
+              language={config.language}
+              onPay={(res) => handlePay({...res, note: config.note})}
+            />
+          );
+        case "template_one":
+          return (
+            <PackageGridTemplateOne
+              packages={packages}
+              currency={config.currency}
+              primaryColor={primaryColor}
+              language={config.language}
+              onPay={(res) => handlePay({...res, note: config.note})}
+            />
+          );
+        default:
+          return <div />;
+      }
+    };
 
   const VoucherView = () => {
     switch (config.template) {
@@ -1191,7 +1202,7 @@ export function CaptivePortalClient() {
           <Tabs defaultValue="packages">
             <TabsList className="portal-tabs w-full">
               <TabsTrigger value="packages" className="flex-1">
-                {(!config.active ? labels[config.language]?.noHuduma: labels[config.language]?.buyPackage) || "Buy Package"}
+                {(!config.active ? labels[config.language]?.noHuduma : labels[config.language]?.buyPackage) || "Buy Package"}
               </TabsTrigger>
               <TabsTrigger value="voucher" className="flex-1">
                 {labels[config.language]?.haveVoucher || "Have a Voucher?"}
@@ -1212,8 +1223,8 @@ export function CaptivePortalClient() {
           <Tabs defaultValue="packages">
             <TabsList className="h-14 w-full rounded-[24px] border border-[var(--border)] bg-[var(--card)] p-1 shadow-lg">
               <TabsTrigger value="packages" className="flex-1 rounded-[18px] text-sm font-semibold">
-                {!config.active ? (<Network className="mr-2 h-4 w-4" />): (<ShoppingCart className="mr-2 h-4 w-4" />)}
-                {(!config.active ? labels[config.language]?.noHuduma: labels[config.language]?.buyPackage) || "Buy Package"}
+                {!config.active ? (<Network className="mr-2 h-4 w-4" />) : (<ShoppingCart className="mr-2 h-4 w-4" />)}
+                {(!config.active ? labels[config.language]?.noHuduma : labels[config.language]?.buyPackage) || "Buy Package"}
               </TabsTrigger>
 
               <TabsTrigger value="voucher" className="flex-1 rounded-[18px] text-sm font-semibold">
@@ -1291,15 +1302,15 @@ export function CaptivePortalClient() {
         );
       case "template_one":
         return <p className="mb-7 text-center text-lg leading-relaxed text-white/80">
-            {config.portalSettings.welcomeMessage}
-          </p>
+          {config.portalSettings.welcomeMessage}
+        </p>
       default:
         return <div />;
     }
   };
 
   const mainClass = () => {
-    
+
     switch (config.template) {
       case "default":
         return "mx-auto max-w-md w-full px-4 py-6 flex flex-col gap-5"
@@ -1311,7 +1322,7 @@ export function CaptivePortalClient() {
   }
 
   return (
-    <div className="cp-theme min-h-screen bg-background" style={config.template === "default" ? portalVars: {}}>
+    <div className="cp-theme min-h-screen bg-background" style={config.template === "default" ? portalVars : {}}>
       {payState !== "idle" && (
         <PaymentOverlay
           state={payState}
@@ -1323,18 +1334,46 @@ export function CaptivePortalClient() {
         />
       )}
 
+      {noteDialog && (
+        <Dialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) setNoteDialog(null);
+          }}
+        >
+          <DialogContent className="w-[95vw] max-w-md sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-lg sm:text-xl">{noteDialog.title}</DialogTitle>
+              <DialogDescription className="whitespace-pre-line leading-relaxed">
+                {noteDialog.content}
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter className="pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setNoteDialog(null)}
+                className="w-full sm:w-auto"
+              >
+                {labels[config.language]?.close || "Close"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {HeaderSection()}
 
-      
+
       <div className={mainClass()}>
         {config.portalSettings.welcomeMessage && config.active && WelcomView()}
 
         <div className="mt-4">
           {resolvedMode === "both"
-              ? TabsView()
-              : resolvedMode === "packages"
-                ? PackageView()
-                : VoucherView()}
+            ? TabsView()
+            : resolvedMode === "packages"
+              ? PackageView()
+              : VoucherView()}
         </div>
 
         {config.portalSettings.termsUrl && config.active && TermsView()}
