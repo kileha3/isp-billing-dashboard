@@ -280,6 +280,10 @@ export const apiClient = {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
+    extendUsage: (id: string) => req<{ success: boolean; message: string }>(`/pppoe/${id}/extend`, {
+        method: "PATCH",
+        body: JSON.stringify({}),
+    }),
     delete: (id: string) => req<{ message: string }>(`/pppoe/${id}`, { method: "DELETE" }),
   },
 

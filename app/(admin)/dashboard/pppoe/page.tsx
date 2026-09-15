@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, Pencil, Trash2, Filter, Plus, Copy, Check, Power, PowerOff } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Filter, Plus, Copy, Check, Power, PowerOff, Calendar } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Package, PPPoEUser, Tenant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,7 @@ export default function PPPoEUsersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [userToDelete, setUserToDelete] = useState<PPPoEUser | null>(null);
   const [userToActivate, setUserToActivate] = useState<PPPoEUser | null>(null);
+  const [userToExtend, setUserToExtend] = useState<PPPoEUser | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
 
@@ -112,6 +113,12 @@ export default function PPPoEUsersPage() {
   const handleActivate = async (user: PPPoEUser) => {
      const { message } = await apiClient.pppoe.activateDeactivate(user._id, user.status !== "active" ? "active" : "unpaid");
         toast({ title: "Status update", description: message });
+        load();
+  }
+
+  const handleExtendUsage = async (user: PPPoEUser) => {
+    const { message } = await apiClient.pppoe.extendUsage(user._id);
+        toast({ title: "Usage extended", description: message });
         load();
   }
 
@@ -216,7 +223,6 @@ export default function PPPoEUsersPage() {
     },
     { key: "phoneNumber", label: "Phone Number", render: (v: unknown) => String(v) },
     { key: "firstName", label: "First Name" },
-    { key: "lastName", label: "Last Name" },
     { key: "location", label: "Location", render: (v: unknown) => v ? String(v) : "—" },
     {
       key: "packageId",
@@ -233,15 +239,21 @@ export default function PPPoEUsersPage() {
         );
       }
     },
-    {
-      key: "status",
-      label: "Status",
-      render: (v: unknown) => <StatusBadge status={v as string} />
-    },
+    
     {
       key: "createdAt",
       label: "Created",
       render: (v: unknown) => formatDate(v)
+    },
+    {
+      key: "expiresOn",
+      label: "Expires",
+      render: (v: unknown) => formatDate(v)
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (v: unknown) => <StatusBadge status={v as string} />
     },
   ];
 
@@ -308,10 +320,15 @@ export default function PPPoEUsersPage() {
                 {row.status === "active" && (<PowerOff className="mr-2 h-4 w-4" />)}
                 {row.status === "active" ? "Mark Unpaid":"Activate"}
               </DropdownMenuItem>
+
+              {row.showExtend ? (<DropdownMenuItem onClick={() => setUserToExtend(row as unknown as PPPoEUser)}>
+                <Calendar className="mr-2 h-4 w-4" /> 
+                Extend Expiry
+              </DropdownMenuItem>): (<div/>)}
+
               <DropdownMenuItem className="text-destructive" onClick={() => setUserToDelete(row as unknown as PPPoEUser)}>
                 <Trash2 className="mr-2 h-4 w-4" />Delete
               </DropdownMenuItem>
-              
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -448,6 +465,20 @@ export default function PPPoEUsersPage() {
             const user = userToActivate!;
             setUserToActivate(null);
             handleActivate(user);
+          }}
+        />
+      )}
+
+      {userToExtend && (
+        <ConfirmDialog
+          open={userToExtend !== null}
+          title="Extend Usage"
+          message={`You are about to extend ${userToExtend.username}'s package expiry, make sure payments are in order since once done user service will be extended.`}
+          onCancel={() => setUserToExtend(null)}
+          onConfirm={async () => {
+            const user = userToExtend!;
+            setUserToExtend(null);
+            handleExtendUsage(user);
           }}
         />
       )}

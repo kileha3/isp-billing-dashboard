@@ -56,6 +56,8 @@ export interface PPPoEUser {
   packageId: Package | string;
   status: "active" | "suspended" | "unpaid" | "offline";
   createdAt: string;
+  showExtend: boolean;
+  expiresOn: string;
   updatedAt: string;
   tenantId: string;
 }
