@@ -1048,7 +1048,7 @@ export function CaptivePortalClient() {
               ServerEvents.event_payment_completed,
               orderId,
               ({ success, voucher }) => reflectOnUI(success, voucher, note),
-              40_1000,
+              40 * 1000,
               () =>
                 apiClient.portal.checkStatus({
                   orderId,
