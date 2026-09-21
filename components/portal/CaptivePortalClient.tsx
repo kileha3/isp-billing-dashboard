@@ -1048,7 +1048,7 @@ export function CaptivePortalClient() {
               ServerEvents.event_payment_completed,
               orderId,
               ({ success, voucher }) => reflectOnUI(success, voucher, note),
-              24 * 1000,
+              40_1000,
               () =>
                 apiClient.portal.checkStatus({
                   orderId,
@@ -1383,7 +1383,7 @@ export function CaptivePortalClient() {
 
       {config.portalSettings.showPoweredBy && (
         <p className="text-center text-sm text-muted-foreground/50 py-4">
-          {labels[config.language]?.poweredBy || "Powered by"} {appName}
+          {appName}, {labels[config.language]?.poweredBy || "Powered by"} EasyPay 
         </p>
       )}
     </div>
