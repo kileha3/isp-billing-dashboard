@@ -216,6 +216,7 @@ export interface Transaction {
   source: string;
   currency: string;
   paymentMethod: string;
+  externalReference?:string;
   reference?: string;
   createdAt: string;
   updatedAt: string;
