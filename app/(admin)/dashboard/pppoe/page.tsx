@@ -320,10 +320,10 @@ export default function PPPoEUsersPage() {
                 {row.status === "active" ? "Mark Unpaid":"Activate"}
               </DropdownMenuItem>
 
-              {row.showExtend ? (<DropdownMenuItem onClick={() => setUserToExtend(row as unknown as PPPoEUser)}>
+              <DropdownMenuItem onClick={() => setUserToExtend(row as unknown as PPPoEUser)}>
                 <Calendar className="mr-2 h-4 w-4" /> 
                 Extend Expiry
-              </DropdownMenuItem>): (<div/>)}
+              </DropdownMenuItem>
 
               <DropdownMenuItem className="text-destructive" onClick={() => setUserToDelete(row as unknown as PPPoEUser)}>
                 <Trash2 className="mr-2 h-4 w-4" />Delete
