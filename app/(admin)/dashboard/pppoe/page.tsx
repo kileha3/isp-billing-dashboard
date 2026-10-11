@@ -203,11 +203,11 @@ export default function PPPoEUsersPage() {
         const isCopied = copiedPassword === user.username;
         return (
           <div className="flex items-center gap-2 group">
-            <span className="font-mono text-sm">{"•".repeat(8)}</span>
+            <span className="font-mono text-sm">{user.password}</span>
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-6 w-6"
               onClick={() => copyToClipboard(user.password, user.username)}
               title="Click to copy password"
             >
@@ -223,7 +223,6 @@ export default function PPPoEUsersPage() {
     },
     { key: "phoneNumber", label: "Phone Number", render: (v: unknown) => String(v) },
     { key: "firstName", label: "First Name" },
-    { key: "location", label: "Location", render: (v: unknown) => v ? String(v) : "—" },
     {
       key: "packageId",
       label: "Package",
