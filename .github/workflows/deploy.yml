@@ -111,7 +111,7 @@ jobs:
       DOCKER_REPO: ghcr.io/${{ github.actor }}/${{vars.APPLICATION_NAME}}
     strategy:
       matrix:
-        host: ["isp.easypay.co.tz"]
+        host: ["isp.stack.co.tz"]
 
     steps:
       - name: Download Artifacts
@@ -126,7 +126,7 @@ jobs:
           username: ${{ vars.SSH_USERNAME }} 
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          script: mkdir -p /var/www/${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}
+          script: mkdir -p /var/www/isp.stack.co.tz/${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}
 
       - name: Copy File to Server
         uses: appleboy/scp-action@v0.1.4
@@ -136,7 +136,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "docker-compose.yml,nginx.conf,envs"
-          target: "/var/www/${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}"
+          target: "/var/www/isp.stack.co.tz/${{env.CONTAINER_PREFIX}}-${{ vars.APPLICATION_NAME }}"
 
       - name: Deploy to ${{ matrix.host }}
         uses: appleboy/ssh-action@v1.2.2
@@ -146,7 +146,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd /var/www/${{env.CONTAINER_PREFIX}}-${{vars.APPLICATION_NAME}}
+            cd /var/www/isp.stack.co.tz/${{env.CONTAINER_PREFIX}}-${{vars.APPLICATION_NAME}}
 
             mv envs .env.local
 
